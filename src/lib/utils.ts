@@ -27,5 +27,18 @@ export function isModifier(key: string) {
     "{spacebar}",
     "{enter}",
     "{backspace}",
+    "Backspace",
+    "Tab",
+    "CapsLock",
+    "Shift",
+    "Control",
+    "Alt",
+    "Meta",
+    "Enter",
+    "Space",
+    "ArrowLeft",
+    "ArrowRight",
+    "ArrowUp",
+    "ArrowDown",
   ].includes(key);
 }

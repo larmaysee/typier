@@ -8,10 +8,6 @@ const kbLayouts = [
     name: "English",
   },
   {
-    code: LanguageCode.MY,
-    name: "Myanmar",
-  },
-  {
     code: LanguageCode.LI,
     name: "Lisu",
   },

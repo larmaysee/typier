@@ -69,6 +69,20 @@ export default function Keyboard() {
     }
   };
 
+  useEffect(() => {
+    window.addEventListener("keydown", (event) => {
+      if (event.key === "Shift") {
+        setShift(true);
+      }
+    });
+
+    window.addEventListener("keyup", (event) => {
+      if (event.key === "Shift") {
+        setShift(false);
+      }
+    });
+  }, []);
+
   return (
     <div className={cn("border rounded-lg bg-muted  p-2")}>
       <div className={cn("flex flex-col gap-2")}>
