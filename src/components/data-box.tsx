@@ -6,7 +6,7 @@ import { getLisuChar } from "@/lib/converter";
 import { cn, isModifier } from "@/lib/utils";
 import { RotateCcw } from "lucide-react";
 import { Lisu_Bosa } from "next/font/google";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSiteConfig } from "./site-config";
 import { Button } from "./ui/button";
 
@@ -22,6 +22,7 @@ export type DataBoxType = {
 
 export default function DataBox({}) {
   const { config } = useSiteConfig();
+  const ref = useRef<HTMLDivElement>(null);
 
   const [currentData, setCurrentData] = useState<string | null>(null);
   const [typedChars, setTypedChars] = useState<string>("");
@@ -31,6 +32,7 @@ export default function DataBox({}) {
 
   useEffect(() => {
     setLanguage(config.language.code);
+    if (ref.current) ref.current.focus();
   }, [config.language]);
 
   useEffect(() => {
@@ -92,13 +94,25 @@ export default function DataBox({}) {
     }
   };
 
+  useEffect(() => {
+    window.addEventListener("keydown", (e) => {
+      console.log("key down", e);
+
+      if (ref.current) {
+        e.preventDefault();
+        ref.current.focus();
+      }
+    });
+  }, []);
+
   return (
     <>
       <div
         className="bg-background rounded-lg h-[120px] p-4 border relative focus-visible:border-primary"
         tabIndex={0}
         onKeyDown={handleKeyDown}
-        ref={(el) => el?.focus()}
+        onClick={(e) => e.currentTarget.focus()} // Add this line
+        ref={ref}
       >
         <div
           className={cn(
