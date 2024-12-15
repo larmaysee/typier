@@ -70,3 +70,25 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+.letter.active::after {
+  content: "|";
+  animation: blink 1s step-start infinite;
+  position: absolute;
+  left: 0;
+  color: var(--primary);
+}
+
+.letter.space-active::after {
+  content: "|";
+  animation: blink 1s step-start infinite;
+  position: absolute;
+  right: -2px;
+  color: var(--primary);
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}

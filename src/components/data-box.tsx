@@ -2,13 +2,13 @@
 import engdatasets from "@/datas/english-data";
 import lidatasets from "@/datas/lisu-data";
 import mydatasets from "@/datas/myanmar-data";
-import { getLisuChar } from "@/lib/converter";
-import { cn, isModifier } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { RotateCcw } from "lucide-react";
 import { Lisu_Bosa } from "next/font/google";
 import { useEffect, useRef, useState } from "react";
 import { useSiteConfig } from "./site-config";
 import { Button } from "./ui/button";
+import { Input } from "./ui/input";
 
 const lisuBosa = Lisu_Bosa({
   weight: ["400", "700"],
@@ -22,17 +22,20 @@ export type DataBoxType = {
 
 export default function DataBox({}) {
   const { config } = useSiteConfig();
-  const ref = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const [currentData, setCurrentData] = useState<string | null>(null);
-  const [typedChars, setTypedChars] = useState<string>("");
-  const [cursorPosition, setCursorPosition] = useState<number>(0);
   const [language, setLanguage] = useState<string>("en");
   const [syntaxs, setSyntaxs] = useState<string[]>([]);
+  const [typedText, setTypedText] = useState<string>("");
+
+  const [correctWords, setCorrectWords] = useState<number>(0);
+  const [incorrectWords, setIncorrectWords] = useState<number>(0);
+  const [startTime, setStartTime] = useState<number | null>(null);
 
   useEffect(() => {
     setLanguage(config.language.code);
-    if (ref.current) ref.current.focus();
+    if (inputRef.current) inputRef.current.focus();
   }, [config.language]);
 
   useEffect(() => {
@@ -48,9 +51,6 @@ export default function DataBox({}) {
         Math.random() * datasets[language].syntaxs.length
       );
       setCurrentData(datasets[language].syntaxs[randomIndex]);
-
-      setTypedChars("");
-      setCursorPosition(0);
     }
   }, [language]);
 
@@ -58,61 +58,103 @@ export default function DataBox({}) {
     if (syntaxs.length) {
       const randomIndex = Math.floor(Math.random() * syntaxs.length);
       setCurrentData(syntaxs[randomIndex]);
-      setTypedChars("");
-      setCursorPosition(0);
     }
-
-    console.log(currentData);
   };
 
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (!currentData) return;
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.repeat) {
+      e.preventDefault();
+      return;
+    }
+  };
 
-    let key = event.key;
-    console.log(key);
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const inputText = e.target.value;
+    setTypedText(inputText);
 
-    if (language === "li" && !isModifier(key)) key = getLisuChar(event.key);
+    if (startTime === null) {
+      setStartTime(Date.now());
+    }
 
-    console.log(key);
+    const words = inputText.trim().split(" ");
+    const currentWords = currentData?.split(" ") || [];
 
-    if (key === "Backspace") {
-      setTypedChars((prev) => prev.slice(0, -1));
-      setCursorPosition((prev) => Math.max(prev - 1, 0));
-    } else if (key.length === 1) {
-      const nextChar = currentData[cursorPosition];
-      if (key === nextChar) {
-        setTypedChars((prev) => prev + key);
-        setCursorPosition((prev) => prev + 1);
+    let correct = 0;
+    let incorrect = 0;
+
+    words.forEach((word, index) => {
+      if (word === currentWords[index]) {
+        correct++;
       } else {
-        setTypedChars((prev) => prev + key);
-        setCursorPosition((prev) => prev + 1);
-      }
-    }
-
-    if (cursorPosition === currentData.length) {
-      getRandomData();
-    }
-  };
-
-  useEffect(() => {
-    window.addEventListener("keydown", (e) => {
-      console.log("key down", e);
-
-      if (ref.current) {
-        e.preventDefault();
-        ref.current.focus();
+        incorrect++;
       }
     });
-  }, []);
+
+    setCorrectWords(correct);
+    setIncorrectWords(incorrect);
+  };
+
+  const calculateWPM = () => {
+    if (startTime === null) return 0;
+
+    const elapsedTime = (Date.now() - startTime) / 1000 / 60; // in minutes
+    return Math.round(correctWords / elapsedTime);
+  };
+
+  const getActiveWordIndex = () => {
+    const words = typedText.split(" ");
+    return words.length - 1;
+  };
+
+  const getLetterClass = (wordIndex: number, charIndex: number) => {
+    const words = typedText.split(" ");
+    const currentWords = currentData?.split(" ") || [];
+    const activeWordIndex = getActiveWordIndex();
+    const activeCharIndex = words[activeWordIndex]?.length || 0;
+
+    let className = "";
+
+    if (wordIndex < words.length) {
+      const word = words[wordIndex];
+      if (charIndex < word.length) {
+        const char = word[charIndex];
+        if (char === currentWords[wordIndex][charIndex]) {
+          className = "text-green-500";
+        } else {
+          className = "text-red-500";
+        }
+      }
+    }
+
+    if (wordIndex === activeWordIndex && charIndex === activeCharIndex) {
+      className += " active";
+    }
+
+    if (
+      wordIndex === activeWordIndex &&
+      charIndex === currentWords[wordIndex].length - 1 &&
+      activeCharIndex === currentWords[wordIndex].length
+    ) {
+      className += " space-active";
+    }
+
+    return className;
+  };
 
   return (
     <>
-      <div
-        className="bg-background rounded-lg h-[120px] p-4 border relative focus-visible:border-primary"
-        tabIndex={0}
+      <Input
+        className=""
         onKeyDown={handleKeyDown}
-        onClick={(e) => e.currentTarget.focus()} // Add this line
-        ref={ref}
+        onChange={handleInputChange}
+        ref={inputRef}
+      />
+      <div
+        className={cn(
+          "bg-background rounded-lg h-[120px] p-4 border relative focus-visible:border-primary"
+        )}
+        tabIndex={0}
+        onFocus={() => inputRef.current?.focus()}
       >
         <div
           className={cn(
@@ -120,22 +162,30 @@ export default function DataBox({}) {
             `${lisuBosa.className}`
           )}
         >
-          {currentData?.split("").map((char, index) => {
-            let charClass = "";
-            if (index < typedChars.length) {
-              charClass =
-                typedChars[index] === char
-                  ? "bg-green-500 text-muted-foreground"
-                  : "bg-destructive";
-            } else if (index === typedChars.length) {
-              charClass = "typed";
-            }
-            return (
-              <span key={index} className={cn(`${char}`, charClass)}>
-                {char === " " ? "\u00A0" : char}
-              </span>
-            );
-          })}
+          <div className="words flex flex-wrap relative">
+            {currentData?.split(" ").map((word, wordIndex) => (
+              <div
+                key={wordIndex}
+                className={`word px-1${
+                  getActiveWordIndex() === wordIndex ? " active bg-muted" : ""
+                }`}
+              >
+                {word.split("").map((char, charIndex) => {
+                  return (
+                    <span
+                      key={charIndex}
+                      className={`letter text-2xl relative ${getLetterClass(
+                        wordIndex,
+                        charIndex
+                      )}`}
+                    >
+                      {char}
+                    </span>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
         </div>
 
         <Button
@@ -146,6 +196,9 @@ export default function DataBox({}) {
         >
           <RotateCcw />
         </Button>
+      </div>
+      <div className="wpm-display">
+        WPM: {calculateWPM()} Incorrect: {incorrectWords}
       </div>
     </>
   );
