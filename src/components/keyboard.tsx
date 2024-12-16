@@ -3,7 +3,7 @@ import english from "@/layouts/english";
 import lisu from "@/layouts/lisu";
 import myanmar from "@/layouts/myanmar";
 import { cn, keyname } from "@/lib/utils";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import KeyButton from "./key-button";
 import { useSiteConfig } from "./site-config";
 type KeyboardType = {
@@ -17,6 +17,7 @@ export default function Keyboard() {
   const [shiftLayout, setShiftLayout] = useState<string[]>();
   const [shift, setShift] = useState(false);
   const [capsLock, setCapsLock] = useState(false);
+  const [pressedKey, setPressedKey] = useState<string | null>(null);
 
   useEffect(() => {
     const layouts = {
@@ -39,17 +40,26 @@ export default function Keyboard() {
     return keyname(shiftLayout![rowIndex]?.split(" ")[keyIndex]);
   };
 
-  const handleShift = () => {
-    setCurrentLayout(shiftLayout);
-    setShiftLayout(currentLayout);
-  };
+  const handleShift = useCallback(
+    (isShift: boolean) => {
+      setShift(isShift);
+      if (isShift) {
+        setCurrentLayout(keyboardType?.shifts);
+        setShiftLayout(keyboardType?.defaults);
+      } else {
+        setCurrentLayout(keyboardType?.defaults);
+        setShiftLayout(keyboardType?.shifts);
+      }
+    },
+    [keyboardType]
+  );
 
   const handleKeyPress = (key: string) => {
     console.log(key);
+    setPressedKey(key);
 
     if (key === "{shift}") {
-      setShift(!shift);
-      handleShift();
+      handleShift(!shift);
     } else if (key === "{caps-lock}") {
       setCapsLock(!capsLock);
       if (capsLock) {
@@ -61,30 +71,57 @@ export default function Keyboard() {
       }
     } else {
       if (capsLock) {
+        // Handle caps lock logic if needed
       }
       if (shift) {
-        setShift(false);
-        handleShift();
+        handleShift(false);
       }
     }
+
+    setTimeout(() => setPressedKey(null), 200); // Remove highlight after 200ms
   };
 
   useEffect(() => {
-    window.addEventListener("keydown", (event) => {
-      if (event.key === "Shift") {
-        setShift(true);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.repeat || event.isComposing) {
+        event.preventDefault();
+        return;
       }
-    });
 
-    window.addEventListener("keyup", (event) => {
+      setPressedKey(event.key);
+
+      console.log("pressed key", event.key);
+
       if (event.key === "Shift") {
-        setShift(false);
+        handleShift(true);
       }
-    });
-  }, []);
+    };
+
+    const handleKeyUp = (event: KeyboardEvent) => {
+      if (event.repeat || event.isComposing) {
+        event.preventDefault();
+        return;
+      }
+
+      setPressedKey(null);
+
+      if (event.key === "Shift") {
+        handleShift(false);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("keyup", handleKeyUp);
+
+    // Cleanup event listeners on component unmount
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("keyup", handleKeyUp);
+    };
+  }, [handleShift, shift]);
 
   return (
-    <div className={cn("border rounded-lg bg-muted  p-2")}>
+    <div className={cn("border rounded-lg bg-secondary  p-2")}>
       <div className={cn("flex flex-col gap-2")}>
         {currentLayout &&
           currentLayout.map((row, rowIndex) => (
@@ -94,8 +131,13 @@ export default function Keyboard() {
                   key={keyIndex}
                   label={keyname(key)}
                   value={key}
-                  shiftKey={getCurrentShiftKey(rowIndex, keyIndex)}
+                  shiftKey={
+                    config.showShiftLabel
+                      ? getCurrentShiftKey(rowIndex, keyIndex)
+                      : ""
+                  }
                   onClick={() => handleKeyPress(key)}
+                  pressedKey={pressedKey}
                   className={cn(
                     keyname(key) === "spacebar"
                       ? "grow-[10]"

@@ -1,4 +1,3 @@
-import AdsBlock from "@/components/ads-block";
 import DataBox from "@/components/data-box";
 import Keyboard from "@/components/keyboard";
 import SiteFooter from "@/components/site-footer";
@@ -11,7 +10,7 @@ export default function Home() {
         <SiteToolbox />
 
         <div className="flex flex-col gap-4 w-full md:max-w-[800px] md:m-auto sm:p-4">
-          <AdsBlock />
+          {/* <AdsBlock /> */}
           <DataBox />
           <Keyboard />
         </div>

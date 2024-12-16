@@ -10,6 +10,7 @@ interface SiteConfig {
     name: string;
   };
   mode: KeyboardMode;
+  showShiftLabel?: boolean;
 }
 
 interface SiteConfigProviderProps {
@@ -23,6 +24,7 @@ const defaultConfig: SiteConfig = {
     name: layouts.find((layout) => layout.code === LanguageCode.LI)?.name || "",
   },
   mode: KeyboardMode.DEFAULT,
+  showShiftLabel: false,
 };
 
 const SiteConfigContext = createContext<{

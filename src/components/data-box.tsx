@@ -32,6 +32,7 @@ export default function DataBox({}) {
   const [correctWords, setCorrectWords] = useState<number>(0);
   const [incorrectWords, setIncorrectWords] = useState<number>(0);
   const [startTime, setStartTime] = useState<number | null>(null);
+  const [isFocused, setIsFocused] = useState<boolean>(false);
 
   useEffect(() => {
     setLanguage(config.language.code);
@@ -61,10 +62,35 @@ export default function DataBox({}) {
     }
   };
 
+  const handleRefresh = () => {
+    setTypedText("");
+    setCorrectWords(0);
+    setIncorrectWords(0);
+    setStartTime(null);
+    getRandomData();
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.repeat) {
       e.preventDefault();
       return;
+    }
+
+    const words = typedText.split(" ");
+    const activeWordIndex = getActiveWordIndex();
+    const activeWord = words[activeWordIndex] || "";
+
+    if (e.key === " " && activeWord.length === 0) {
+      e.preventDefault(); // Prevent space if the current word is empty
+    }
+
+    if (e.key === " " && activeWord.length > 0) {
+      const currentWords = currentData?.split(" ") || [];
+      if (activeWord === currentWords[activeWordIndex]) {
+        setCorrectWords((prev) => prev + 1);
+      } else {
+        setIncorrectWords((prev) => prev + 1);
+      }
     }
   };
 
@@ -114,14 +140,22 @@ export default function DataBox({}) {
 
     let className = "";
 
-    if (wordIndex < words.length) {
-      const word = words[wordIndex];
-      if (charIndex < word.length) {
-        const char = word[charIndex];
-        if (char === currentWords[wordIndex][charIndex]) {
-          className = "text-green-500";
+    if (wordIndex < currentWords.length) {
+      const currentWord = currentWords[wordIndex];
+      const typedWord = words[wordIndex] || "";
+
+      if (charIndex < currentWord.length) {
+        const currentChar = currentWord[charIndex];
+        const typedChar = typedWord[charIndex] || "";
+
+        if (typedChar) {
+          if (typedChar === currentChar) {
+            className = "text-primary cursor";
+          } else {
+            className = "text-destructive cursor";
+          }
         } else {
-          className = "text-red-500";
+          className = "text-muted-foreground";
         }
       }
     }
@@ -141,21 +175,91 @@ export default function DataBox({}) {
     return className;
   };
 
+  const getWordClass = (wordIndex: number) => {
+    const words = typedText.split(" ");
+    const currentWords = currentData?.split(" ") || [];
+    const typedWord = words[wordIndex] || "";
+    if (typedWord === currentWords[wordIndex] && wordIndex < words.length - 1) {
+      return "correct typed";
+    } else if (typedWord.length > 0 && wordIndex < words.length - 1) {
+      return "incorrect border-destructive typed"; // Mark as incorrect if word is skipped or partially typed
+    }
+    return "";
+  };
+
+  // const getCursorPosition = () => {
+  //   // get all typed words width
+  //   const typedWordsEle = document.querySelectorAll(
+  //     ".typed"
+  //   ) as NodeListOf<HTMLElement>;
+
+  //   if (!typedWordsEle) return { left: 0, top: 0 };
+
+  //   const databoxEle = document.querySelector(".databox") as HTMLElement;
+
+  //   let left = 0;
+  //   let top = 0;
+
+  //   typedWordsEle.forEach((ele) => {
+  //     console.log("type ele", ele.offsetWidth);
+  //     left += ele.offsetWidth;
+  //   });
+
+  //   if (left >= databoxEle?.offsetWidth) {
+  //     left = 0;
+  //     top += 30;
+  //   }
+
+  //   // const activeWordIndex = getActiveWordIndex();
+  //   // const words = typedText.split(" ");
+  //   // const activeWord = words[activeWordIndex] || "";
+
+  //   // const activeCharElement = document.querySelector(
+  //   //   `.word-${activeWordIndex} .letter-${activeWord.length}`
+  //   // ) as HTMLElement | null;
+
+  //   // console.log("activeCharElement", activeCharElement?.offsetWidth);
+
+  //   // if (activeCharElement) {
+  //   //   left += activeCharElement.offsetWidth;
+  //   // }
+
+  //   return { left, top };
+  // };
+
   return (
     <>
-      <Input
-        className=""
-        onKeyDown={handleKeyDown}
-        onChange={handleInputChange}
-        ref={inputRef}
-      />
       <div
         className={cn(
-          "bg-background rounded-lg h-[120px] p-4 border relative focus-visible:border-primary"
+          "bg-background databox rounded-lg h-[120px] relative focus-visible:border-primary",
+          isFocused ? "focus" : ""
         )}
         tabIndex={0}
         onFocus={() => inputRef.current?.focus()}
       >
+        <Input
+          className=" opacity-0 absolute left-0"
+          onKeyDown={handleKeyDown}
+          onChange={handleInputChange}
+          ref={inputRef}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+        />
+
+        {/* fake cursor */}
+        {/* <div
+          className={cn(
+            "absolute rounded-lg top-0 left-0 w-0.5 bg-primary",
+            "cursor",
+            `${lisuBosa.className}`
+          )}
+          style={{
+            left: `${getCursorPosition().left}px`,
+            top: `${getCursorPosition().top}px`,
+            height: "30px", // Adjust cursor height as needed
+          }}
+        ></div> */}
+
         <div
           className={cn(
             "flex flex-wrap pr-4 pb-4 text-xl",
@@ -166,15 +270,15 @@ export default function DataBox({}) {
             {currentData?.split(" ").map((word, wordIndex) => (
               <div
                 key={wordIndex}
-                className={`word px-1${
-                  getActiveWordIndex() === wordIndex ? " active bg-muted" : ""
-                }`}
+                className={`word word-${wordIndex} flex px-1 border-b border-dashed h-10 ${getWordClass(
+                  wordIndex
+                )}${getActiveWordIndex() === wordIndex ? " active" : ""}`}
               >
                 {word.split("").map((char, charIndex) => {
                   return (
                     <span
                       key={charIndex}
-                      className={`letter text-2xl relative ${getLetterClass(
+                      className={`letter letter-${charIndex} text-2xl relative ${getLetterClass(
                         wordIndex,
                         charIndex
                       )}`}
@@ -192,7 +296,7 @@ export default function DataBox({}) {
           variant={"outline"}
           size={"icon"}
           className="absolute bottom-1 right-1 h-6 w-6"
-          onClick={getRandomData}
+          onClick={handleRefresh}
         >
           <RotateCcw />
         </Button>
