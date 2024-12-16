@@ -301,9 +301,6 @@ export default function DataBox() {
           <RotateCcw />
         </Button>
       </div>
-      <div className="wpm-display">
-        WPM: {calculateWPM()} Incorrect: {incorrectWords}
-      </div>
     </>
   );
 }

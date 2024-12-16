@@ -64,10 +64,8 @@ export default function Keyboard() {
       setShift(isShift);
       if (isShift) {
         setCurrentLayout(keyboardType?.shifts);
-        setShiftLayout(keyboardType?.defaults);
       } else {
         setCurrentLayout(keyboardType?.defaults);
-        setShiftLayout(keyboardType?.shifts);
       }
     },
     [keyboardType]
@@ -78,9 +76,10 @@ export default function Keyboard() {
       const isShiftRequired = shiftLayout?.some((row) =>
         row.includes(currentKey) && !isModifier(currentKey)
       );
-
       if (isShiftRequired) {
         setTimeout(() => handleShift(true), 0);
+      } else {
+        setTimeout(() => handleShift(false), 0);
       }
     }
   }, [config.practiceMode, currentKey, handleShift, shiftLayout]);
