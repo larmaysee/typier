@@ -2,22 +2,44 @@
 import english from "@/layouts/english";
 import lisu from "@/layouts/lisu";
 import myanmar from "@/layouts/myanmar";
-import { cn, keyname } from "@/lib/utils";
+import { cn, isModifier, keyname } from "@/lib/utils";
 import { useCallback, useEffect, useState } from "react";
 import KeyButton from "./key-button";
+import { usePracticeMode } from "./pratice-mode";
 import { useSiteConfig } from "./site-config";
+
 type KeyboardType = {
-  defaults: string[];
-  shifts: string[];
+  defaults: [];
+  shifts: [];
 };
+
+type Key = string | "{backspace}" | "{tab}" | "{caps-lock}" | "{enter}" | "{shift}" | "{ctrl}" | "{alt}" | "{spacebar}";
+type KeyboardRow = Key[];
+type KeyboardLayout = {
+  defaults: KeyboardRow[];
+  shifts: KeyboardRow[];
+};
+
 export default function Keyboard() {
   const { config } = useSiteConfig();
-  const [keyboardType, setKeyboardType] = useState<KeyboardType | null>(null);
-  const [currentLayout, setCurrentLayout] = useState<string[]>();
-  const [shiftLayout, setShiftLayout] = useState<string[]>();
+  const { activeChar } = usePracticeMode();
+  const [keyboardType, setKeyboardType] = useState<KeyboardLayout | null>(null);
+  const [currentLayout, setCurrentLayout] = useState<KeyboardRow[]>();
+  const [shiftLayout, setShiftLayout] = useState<KeyboardRow[]>();
   const [shift, setShift] = useState(false);
   const [capsLock, setCapsLock] = useState(false);
   const [pressedKey, setPressedKey] = useState<string | null>(null);
+  const [currentKey, setCurrentKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    console.log("activeChar", activeChar);
+
+    if (!activeChar || !config.practiceMode) {
+      setCurrentKey(null);
+      return;
+    }
+    setCurrentKey(activeChar);
+  }, [activeChar, config.practiceMode]);
 
   useEffect(() => {
     const layouts = {
@@ -26,7 +48,9 @@ export default function Keyboard() {
       my: { defaults: myanmar.default, shifts: myanmar.shift },
     };
 
-    setKeyboardType(layouts[config.language.code]);
+    setKeyboardType(
+      layouts[config.language.code as keyof typeof layouts] as KeyboardType
+    );
   }, [config.language]);
 
   useEffect(() => {
@@ -34,11 +58,6 @@ export default function Keyboard() {
     setCurrentLayout(keyboardType.defaults);
     setShiftLayout(keyboardType.shifts);
   }, [keyboardType]);
-
-  const getCurrentShiftKey = (rowIndex: number, keyIndex: number) => {
-    if (!shiftLayout) return "";
-    return keyname(shiftLayout![rowIndex]?.split(" ")[keyIndex]);
-  };
 
   const handleShift = useCallback(
     (isShift: boolean) => {
@@ -53,6 +72,23 @@ export default function Keyboard() {
     },
     [keyboardType]
   );
+
+  useEffect(() => {
+    if (config.practiceMode && currentKey) {
+      const isShiftRequired = shiftLayout?.some((row) =>
+        row.includes(currentKey) && !isModifier(currentKey)
+      );
+
+      if (isShiftRequired) {
+        setTimeout(() => handleShift(true), 0);
+      }
+    }
+  }, [config.practiceMode, currentKey, handleShift, shiftLayout]);
+
+  const getCurrentShiftKey = (rowIndex: number, keyIndex: number) => {
+    if (!shiftLayout) return "";
+    return keyname(shiftLayout![rowIndex]?.[keyIndex]);
+  };
 
   const handleKeyPress = (key: string) => {
     console.log(key);
@@ -90,8 +126,6 @@ export default function Keyboard() {
 
       setPressedKey(event.key);
 
-      console.log("pressed key", event.key);
-
       if (event.key === "Shift") {
         handleShift(true);
       }
@@ -121,12 +155,12 @@ export default function Keyboard() {
   }, [handleShift, shift]);
 
   return (
-    <div className={cn("border rounded-lg bg-secondary  p-2")}>
+    <div className={cn("border rounded-lg bg-muted-foreground/10 p-2")}>
       <div className={cn("flex flex-col gap-2")}>
         {currentLayout &&
           currentLayout.map((row, rowIndex) => (
             <div key={rowIndex} className="flex space-x-1">
-              {row.split(" ").map((key, keyIndex) => (
+              {row.map((key, keyIndex) => (
                 <KeyButton
                   key={keyIndex}
                   label={keyname(key)}
@@ -136,28 +170,30 @@ export default function Keyboard() {
                       ? getCurrentShiftKey(rowIndex, keyIndex)
                       : ""
                   }
+                  isShift={shift}
                   onClick={() => handleKeyPress(key)}
                   pressedKey={pressedKey}
                   className={cn(
                     keyname(key) === "spacebar"
                       ? "grow-[10]"
                       : keyname(key) === "shift"
-                      ? "grow-[2]"
-                      : keyname(key) === "enter"
-                      ? "grow-[2]"
-                      : keyname(key) === "backspace"
-                      ? "grow-[2]"
-                      : keyname(key) === "ctrl"
-                      ? "grow-[2]"
-                      : keyname(key) === "alt"
-                      ? "grow-[2]"
-                      : keyname(key) === "window"
-                      ? "grow-[2]"
-                      : keyname(key) === "caps-lock"
-                      ? "grow-[2]"
-                      : keyname(key) === "tab"
-                      ? "grow-[2]"
-                      : "grow min-w-10"
+                        ? "grow-[2]"
+                        : keyname(key) === "enter"
+                          ? "grow-[2]"
+                          : keyname(key) === "backspace"
+                            ? "grow-[2]"
+                            : keyname(key) === "ctrl"
+                              ? "grow-[2]"
+                              : keyname(key) === "alt"
+                                ? "grow-[2]"
+                                : keyname(key) === "window"
+                                  ? "grow-[2]"
+                                  : keyname(key) === "caps-lock"
+                                    ? "grow-[2]"
+                                    : keyname(key) === "tab"
+                                      ? "grow-[2]"
+                                      : "grow min-w-10",
+                    currentKey === key ? "bg-muted" : ""
                   )}
                 />
               ))}

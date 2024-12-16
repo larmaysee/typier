@@ -1,7 +1,6 @@
-import DataBox from "@/components/data-box";
-import Keyboard from "@/components/keyboard";
 import SiteFooter from "@/components/site-footer";
 import SiteToolbox from "@/components/site-toolbox";
+import TestUi from "@/components/test-ui";
 
 export default function Home() {
   return (
@@ -10,11 +9,8 @@ export default function Home() {
         <SiteToolbox />
 
         <div className="flex flex-col gap-4 w-full md:max-w-[800px] md:m-auto sm:p-4">
-          {/* <AdsBlock /> */}
-          <DataBox />
-          <Keyboard />
+          <TestUi />
         </div>
-
         <SiteFooter />
       </div>
     </>

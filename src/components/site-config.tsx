@@ -1,5 +1,5 @@
 "use client";
-import { KeyboardMode, LanguageCode, ThemeMode } from "@/enums/site-config";
+import { LanguageCode, ThemeMode } from "@/enums/site-config";
 import layouts from "@/layouts/kb-layouts";
 import React, { createContext, ReactNode, useContext, useState } from "react";
 
@@ -9,8 +9,8 @@ interface SiteConfig {
     code: LanguageCode;
     name: string;
   };
-  mode: KeyboardMode;
   showShiftLabel?: boolean;
+  practiceMode?: boolean; // New property
 }
 
 interface SiteConfigProviderProps {
@@ -23,8 +23,8 @@ const defaultConfig: SiteConfig = {
     code: LanguageCode.LI,
     name: layouts.find((layout) => layout.code === LanguageCode.LI)?.name || "",
   },
-  mode: KeyboardMode.DEFAULT,
   showShiftLabel: false,
+  practiceMode: false, // Default value
 };
 
 const SiteConfigContext = createContext<{
@@ -32,7 +32,7 @@ const SiteConfigContext = createContext<{
   setConfig: React.Dispatch<React.SetStateAction<SiteConfig>>;
 }>({
   config: defaultConfig,
-  setConfig: () => {},
+  setConfig: () => { },
 });
 
 export const SiteConfigProvider: React.FC<SiteConfigProviderProps> = ({

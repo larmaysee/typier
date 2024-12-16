@@ -4,11 +4,13 @@ import lidatasets from "@/datas/lisu-data";
 import mydatasets from "@/datas/myanmar-data";
 import { cn } from "@/lib/utils";
 import { RotateCcw } from "lucide-react";
-import { Lisu_Bosa } from "next/font/google";
 import { useEffect, useRef, useState } from "react";
+import { usePracticeMode } from "./pratice-mode";
 import { useSiteConfig } from "./site-config";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
+
+import { Lisu_Bosa } from "next/font/google";
 
 const lisuBosa = Lisu_Bosa({
   weight: ["400", "700"],
@@ -20,8 +22,9 @@ export type DataBoxType = {
   data: string;
 };
 
-export default function DataBox({}) {
+export default function DataBox() {
   const { config } = useSiteConfig();
+  const { setActiveChar } = usePracticeMode();
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [currentData, setCurrentData] = useState<string | null>(null);
@@ -36,11 +39,22 @@ export default function DataBox({}) {
 
   useEffect(() => {
     setLanguage(config.language.code);
-    if (inputRef.current) inputRef.current.focus();
+    if (inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.value = "";
+    }
   }, [config.language]);
 
   useEffect(() => {
-    const datasets: { [key: string]: { syntaxs: string[] } } = {
+    if (config.practiceMode && currentData) {
+      setActiveChar(currentData.split(" ")[0]?.[0] || null);
+    } else {
+      setActiveChar("");
+    }
+  }, [config.practiceMode, currentData, setActiveChar]);
+
+  useEffect(() => {
+    const datasets: { [key: string]: { syntaxs: string[]; }; } = {
       en: engdatasets,
       my: mydatasets,
       li: lidatasets,
@@ -68,6 +82,11 @@ export default function DataBox({}) {
     setIncorrectWords(0);
     setStartTime(null);
     getRandomData();
+
+    // clear input ref
+    if (inputRef.current) {
+      inputRef.current.value = "";
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -81,7 +100,7 @@ export default function DataBox({}) {
     const activeWord = words[activeWordIndex] || "";
 
     if (e.key === " " && activeWord.length === 0) {
-      e.preventDefault(); // Prevent space if the current word is empty
+      e.preventDefault();
     }
 
     if (e.key === " " && activeWord.length > 0) {
@@ -118,6 +137,21 @@ export default function DataBox({}) {
 
     setCorrectWords(correct);
     setIncorrectWords(incorrect);
+
+    // Update activeChar
+    const activeWordIndex = getActiveWordIndex();
+    const activeCharIndex = words[activeWordIndex]?.length || 0;
+    let activeChar = currentWords[activeWordIndex]?.[activeCharIndex] || null;
+
+    if (activeCharIndex === currentWords[activeWordIndex]?.length) {
+      activeChar = "{spacebar}";
+    }
+
+    setActiveChar(activeChar);
+
+    if (config.practiceMode && activeCharIndex === 0) {
+      setActiveChar(currentWords[activeWordIndex]?.[0] || null);
+    }
   };
 
   const calculateWPM = () => {
@@ -182,50 +216,10 @@ export default function DataBox({}) {
     if (typedWord === currentWords[wordIndex] && wordIndex < words.length - 1) {
       return "correct typed";
     } else if (typedWord.length > 0 && wordIndex < words.length - 1) {
-      return "incorrect border-destructive typed"; // Mark as incorrect if word is skipped or partially typed
+      return "incorrect border-destructive typed";
     }
     return "";
   };
-
-  // const getCursorPosition = () => {
-  //   // get all typed words width
-  //   const typedWordsEle = document.querySelectorAll(
-  //     ".typed"
-  //   ) as NodeListOf<HTMLElement>;
-
-  //   if (!typedWordsEle) return { left: 0, top: 0 };
-
-  //   const databoxEle = document.querySelector(".databox") as HTMLElement;
-
-  //   let left = 0;
-  //   let top = 0;
-
-  //   typedWordsEle.forEach((ele) => {
-  //     console.log("type ele", ele.offsetWidth);
-  //     left += ele.offsetWidth;
-  //   });
-
-  //   if (left >= databoxEle?.offsetWidth) {
-  //     left = 0;
-  //     top += 30;
-  //   }
-
-  //   // const activeWordIndex = getActiveWordIndex();
-  //   // const words = typedText.split(" ");
-  //   // const activeWord = words[activeWordIndex] || "";
-
-  //   // const activeCharElement = document.querySelector(
-  //   //   `.word-${activeWordIndex} .letter-${activeWord.length}`
-  //   // ) as HTMLElement | null;
-
-  //   // console.log("activeCharElement", activeCharElement?.offsetWidth);
-
-  //   // if (activeCharElement) {
-  //   //   left += activeCharElement.offsetWidth;
-  //   // }
-
-  //   return { left, top };
-  // };
 
   return (
     <>

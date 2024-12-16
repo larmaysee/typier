@@ -1,5 +1,4 @@
 "use client";
-import { KeyboardMode } from "@/enums/site-config";
 import { ToggleLeft, ToggleRight } from "lucide-react";
 import KeyboardSelector from "./keyboard-selector";
 import { ModeToggle } from "./mode-toggler";
@@ -17,23 +16,21 @@ export default function SiteToolbox() {
           <KeyboardSelector />
           <Button
             variant={
-              config.mode == KeyboardMode.DEFAULT ? "secondary" : "default"
+              config.practiceMode ? "default" : "secondary"
             }
             size={"sm"}
             onClick={() =>
               setConfig({
                 ...config,
-                mode:
-                  config.mode == KeyboardMode.DEFAULT
-                    ? KeyboardMode.PRACTICE
-                    : KeyboardMode.DEFAULT,
+                practiceMode:
+                  !config.practiceMode
               })
             }
           >
-            {config.mode == KeyboardMode.DEFAULT ? (
-              <ToggleLeft size={16} />
-            ) : (
+            {config.practiceMode ? (
               <ToggleRight size={16} />
+            ) : (
+              <ToggleLeft size={16} />
             )}
             Practice Mode
           </Button>
