@@ -146,6 +146,8 @@ export default function Keyboard() {
 
     document.addEventListener("keydown", handleKeyDown);
     document.addEventListener("keyup", handleKeyUp);
+    document.addEventListener("selectstart", (e) => e.preventDefault());
+    document.addEventListener("select", (e) => e.preventDefault());
 
     // Cleanup event listeners on component unmount
     return () => {

@@ -26,6 +26,7 @@ export default function DataBox() {
   const { config } = useSiteConfig();
   const { setActiveChar } = usePracticeMode();
   const inputRef = useRef<HTMLInputElement>(null);
+  const textContainerRef = useRef<HTMLDivElement>(null);
 
   const [currentData, setCurrentData] = useState<string | null>(null);
   const [language, setLanguage] = useState<string>("en");
@@ -36,6 +37,7 @@ export default function DataBox() {
   const [incorrectWords, setIncorrectWords] = useState<number>(0);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [isFocused, setIsFocused] = useState<boolean>(false);
+  const [isStartNextWord, setIsStartNextWord] = useState<boolean>(false);
 
   useEffect(() => {
     setLanguage(config.language.code);
@@ -68,6 +70,17 @@ export default function DataBox() {
       setCurrentData(datasets[language].syntaxs[randomIndex]);
     }
   }, [language]);
+
+
+  useEffect(() => {
+    // get active word index
+    const activeWord = document.querySelector(".word.active") as HTMLElement;
+    if (activeWord) {
+      console.log();
+
+      console.log("active word index");
+    }
+  }, [typedText]);
 
   const getRandomData = () => {
     if (syntaxs.length) {
@@ -104,6 +117,7 @@ export default function DataBox() {
     }
 
     if (e.key === " " && activeWord.length > 0) {
+      setIsStartNextWord(true);
       const currentWords = currentData?.split(" ") || [];
       if (activeWord === currentWords[activeWordIndex]) {
         setCorrectWords((prev) => prev + 1);
@@ -141,13 +155,18 @@ export default function DataBox() {
     // Update activeChar
     const activeWordIndex = getActiveWordIndex();
     const activeCharIndex = words[activeWordIndex]?.length || 0;
-    let activeChar = currentWords[activeWordIndex]?.[activeCharIndex] || null;
+    let activeChar =
+      isStartNextWord ? currentWords[activeWordIndex + 1]?.[0] :
+        currentWords[activeWordIndex]?.[activeCharIndex] || null;
 
-    if (activeCharIndex === currentWords[activeWordIndex]?.length) {
+    if (activeCharIndex === currentWords[activeWordIndex]?.length && !isStartNextWord) {
       activeChar = "{spacebar}";
+      setIsStartNextWord(false);
     }
 
     setActiveChar(activeChar);
+
+    setIsStartNextWord(false);
 
     if (config.practiceMode && activeCharIndex === 0) {
       setActiveChar(currentWords[activeWordIndex]?.[0] || null);
@@ -225,11 +244,12 @@ export default function DataBox() {
     <>
       <div
         className={cn(
-          "bg-background databox rounded-lg h-[120px] relative focus-visible:border-primary",
+          "bg-background databox rounded-lg h-[120px] relative focus-visible:border-primary overflow-auto",
           isFocused ? "focus" : ""
         )}
         tabIndex={0}
         onFocus={() => inputRef.current?.focus()}
+        ref={textContainerRef}
       >
         <Input
           className=" opacity-0 absolute left-0"
@@ -239,20 +259,6 @@ export default function DataBox() {
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
         />
-
-        {/* fake cursor */}
-        {/* <div
-          className={cn(
-            "absolute rounded-lg top-0 left-0 w-0.5 bg-primary",
-            "cursor",
-            `${lisuBosa.className}`
-          )}
-          style={{
-            left: `${getCursorPosition().left}px`,
-            top: `${getCursorPosition().top}px`,
-            height: "30px", // Adjust cursor height as needed
-          }}
-        ></div> */}
 
         <div
           className={cn(
@@ -264,7 +270,7 @@ export default function DataBox() {
             {currentData?.split(" ").map((word, wordIndex) => (
               <div
                 key={wordIndex}
-                className={`word word-${wordIndex} flex px-1 border-b border-dashed h-10 ${getWordClass(
+                className={`word word-${wordIndex} flex px-1 border-b border-dashed h-[40px] ${getWordClass(
                   wordIndex
                 )}${getActiveWordIndex() === wordIndex ? " active" : ""}`}
               >
