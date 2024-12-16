@@ -75,10 +75,15 @@ export default function DataBox() {
   useEffect(() => {
     // get active word index
     const activeWord = document.querySelector(".word.active") as HTMLElement;
+    const databox = document.querySelector(".databox") as HTMLElement;
     if (activeWord) {
-      console.log();
-
-      console.log("active word index");
+      console.log("activeWord", activeWord.offsetTop);
+      if (activeWord.offsetTop + 40 > databox.clientHeight) {
+        databox.scrollTo({ top: databox.clientHeight, behavior: "smooth" });
+      } else {
+        const topOffset = activeWord.offsetTop - databox.clientHeight > 0 ? activeWord.offsetTop - databox.clientHeight : 0;
+        databox.scrollTo({ top: topOffset, behavior: "smooth" });
+      }
     }
   }, [typedText]);
 
@@ -244,7 +249,7 @@ export default function DataBox() {
     <>
       <div
         className={cn(
-          "bg-background databox rounded-lg h-[120px] relative focus-visible:border-primary overflow-auto",
+          "bg-background databox-wrapper rounded-lg relative",
           isFocused ? "focus" : ""
         )}
         tabIndex={0}
@@ -262,7 +267,7 @@ export default function DataBox() {
 
         <div
           className={cn(
-            "flex flex-wrap pr-4 pb-4 text-xl",
+            "flex flex-wrap pr-4 pb-4 text-xl databox h-[120px] relative focus-visible:border-primary overflow-hidden",
             `${lisuBosa.className}`
           )}
         >
