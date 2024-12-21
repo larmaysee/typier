@@ -3,14 +3,18 @@ import engdatasets from "@/datas/english-data";
 import lidatasets from "@/datas/lisu-data";
 import mydatasets from "@/datas/myanmar-data";
 import { cn } from "@/lib/utils";
-import { RotateCcw } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePracticeMode } from "./pratice-mode";
 import { useSiteConfig } from "./site-config";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 
+import { RotateCcw } from "lucide-react";
 import { Lisu_Bosa } from "next/font/google";
+import KeyboardSelector from "./keyboard-selector";
+import ModeToggler from "./mode-toggler";
+import TimerOptions from "./time-options";
+import TooltipWrapper from "./tooltip-wrapper";
 
 const lisuBosa = Lisu_Bosa({
   weight: ["400", "700"],
@@ -24,7 +28,7 @@ export type DataBoxType = {
 
 export default function DataBox() {
   const { config } = useSiteConfig();
-  const { setActiveChar } = usePracticeMode();
+  const { setActiveChar, setComposeKey } = usePracticeMode();
   const inputRef = useRef<HTMLInputElement>(null);
   const textContainerRef = useRef<HTMLDivElement>(null);
 
@@ -38,6 +42,59 @@ export default function DataBox() {
   const [startTime, setStartTime] = useState<number | null>(null);
   const [isFocused, setIsFocused] = useState<boolean>(false);
   const [isStartNextWord, setIsStartNextWord] = useState<boolean>(false);
+  const [isComposing, setIsComposing] = useState<boolean>(false);
+
+  const [selectedTime, setSelectedTime] = useState<number>(30);
+  const [timeLeft, setTimeLeft] = useState<number>(30);
+
+  useEffect(() => {
+    setTimeLeft(selectedTime);
+  }, [selectedTime]);
+
+  const calculateWPM = useCallback(() => {
+    if (startTime === null) return 0;
+
+    const elapsedTime = (selectedTime - timeLeft) / 60; // in minutes
+    return Math.round(correctWords / elapsedTime);
+  }, [startTime, selectedTime, timeLeft, correctWords]);
+
+  const getRandomData = useCallback(() => {
+    if (syntaxs.length) {
+      const randomIndex = Math.floor(Math.random() * syntaxs.length);
+      setCurrentData(syntaxs[randomIndex]);
+    }
+  }, [syntaxs]);
+
+  const handleRefresh = useCallback(() => {
+    setTypedText("");
+    setCorrectWords(0);
+    setIncorrectWords(0);
+    setStartTime(null);
+    setTimeLeft(selectedTime);
+    getRandomData();
+
+    // clear input ref
+    if (inputRef.current) {
+      inputRef.current.value = "";
+    }
+  }, [getRandomData, selectedTime]);
+
+  useEffect(() => {
+    if (startTime !== null && timeLeft > 0) {
+      const timer = setInterval(() => {
+        setTimeLeft((prev) => prev - 1);
+      }, 1000);
+
+      return () => clearInterval(timer);
+    } else if (timeLeft === 0) {
+      // Time's up, stop the typing test
+      setStartTime(null);
+      if (!config.practiceMode) {
+        alert(`Time's up! Your WPM is ${calculateWPM()}`);
+        handleRefresh();
+      }
+    }
+  }, [startTime, timeLeft, config.practiceMode, calculateWPM, handleRefresh]);
 
   useEffect(() => {
     setLanguage(config.language.code);
@@ -56,7 +113,7 @@ export default function DataBox() {
   }, [config.practiceMode, currentData, setActiveChar]);
 
   useEffect(() => {
-    const datasets: { [key: string]: { syntaxs: string[]; }; } = {
+    const datasets: { [key: string]: { syntaxs: string[] } } = {
       en: engdatasets,
       my: mydatasets,
       li: lidatasets,
@@ -71,44 +128,25 @@ export default function DataBox() {
     }
   }, [language]);
 
-
   useEffect(() => {
     // get active word index
     const activeWord = document.querySelector(".word.active") as HTMLElement;
     const databox = document.querySelector(".databox") as HTMLElement;
     if (activeWord) {
-      console.log("activeWord", activeWord.offsetTop);
-      if (activeWord.offsetTop + 40 > databox.clientHeight) {
+      if (activeWord.offsetTop + 30 > databox.clientHeight) {
         databox.scrollTo({ top: databox.clientHeight, behavior: "smooth" });
       } else {
-        const topOffset = activeWord.offsetTop - databox.clientHeight > 0 ? activeWord.offsetTop - databox.clientHeight : 0;
+        const topOffset =
+          activeWord.offsetTop - databox.clientHeight > 0
+            ? activeWord.offsetTop - databox.clientHeight
+            : 0;
         databox.scrollTo({ top: topOffset, behavior: "smooth" });
       }
     }
   }, [typedText]);
 
-  const getRandomData = () => {
-    if (syntaxs.length) {
-      const randomIndex = Math.floor(Math.random() * syntaxs.length);
-      setCurrentData(syntaxs[randomIndex]);
-    }
-  };
-
-  const handleRefresh = () => {
-    setTypedText("");
-    setCorrectWords(0);
-    setIncorrectWords(0);
-    setStartTime(null);
-    getRandomData();
-
-    // clear input ref
-    if (inputRef.current) {
-      inputRef.current.value = "";
-    }
-  };
-
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.repeat) {
+    if (e.repeat || e.nativeEvent.isComposing || !e.nativeEvent.isTrusted) {
       e.preventDefault();
       return;
     }
@@ -123,6 +161,8 @@ export default function DataBox() {
 
     if (e.key === " " && activeWord.length > 0) {
       setIsStartNextWord(true);
+      // setIsComposing(true);
+      // setComposeKey("{spacebar}");
       const currentWords = currentData?.split(" ") || [];
       if (activeWord === currentWords[activeWordIndex]) {
         setCorrectWords((prev) => prev + 1);
@@ -160,29 +200,33 @@ export default function DataBox() {
     // Update activeChar
     const activeWordIndex = getActiveWordIndex();
     const activeCharIndex = words[activeWordIndex]?.length || 0;
-    let activeChar =
-      isStartNextWord ? currentWords[activeWordIndex + 1]?.[0] :
-        currentWords[activeWordIndex]?.[activeCharIndex] || null;
+    let activeChar = isStartNextWord
+      ? currentWords[activeWordIndex + 1]?.[0]
+      : currentWords[activeWordIndex]?.[activeCharIndex] || null;
 
-    if (activeCharIndex === currentWords[activeWordIndex]?.length && !isStartNextWord) {
-      activeChar = "{spacebar}";
+    if (
+      activeCharIndex === currentWords[activeWordIndex]?.length &&
+      !isStartNextWord
+    ) {
+      activeChar = "spacebar";
       setIsStartNextWord(false);
     }
 
     setActiveChar(activeChar);
-
     setIsStartNextWord(false);
+
+    if (e.nativeEvent.composed) {
+      const composeKey = currentWords[activeWordIndex]?.[activeCharIndex - 1];
+      if (isComposing) {
+        setIsComposing(false);
+      } else {
+        setComposeKey(composeKey);
+      }
+    }
 
     if (config.practiceMode && activeCharIndex === 0) {
       setActiveChar(currentWords[activeWordIndex]?.[0] || null);
     }
-  };
-
-  const calculateWPM = () => {
-    if (startTime === null) return 0;
-
-    const elapsedTime = (Date.now() - startTime) / 1000 / 60; // in minutes
-    return Math.round(correctWords / elapsedTime);
   };
 
   const getActiveWordIndex = () => {
@@ -208,12 +252,12 @@ export default function DataBox() {
 
         if (typedChar) {
           if (typedChar === currentChar) {
-            className = "text-primary cursor";
+            className = "text-black dark:text-white cursor";
           } else {
             className = "text-destructive cursor";
           }
         } else {
-          className = "text-muted-foreground";
+          className = "text-muted-foreground cursor";
         }
       }
     }
@@ -240,7 +284,7 @@ export default function DataBox() {
     if (typedWord === currentWords[wordIndex] && wordIndex < words.length - 1) {
       return "correct typed";
     } else if (typedWord.length > 0 && wordIndex < words.length - 1) {
-      return "incorrect border-destructive typed";
+      return "incorrect border-b border-dashed border-destructive typed";
     }
     return "";
   };
@@ -249,7 +293,7 @@ export default function DataBox() {
     <>
       <div
         className={cn(
-          "bg-background databox-wrapper rounded-lg relative",
+          "bg-background databox-wrapper rounded-lg relative p-4 border border-dashed",
           isFocused ? "focus" : ""
         )}
         tabIndex={0}
@@ -267,7 +311,7 @@ export default function DataBox() {
 
         <div
           className={cn(
-            "flex flex-wrap pr-4 pb-4 text-xl databox h-[120px] relative focus-visible:border-primary overflow-hidden",
+            "databox h-[120px] relative focus-visible:border-primary overflow-hidden",
             `${lisuBosa.className}`
           )}
         >
@@ -275,7 +319,7 @@ export default function DataBox() {
             {currentData?.split(" ").map((word, wordIndex) => (
               <div
                 key={wordIndex}
-                className={`word word-${wordIndex} flex px-1 border-b border-dashed h-[40px] ${getWordClass(
+                className={`word word-${wordIndex} h-[30px] flex px-1 ${getWordClass(
                   wordIndex
                 )}${getActiveWordIndex() === wordIndex ? " active" : ""}`}
               >
@@ -296,15 +340,44 @@ export default function DataBox() {
             ))}
           </div>
         </div>
+      </div>
 
-        <Button
-          variant={"outline"}
-          size={"icon"}
-          className="absolute bottom-1 right-1 h-6 w-6"
-          onClick={handleRefresh}
-        >
-          <RotateCcw />
-        </Button>
+      <div className="flex justify-between mt-4">
+        <div className="flex gap-2">
+          <TooltipWrapper placement="center" tooltip="Select time">
+            <TimerOptions
+              selectedTime={selectedTime}
+              setSelectedTime={setSelectedTime}
+            />
+          </TooltipWrapper>
+          <TooltipWrapper placement="center" tooltip="Select keyboard layout">
+            <KeyboardSelector />
+          </TooltipWrapper>
+          <TooltipWrapper
+            placement="center"
+            tooltip="Enable/Disable practice mode"
+          >
+            <ModeToggler />
+          </TooltipWrapper>
+        </div>
+        <div className="flex gap-2">
+          <Button variant={"secondary"} size={"sm"} className="p-2">
+            <span>
+              {correctWords} / {correctWords + incorrectWords}
+            </span>
+
+            <span className="font-bold">{timeLeft}s</span>
+          </Button>
+
+          <Button
+            variant={"secondary"}
+            size={"icon"}
+            className="w-9 h-9"
+            onClick={handleRefresh}
+          >
+            <RotateCcw />
+          </Button>
+        </div>
       </div>
     </>
   );

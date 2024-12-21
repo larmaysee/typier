@@ -1,21 +1,12 @@
 import { cn, isModifier, keyname, titlecase } from "@/lib/utils";
 import { Button } from "./ui/button";
 
-import { Lisu_Bosa } from "next/font/google";
-
-const lisuBosa = Lisu_Bosa({
-  weight: ["400", "700"],
-  style: ["normal", "italic"],
-  subsets: ["latin"],
-});
-
 export type KeyProps = {
   label: string;
   value: string;
   className?: string;
   shiftKey?: string | number;
   pressedKey?: string | null;
-  isShift?: boolean;
   onClick?: () => void;
 };
 
@@ -25,7 +16,6 @@ export default function KeyButton({
   className,
   shiftKey,
   pressedKey,
-  isShift,
   onClick,
 }: KeyProps) {
   const isPressed = pressedKey === label;
@@ -36,9 +26,9 @@ export default function KeyButton({
       value={label}
       variant={"outline"}
       className={cn(
-        "key-button shadow-md relative rounded p-2",
+        "key-button relative p-2",
         `key-${keyname(value).toLowerCase()}`,
-        (isPressed || (isShift && label === 'shift')) ? "bg-muted" : "",
+        isPressed ? "bg-primary" : "",
         className
       )}
       onClick={onClick}
@@ -51,8 +41,7 @@ export default function KeyButton({
       <span
         className={cn(
           "z-10 min-w-5",
-          isModifierKey ? "text-sm" : "font-medium text-lg",
-          lisuBosa.className,
+          isModifierKey ? "text-sm" : "font-medium text-lg"
         )}
       >
         {displayLabel}

@@ -10,6 +10,7 @@ const engdatasets = {
     "Life is what happens when you're busy making other plans. -John Lennon",
     "Spread love everywhere you go. Let no one ever come to you without leaving happier. -Mother Teresa",
     "When you reach the end of your rope, tie a knot in it and hang on. -Franklin D. Roosevelt",
+    "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.",
   ],
 };
 

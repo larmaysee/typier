@@ -13,7 +13,16 @@ type KeyboardType = {
   shifts: [];
 };
 
-type Key = string | "{backspace}" | "{tab}" | "{caps-lock}" | "{enter}" | "{shift}" | "{ctrl}" | "{alt}" | "{spacebar}";
+type Key =
+  | string
+  | "{backspace}"
+  | "{tab}"
+  | "{caps-lock}"
+  | "{enter}"
+  | "{shift}"
+  | "{ctrl}"
+  | "{alt}"
+  | "{spacebar}";
 type KeyboardRow = Key[];
 type KeyboardLayout = {
   defaults: KeyboardRow[];
@@ -22,7 +31,7 @@ type KeyboardLayout = {
 
 export default function Keyboard() {
   const { config } = useSiteConfig();
-  const { activeChar } = usePracticeMode();
+  const { activeChar, composekey } = usePracticeMode();
   const [keyboardType, setKeyboardType] = useState<KeyboardLayout | null>(null);
   const [currentLayout, setCurrentLayout] = useState<KeyboardRow[]>();
   const [shiftLayout, setShiftLayout] = useState<KeyboardRow[]>();
@@ -32,14 +41,22 @@ export default function Keyboard() {
   const [currentKey, setCurrentKey] = useState<string | null>(null);
 
   useEffect(() => {
-    console.log("activeChar", activeChar);
-
     if (!activeChar || !config.practiceMode) {
       setCurrentKey(null);
       return;
     }
     setCurrentKey(activeChar);
-  }, [activeChar, config.practiceMode]);
+  }, [activeChar, config.practiceMode, shift]);
+
+  useEffect(() => {
+    if (!composekey) {
+      setPressedKey(null);
+      return;
+    }
+
+    const isModifierKey = isModifier(composekey);
+    setPressedKey(isModifierKey ? keyname(composekey) : composekey);
+  }, [composekey]);
 
   useEffect(() => {
     const layouts = {
@@ -73,8 +90,8 @@ export default function Keyboard() {
 
   useEffect(() => {
     if (config.practiceMode && currentKey) {
-      const isShiftRequired = shiftLayout?.some((row) =>
-        row.includes(currentKey) && !isModifier(currentKey)
+      const isShiftRequired = shiftLayout?.some(
+        (row) => row.includes(currentKey) && !isModifier(currentKey)
       );
       if (isShiftRequired) {
         setTimeout(() => handleShift(true), 0);
@@ -123,10 +140,17 @@ export default function Keyboard() {
         return;
       }
 
-      setPressedKey(event.key);
-
       if (event.key === "Shift") {
         handleShift(true);
+      }
+
+      if (event.key === " ") {
+        setPressedKey("spacebar");
+      } else {
+        const key = isModifier(event.key)
+          ? keyname(event.key).toLowerCase()
+          : event.key;
+        setPressedKey(key);
       }
     };
 
@@ -152,6 +176,8 @@ export default function Keyboard() {
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
       document.removeEventListener("keyup", handleKeyUp);
+      document.removeEventListener("selectstart", (e) => e.preventDefault());
+      document.removeEventListener("select", (e) => e.preventDefault);
     };
   }, [handleShift, shift]);
 
@@ -171,30 +197,31 @@ export default function Keyboard() {
                       ? getCurrentShiftKey(rowIndex, keyIndex)
                       : ""
                   }
-                  isShift={shift}
                   onClick={() => handleKeyPress(key)}
                   pressedKey={pressedKey}
                   className={cn(
                     keyname(key) === "spacebar"
                       ? "grow-[10]"
                       : keyname(key) === "shift"
-                        ? "grow-[2]"
-                        : keyname(key) === "enter"
-                          ? "grow-[2]"
-                          : keyname(key) === "backspace"
-                            ? "grow-[2]"
-                            : keyname(key) === "ctrl"
-                              ? "grow-[2]"
-                              : keyname(key) === "alt"
-                                ? "grow-[2]"
-                                : keyname(key) === "window"
-                                  ? "grow-[2]"
-                                  : keyname(key) === "caps-lock"
-                                    ? "grow-[2]"
-                                    : keyname(key) === "tab"
-                                      ? "grow-[2]"
-                                      : "grow min-w-10",
-                    currentKey === key ? "bg-muted" : ""
+                      ? "grow-[2]"
+                      : keyname(key) === "enter"
+                      ? "grow-[2]"
+                      : keyname(key) === "backspace"
+                      ? "grow-[2]"
+                      : keyname(key) === "ctrl"
+                      ? "grow-[2]"
+                      : keyname(key) === "alt"
+                      ? "grow-[2]"
+                      : keyname(key) === "window"
+                      ? "grow-[2]"
+                      : keyname(key) === "caps-lock"
+                      ? "grow-[2]"
+                      : keyname(key) === "tab"
+                      ? "grow-[2]"
+                      : "grow min-w-10",
+                    currentKey === keyname(key) || (shift && key === "{shift}")
+                      ? "bg-primary text-primary-foreground"
+                      : ""
                   )}
                 />
               ))}

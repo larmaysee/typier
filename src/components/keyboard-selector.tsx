@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import kbLayouts from "@/layouts/kb-layouts";
-import { ChevronDown, KeyboardIcon } from "lucide-react";
+import { KeyboardIcon } from "lucide-react";
 import { useSiteConfig } from "./site-config";
 import { Button } from "./ui/button";
 
@@ -18,23 +18,14 @@ export default function KeyboardSelector() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="secondary" size={"sm"} className="rounded-lg">
+        <Button variant="secondary" size={"sm"} title="Choose Keyboard">
           <KeyboardIcon size={24} />
-
-          {config.language.code === "en"
-            ? "English"
-            : config.language.code === "my"
-            ? "Myanmar"
-            : config.language.code === "li"
-            ? "Lisu"
-            : "Unknown"}
-
-          {/* dropdown icon  */}
-          <ChevronDown size={16} />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56">
-        <DropdownMenuLabel>Choose Keyboard</DropdownMenuLabel>
+      <DropdownMenuContent align="start">
+        <DropdownMenuLabel className="text-muted-foreground text-sm font-normal">
+          Choose Keyboard
+        </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           {kbLayouts.map((layout) => (
