@@ -30,11 +30,12 @@ export default function Profile() {
       setLoading(true);
       const user = await account.get();
       setUser(user);
-      setLoading(false);
     } catch (error) {
-      console.log(error);
-      setLoading(false);
+      // Silently handle authentication errors - user is not logged in
+      console.log('User not authenticated:', error);
       setUser(null);
+    } finally {
+      setLoading(false);
     }
   };
 

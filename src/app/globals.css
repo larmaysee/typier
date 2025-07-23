@@ -72,26 +72,4 @@ body {
   }
 }
 
-.focus {
-  .letter.active::after {
-    content: "|";
-    animation: blink 1s step-start infinite;
-    position: absolute;
-    left: -2px;
-    color: var(--primary) !important;
-  }
-
-  .letter.space-active::after {
-    content: "|";
-    animation: blink 1s step-start infinite;
-    position: absolute;
-    right: -2px;
-    color: var(--primary) !important;
-  }
-}
-
-@keyframes blink {
-  50% {
-    opacity: 0;
-  }
-}
+/* Cursor styles removed - now using JavaScript-based cursor */

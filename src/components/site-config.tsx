@@ -10,7 +10,8 @@ interface SiteConfig {
     name: string;
   };
   showShiftLabel?: boolean;
-  practiceMode?: boolean; // New property
+  practiceMode?: boolean;
+  difficultyMode: 'chars' | 'syntaxs'; // New property for difficulty mode
 }
 
 interface SiteConfigProviderProps {
@@ -24,7 +25,8 @@ const defaultConfig: SiteConfig = {
     name: layouts.find((layout) => layout.code === LanguageCode.LI)?.name || "",
   },
   showShiftLabel: false,
-  practiceMode: false, // Default value
+  practiceMode: false,
+  difficultyMode: 'syntaxs', // Default to syntax mode
 };
 
 const SiteConfigContext = createContext<{

@@ -4,9 +4,11 @@ import { Button } from "./ui/button";
 export default function TimerOptions({
   selectedTime,
   setSelectedTime,
+  disabled = false,
 }: {
   selectedTime: number;
   setSelectedTime: (time: number) => void;
+  disabled?: boolean;
 }) {
   const TimerOptions = [30, 60, 90, 120];
 
@@ -26,7 +28,8 @@ export default function TimerOptions({
               : "rounded-none"
           )}
           variant={time === selectedTime ? "default" : "secondary"}
-          onClick={() => setSelectedTime(time)}
+          onClick={() => !disabled && setSelectedTime(time)}
+          disabled={disabled}
         >
           {time}s
         </Button>
