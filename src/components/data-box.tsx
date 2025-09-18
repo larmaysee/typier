@@ -10,6 +10,7 @@ import { useTypingStatistics } from "./typing-statistics";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { ResultsModal } from "@/components/results-modal";
+import { FocusOverlay } from "@/components/focus-overlay";
 import DataMode from "./data-mode";
 
 import { RotateCcw } from "lucide-react";
@@ -74,6 +75,13 @@ export default function DataBox() {
     setTestCompleted(false);
     setShowResults(false);
   }, [selectedTime]);
+
+  // Focus input on component mount
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, []);
 
   const calculateWPM = useCallback(() => {
     if (startTime === null) return 0;
@@ -213,6 +221,30 @@ export default function DataBox() {
       inputRef.current.value = "";
     }
   }, [config.language]);
+
+  // Global keyboard event listener to focus input when not focused
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Don't interfere if input is already focused or if it's a modifier key
+      if (isFocused || e.ctrlKey || e.metaKey || e.altKey || testCompleted) {
+        return;
+      }
+
+      // Don't interfere with other inputs or interactive elements
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.contentEditable === 'true') {
+        return;
+      }
+
+      // Focus the input and let the key event propagate naturally
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleGlobalKeyDown);
+    return () => document.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [isFocused, testCompleted]);
 
   useEffect(() => {
     if (config.practiceMode && currentData) {
@@ -500,6 +532,12 @@ export default function DataBox() {
     return "";
   };
 
+  const handleFocusInput = () => {
+    if (inputRef.current && !testCompleted) {
+      inputRef.current.focus();
+    }
+  };
+
   return (
     <>
       {/* Results Modal */}
@@ -527,6 +565,12 @@ export default function DataBox() {
         onFocus={() => inputRef.current?.focus()}
         ref={textContainerRef}
       >
+        {/* Focus Overlay */}
+        <FocusOverlay 
+          isVisible={!isFocused && !testCompleted} 
+          onClick={handleFocusInput}
+        />
+
         <Input
           className=" opacity-0 absolute left-0"
           onKeyDown={handleKeyDown}
@@ -576,7 +620,7 @@ export default function DataBox() {
                   >
                     {char === " " ? "⎵" : char}
                     {isCursorPosition && isFocused && !testCompleted && (
-                      <span className="absolute right-0 top-0 w-0.5 h-full bg-primary animate-pulse" />
+                      <span className="absolute left-0 top-0 w-0.5 h-full bg-primary animate-pulse" />
                     )}
                   </div>
                 );

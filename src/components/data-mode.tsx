@@ -14,7 +14,6 @@ export default function DataMode() {
 
   return (
     <div className="flex items-center gap-1">
-      <span className="text-sm text-muted-foreground mr-2">Difficulty:</span>
       <div className="flex">
         <Button
           variant={config.difficultyMode === 'chars' ? 'default' : 'secondary'}
@@ -24,9 +23,9 @@ export default function DataMode() {
         >
           <span className="text-sm">Characters</span>
         </Button>
-        <Button 
+        <Button
           variant={config.difficultyMode === 'syntaxs' ? 'default' : 'secondary'}
-          size="sm" 
+          size="sm"
           className="rounded-l-none"
           onClick={() => handleModeChange('syntaxs')}
         >

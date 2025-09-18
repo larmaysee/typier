@@ -45,8 +45,14 @@ export default function Keyboard() {
       setCurrentKey(null);
       return;
     }
-    setCurrentKey(activeChar);
-  }, [activeChar, config.practiceMode, shift]);
+    
+    // Handle special characters
+    if (activeChar === "spacebar" || activeChar === " ") {
+      setCurrentKey("spacebar");
+    } else {
+      setCurrentKey(activeChar);
+    }
+  }, [activeChar, config.practiceMode]);
 
   useEffect(() => {
     if (!composekey) {
@@ -219,7 +225,13 @@ export default function Keyboard() {
                       : keyname(key) === "tab"
                       ? "grow-[2]"
                       : "grow min-w-10",
-                    currentKey === keyname(key) || (shift && key === "{shift}")
+                    // Improved highlighting logic for practice mode
+                    config.practiceMode && currentKey && (
+                      currentKey === keyname(key) || 
+                      currentKey === key || 
+                      (currentKey === "spacebar" && keyname(key) === "spacebar") ||
+                      (shift && key === "{shift}")
+                    )
                       ? "bg-primary text-primary-foreground"
                       : ""
                   )}
