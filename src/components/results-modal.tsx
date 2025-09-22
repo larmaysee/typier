@@ -1,10 +1,16 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { X, Trophy, Target, Clock, Keyboard, Award, TrendingUp } from "lucide-react";
 import { PerformanceChart } from "@/components/performance-chart";
-import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
 
 // Interface for modal display - only includes properties needed for display
 interface TestResultDisplay {
@@ -27,57 +33,8 @@ interface ResultsModalProps {
 }
 
 export function ResultsModal({ isOpen, onClose, result, onStartNewTest }: ResultsModalProps) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-
-    // Add escape key listener
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        onClose();
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('keydown', handleEscape);
-      // Prevent body scroll when modal is open
-      document.body.style.overflow = 'hidden';
-      // Focus trap - focus the modal when it opens
-      setTimeout(() => {
-        const modal = document.querySelector('[data-modal="results"]');
-        if (modal && modal instanceof HTMLElement) {
-          modal.focus();
-        }
-      }, 100);
-    }
-
-    return () => {
-      document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = '';
-    };
-  }, [isOpen, onClose]);
-
-  if (!isOpen || !mounted) return null;
-
   const handleStartNewTest = () => {
     onStartNewTest();
-    onClose();
-  };
-
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    // Only close if clicking the backdrop itself, not its children
-    if (e.target === e.currentTarget) {
-      e.preventDefault();
-      e.stopPropagation();
-      onClose();
-    }
-  };
-
-  const handleCloseClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
     onClose();
   };
 
@@ -92,52 +49,29 @@ export function ResultsModal({ isOpen, onClose, result, onStartNewTest }: Result
   const performance = getPerformanceRating(result.wpm, result.accuracy);
   const PerformanceIcon = performance.icon;
 
-  const modalContent = (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-300">
-      {/* Enhanced Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-md"
-        onClick={handleBackdropClick}
-      />
-
-      {/* Enhanced Modal */}
-      <div
-        className="relative bg-background border border-border rounded-xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-300"
-        data-modal="results"
-        tabIndex={-1}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="modal-title"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Close button */}
-        <button
-          onClick={handleCloseClick}
-          className="absolute top-4 right-4 p-2 rounded-full hover:bg-muted/80 transition-all duration-200 z-10 group"
-          aria-label="Close modal"
-        >
-          <X className="h-5 w-5 group-hover:scale-110 transition-transform" />
-        </button>
-
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         {/* Enhanced Header */}
-        <div className="text-center p-8 pb-6 bg-gradient-to-br from-primary/5 to-secondary/5 border-b border-border/50">
+        <DialogHeader className="text-center p-6 pb-4 bg-gradient-to-br from-primary/5 to-secondary/5 border-b border-border/50 rounded-t-lg">
           <div className="flex items-center justify-center mb-4">
             <div className="p-3 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 shadow-lg">
               <Trophy className="h-8 w-8 text-white" />
             </div>
           </div>
-          <h2
-            id="modal-title"
-            className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-2"
-          >
+          <DialogTitle className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-2">
             Test Complete!
-          </h2>
+          </DialogTitle>
           <div className="flex items-center justify-center gap-2 mb-2">
             <PerformanceIcon className={`h-5 w-5 ${performance.color}`} />
-            <p className={`text-lg font-semibold ${performance.color}`}>{performance.rating}</p>
+            <DialogDescription className={`text-lg font-semibold ${performance.color} m-0`}>
+              {performance.rating}
+            </DialogDescription>
           </div>
-          <p className="text-muted-foreground">Great job on completing the typing test</p>
-        </div>
+          <DialogDescription className="text-muted-foreground">
+            Great job on completing the typing test
+          </DialogDescription>
+        </DialogHeader>
 
         {/* Enhanced Content */}
         <div className="p-8">
@@ -240,11 +174,13 @@ export function ResultsModal({ isOpen, onClose, result, onStartNewTest }: Result
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Enhanced Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center pt-6 border-t border-border">
+        {/* Enhanced Action Buttons */}
+        <DialogFooter className="p-8 pt-6 border-t border-border">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center w-full">
             <Button
-              onClick={handleCloseClick}
+              onClick={onClose}
               variant="outline"
               size="lg"
               className="min-w-[140px] hover:bg-muted/80 transition-all duration-200 hover:scale-105 group"
@@ -261,10 +197,8 @@ export function ResultsModal({ isOpen, onClose, result, onStartNewTest }: Result
               New Test
             </Button>
           </div>
-        </div>
-      </div>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
-
-  return createPortal(modalContent, document.body);
 }
