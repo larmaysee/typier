@@ -4,6 +4,14 @@ import { useTypingStatistics, TypingTestResult } from "./typing-statistics";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "./ui/table";
 import { Trophy, Medal, Award, Calendar, Clock, Target, Zap, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UserDetailModal } from "./user-detail-modal";
@@ -355,79 +363,77 @@ const Leaderboard: React.FC = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-muted/50 border-b">
-                    <tr>
-                      <th className="text-left p-3 font-semibold text-sm">Rank</th>
-                      <th className="text-left p-3 font-semibold text-sm">User</th>
-                      <th className="text-center p-3 font-semibold text-sm">Avg WPM</th>
-                      <th className="text-center p-3 font-semibold text-sm">Best WPM</th>
-                      <th className="text-center p-3 font-semibold text-sm">Accuracy</th>
-                      <th className="text-center p-3 font-semibold text-sm">Tests</th>
-                      <th className="text-center p-3 font-semibold text-sm">Score</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {getPaginatedData().map((entry) => {
-                      const globalRank = leaderboardData.findIndex(e => e.userId === entry.userId) + 1;
-                      return (
-                        <tr
-                          key={entry.userId}
-                          className={cn(
-                            "border-b hover:bg-muted/50 transition-all duration-200 cursor-pointer group",
-                            globalRank === 1 && "bg-gradient-to-r from-yellow-50/80 to-amber-50/80 dark:from-yellow-900/10 dark:to-amber-900/10",
-                            globalRank === 2 && "bg-gray-50/50 dark:bg-gray-900/10",
-                            globalRank === 3 && "bg-amber-50/50 dark:bg-amber-900/10"
-                          )}
-                          onClick={() => handleUserClick(entry)}
-                        >
-                          <td className="p-3">
-                            <div className="flex items-center gap-2">
-                              {getRankIcon(globalRank)}
-                              <Badge className={getRankBadgeColor(globalRank)} variant="outline">
-                                #{globalRank}
-                              </Badge>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-left">Rank</TableHead>
+                    <TableHead className="text-left">User</TableHead>
+                    <TableHead className="text-center">Avg WPM</TableHead>
+                    <TableHead className="text-center">Best WPM</TableHead>
+                    <TableHead className="text-center">Accuracy</TableHead>
+                    <TableHead className="text-center">Tests</TableHead>
+                    <TableHead className="text-center">Score</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {getPaginatedData().map((entry) => {
+                    const globalRank = leaderboardData.findIndex(e => e.userId === entry.userId) + 1;
+                    return (
+                      <TableRow
+                        key={entry.userId}
+                        className={cn(
+                          "transition-all duration-200 cursor-pointer group",
+                          globalRank === 1 && "bg-gradient-to-r from-yellow-50/80 to-amber-50/80 dark:from-yellow-900/10 dark:to-amber-900/10",
+                          globalRank === 2 && "bg-gray-50/50 dark:bg-gray-900/10",
+                          globalRank === 3 && "bg-amber-50/50 dark:bg-amber-900/10"
+                        )}
+                        onClick={() => handleUserClick(entry)}
+                      >
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {getRankIcon(globalRank)}
+                            <Badge className={getRankBadgeColor(globalRank)} variant="outline">
+                              #{globalRank}
+                            </Badge>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+                              <User className="h-4 w-4 text-primary" />
                             </div>
-                          </td>
-                          <td className="p-3">
-                            <div className="flex items-center gap-2">
-                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
-                                <User className="h-4 w-4 text-primary" />
-                              </div>
-                              <div>
-                                <div className="font-medium group-hover:text-primary transition-colors">{entry.userName}</div>
-                                <div className="text-xs text-muted-foreground">
-                                  {entry.totalTests} {entry.totalTests === 1 ? 'test' : 'tests'}
-                                </div>
+                            <div>
+                              <div className="font-medium group-hover:text-primary transition-colors">{entry.userName}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {entry.totalTests} {entry.totalTests === 1 ? 'test' : 'tests'}
                               </div>
                             </div>
-                          </td>
-                          <td className="p-3 text-center">
-                            <div className="font-bold text-blue-600">{entry.averageWpm}</div>
-                            <div className="text-xs text-muted-foreground">avg</div>
-                          </td>
-                          <td className="p-3 text-center">
-                            <div className="font-bold text-blue-500">{entry.bestWpm}</div>
-                            <div className="text-xs text-muted-foreground">best</div>
-                          </td>
-                          <td className="p-3 text-center">
-                            <div className="font-bold text-green-600">{entry.averageAccuracy}%</div>
-                            <div className="text-xs text-muted-foreground">avg</div>
-                          </td>
-                          <td className="p-3 text-center">
-                            <div className="font-medium">{entry.totalTests}</div>
-                            <div className="text-xs text-muted-foreground">{formatTime(entry.totalTimeTyped)}</div>
-                          </td>
-                          <td className="p-3 text-center">
-                            <div className="font-bold text-purple-600">{entry.score}</div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <div className="font-bold text-blue-600">{entry.averageWpm}</div>
+                          <div className="text-xs text-muted-foreground">avg</div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <div className="font-bold text-blue-500">{entry.bestWpm}</div>
+                          <div className="text-xs text-muted-foreground">best</div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <div className="font-bold text-green-600">{entry.averageAccuracy}%</div>
+                          <div className="text-xs text-muted-foreground">avg</div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <div className="font-medium">{entry.totalTests}</div>
+                          <div className="text-xs text-muted-foreground">{formatTime(entry.totalTimeTyped)}</div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <div className="font-bold text-purple-600">{entry.score}</div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
 
