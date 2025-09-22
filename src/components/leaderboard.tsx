@@ -1,11 +1,20 @@
 "use client";
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { useTypingStatistics, TypingTestResult } from "./typing-statistics";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
-import { Trophy, Medal, Award, Calendar, Clock, Target, Zap } from "lucide-react";
+import { Trophy, Medal, Award, Calendar, Clock, Target, Zap, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, User } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { UserDetailModal } from "./user-detail-modal";
+
+interface UserStats {
+  bestWpm: number;
+  averageWpm: number;
+  bestAccuracy: number;
+  averageAccuracy: number;
+  totalTests: number;
+}
 
 type TimeFilter = 'daily' | 'weekly' | 'monthly' | 'all';
 
@@ -26,6 +35,21 @@ const Leaderboard: React.FC = () => {
   const { getTestHistory } = useTypingStatistics();
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('weekly');
   const [sortBy, setSortBy] = useState<'wpm' | 'accuracy' | 'score'>('score');
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+
+  // User detail modal state
+  const [selectedUser, setSelectedUser] = useState<{
+    userId: string;
+    username: string;
+    stats?: UserStats;
+  } | null>(null);
+
+  // Leaderboard data state
+  const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const getFilteredTests = (tests: TypingTestResult[], filter: TimeFilter): TypingTestResult[] => {
     const now = Date.now();
@@ -53,53 +77,67 @@ const Leaderboard: React.FC = () => {
     return Math.round(wpmScore + accuracyScore + consistencyBonus);
   };
 
-  const leaderboardData = useMemo(() => {
-    const allTests = getTestHistory();
-    const filteredTests = getFilteredTests(allTests, timeFilter);
+  // Load leaderboard data
+  useEffect(() => {
+    const loadLeaderboardData = async () => {
+      setLoading(true);
+      try {
+        const allTests = await getTestHistory();
+        const filteredTests = getFilteredTests(allTests, timeFilter);
 
-    // Group tests by user
-    const userGroups = filteredTests.reduce((acc, test) => {
-      if (!acc[test.userId]) {
-        acc[test.userId] = [];
+        // Group tests by user
+        const userGroups = filteredTests.reduce((acc, test) => {
+          if (!acc[test.userId]) {
+            acc[test.userId] = [];
+          }
+          acc[test.userId].push(test);
+          return acc;
+        }, {} as Record<string, TypingTestResult[]>);
+
+        // Calculate stats for each user
+        const entries: LeaderboardEntry[] = Object.entries(userGroups).map(([userId, tests]) => {
+          const bestWpm = Math.max(...tests.map(t => t.wpm));
+          const averageWpm = Math.round(tests.reduce((sum, t) => sum + t.wpm, 0) / tests.length);
+          const bestAccuracy = Math.max(...tests.map(t => t.accuracy));
+          const averageAccuracy = Math.round(tests.reduce((sum, t) => sum + t.accuracy, 0) / tests.length);
+          const totalTimeTyped = tests.reduce((sum, t) => sum + t.testDuration, 0);
+          const score = calculateScore(averageWpm, averageAccuracy, tests.length);
+
+          return {
+            userId,
+            userName: userId === 'anonymous_user' ? 'Anonymous' : `User ${userId.slice(-6)}`,
+            bestWpm,
+            averageWpm,
+            bestAccuracy,
+            averageAccuracy,
+            totalTests: tests.length,
+            totalTimeTyped,
+            recentTests: tests.slice(-5),
+            score
+          };
+        });
+
+        // Sort by selected criteria
+        const sortedEntries = entries.sort((a, b) => {
+          switch (sortBy) {
+            case 'wpm':
+              return b.averageWpm - a.averageWpm;
+            case 'accuracy':
+              return b.averageAccuracy - a.averageAccuracy;
+            default:
+              return b.score - a.score;
+          }
+        });
+
+        setLeaderboardData(sortedEntries);
+      } catch (error) {
+        console.error('Error loading leaderboard data:', error);
+      } finally {
+        setLoading(false);
       }
-      acc[test.userId].push(test);
-      return acc;
-    }, {} as Record<string, TypingTestResult[]>);
+    };
 
-    // Calculate stats for each user
-    const entries: LeaderboardEntry[] = Object.entries(userGroups).map(([userId, tests]) => {
-      const bestWpm = Math.max(...tests.map(t => t.wpm));
-      const averageWpm = Math.round(tests.reduce((sum, t) => sum + t.wpm, 0) / tests.length);
-      const bestAccuracy = Math.max(...tests.map(t => t.accuracy));
-      const averageAccuracy = Math.round(tests.reduce((sum, t) => sum + t.accuracy, 0) / tests.length);
-      const totalTimeTyped = tests.reduce((sum, t) => sum + t.testDuration, 0);
-      const score = calculateScore(averageWpm, averageAccuracy, tests.length);
-
-      return {
-        userId,
-        userName: userId === 'anonymous_user' ? 'Anonymous' : `User ${userId.slice(-6)}`,
-        bestWpm,
-        averageWpm,
-        bestAccuracy,
-        averageAccuracy,
-        totalTests: tests.length,
-        totalTimeTyped,
-        recentTests: tests.slice(-5),
-        score
-      };
-    });
-
-    // Sort by selected criteria
-    return entries.sort((a, b) => {
-      switch (sortBy) {
-        case 'wpm':
-          return b.averageWpm - a.averageWpm;
-        case 'accuracy':
-          return b.averageAccuracy - a.averageAccuracy;
-        default:
-          return b.score - a.score;
-      }
-    });
+    loadLeaderboardData();
   }, [getTestHistory, timeFilter, sortBy]);
 
   const getRankIcon = (rank: number) => {
@@ -136,6 +174,70 @@ const Leaderboard: React.FC = () => {
     }
     return `${minutes}m`;
   };
+
+  // Pagination helper functions
+  const getTotalPages = () => Math.ceil(leaderboardData.length / itemsPerPage);
+
+  const getPaginatedData = () => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return leaderboardData.slice(startIndex, endIndex);
+  };
+
+  const getPageNumbers = () => {
+    const totalPages = getTotalPages();
+    const pageNumbers: (number | string)[] = [];
+
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) {
+        pageNumbers.push(i);
+      }
+    } else {
+      pageNumbers.push(1);
+
+      if (currentPage > 3) {
+        pageNumbers.push('...');
+      }
+
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+
+      for (let i = start; i <= end; i++) {
+        if (i !== 1 && i !== totalPages) {
+          pageNumbers.push(i);
+        }
+      }
+
+      if (currentPage < totalPages - 2) {
+        pageNumbers.push('...');
+      }
+
+      if (totalPages > 1) {
+        pageNumbers.push(totalPages);
+      }
+    }
+
+    return pageNumbers;
+  };
+
+  const handleUserClick = (entry: LeaderboardEntry) => {
+    setSelectedUser({
+      userId: entry.userId,
+      username: entry.userName,
+      stats: {
+        bestWpm: entry.bestWpm,
+        averageWpm: entry.averageWpm,
+        bestAccuracy: entry.bestAccuracy,
+        averageAccuracy: entry.averageAccuracy,
+        totalTests: entry.totalTests
+      }
+    });
+  };
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [timeFilter, sortBy]);
 
   return (
     <div className="space-y-6">
@@ -221,7 +323,14 @@ const Leaderboard: React.FC = () => {
       </div>
 
       {/* Leaderboard */}
-      {leaderboardData.length === 0 ? (
+      {loading ? (
+        <Card>
+          <CardContent className="text-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading leaderboard...</p>
+          </CardContent>
+        </Card>
+      ) : leaderboardData.length === 0 ? (
         <Card>
           <CardContent className="text-center py-12">
             <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -232,90 +341,171 @@ const Leaderboard: React.FC = () => {
           </CardContent>
         </Card>
       ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-md">
-              <Trophy className="h-5 w-5 text-yellow-500" />
-              Top 100 Leaderboard
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-muted/50 border-b">
-                  <tr>
-                    <th className="text-xs text-left p-4 font-semibold">Rank</th>
-                    <th className="text-xs text-left p-4 font-semibold">User</th>
-                    <th className="text-xs text-center p-4 font-semibold">Avg WPM</th>
-                    <th className="text-xs text-center p-4 font-semibold">Best WPM</th>
-                    <th className="text-xs text-center p-4 font-semibold">Avg Accuracy</th>
-                    <th className="text-xs text-center p-4 font-semibold">Best Accuracy</th>
-                    <th className="text-xs text-center p-4 font-semibold">Score</th>
-                    <th className="text-xs text-center p-4 font-semibold">Tests</th>
-                    <th className="text-xs text-center p-4 font-semibold">Time Typed</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {leaderboardData.slice(0, 100).map((entry, index) => {
-                    const rank = index + 1;
-                    return (
-                      <tr
-                        key={entry.userId}
-                        className={cn(
-                          "border-b hover:bg-muted/30 transition-colors",
-                          rank === 1 && "bg-gradient-to-r from-yellow-50/80 to-amber-50/80 dark:from-yellow-900/10 dark:to-amber-900/10",
-                          rank === 2 && "bg-gray-50/50 dark:bg-gray-900/10",
-                          rank === 3 && "bg-amber-50/50 dark:bg-amber-900/10"
-                        )}
-                      >
-                        <td className="p-4 text-xs">
-                          <div className="flex items-center gap-2">
-                            {getRankIcon(rank)}
-                            <Badge className={getRankBadgeColor(rank)} variant="outline">
-                              #{rank}
-                            </Badge>
-                          </div>
-                        </td>
-                        <td className="p-4 text-xs">
-                          <div>
-                            <div className="font-medium">{entry.userName}</div>
-                            <div className={cn(
-                              "text-sm",
-                              rank <= 3 ? "text-yellow-700 dark:text-yellow-300" : "text-slate-600 dark:text-slate-400"
-                            )}>
-                              ID: {entry.userId.slice(-8)}
+        <>
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Trophy className="h-5 w-5 text-yellow-500" />
+                  Top Players
+                </div>
+                <Badge variant="outline" className="text-xs">
+                  {leaderboardData.length} {leaderboardData.length === 1 ? 'player' : 'players'}
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-muted/50 border-b">
+                    <tr>
+                      <th className="text-left p-3 font-semibold text-sm">Rank</th>
+                      <th className="text-left p-3 font-semibold text-sm">User</th>
+                      <th className="text-center p-3 font-semibold text-sm">Avg WPM</th>
+                      <th className="text-center p-3 font-semibold text-sm">Best WPM</th>
+                      <th className="text-center p-3 font-semibold text-sm">Accuracy</th>
+                      <th className="text-center p-3 font-semibold text-sm">Tests</th>
+                      <th className="text-center p-3 font-semibold text-sm">Score</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {getPaginatedData().map((entry) => {
+                      const globalRank = leaderboardData.findIndex(e => e.userId === entry.userId) + 1;
+                      return (
+                        <tr
+                          key={entry.userId}
+                          className={cn(
+                            "border-b hover:bg-muted/50 transition-all duration-200 cursor-pointer group",
+                            globalRank === 1 && "bg-gradient-to-r from-yellow-50/80 to-amber-50/80 dark:from-yellow-900/10 dark:to-amber-900/10",
+                            globalRank === 2 && "bg-gray-50/50 dark:bg-gray-900/10",
+                            globalRank === 3 && "bg-amber-50/50 dark:bg-amber-900/10"
+                          )}
+                          onClick={() => handleUserClick(entry)}
+                        >
+                          <td className="p-3">
+                            <div className="flex items-center gap-2">
+                              {getRankIcon(globalRank)}
+                              <Badge className={getRankBadgeColor(globalRank)} variant="outline">
+                                #{globalRank}
+                              </Badge>
                             </div>
-                          </div>
-                        </td>
-                        <td className="p-4 text-center text-xs">
-                          <div className="font-bold text-blue-600 text-lg">{entry.averageWpm}</div>
-                        </td>
-                        <td className="p-4 text-center text-xs">
-                          <div className="font-semibold text-blue-500">{entry.bestWpm}</div>
-                        </td>
-                        <td className="p-4 text-center text-xs">
-                          <div className="font-bold text-green-600 text-lg">{entry.averageAccuracy}%</div>
-                        </td>
-                        <td className="p-4 text-center text-xs">
-                          <div className="font-semibold text-green-500">{entry.bestAccuracy}%</div>
-                        </td>
-                        <td className="p-4 text-center text-xs">
-                          <div className="font-bold text-purple-600 text-lg">{entry.score}</div>
-                        </td>
-                        <td className="p-4 text-center text-xs">
-                          <div className="font-medium">{entry.totalTests}</div>
-                        </td>
-                        <td className="p-4 text-center text-xs">
-                          <div className="font-medium">{formatTime(entry.totalTimeTyped)}</div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+                          </td>
+                          <td className="p-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+                                <User className="h-4 w-4 text-primary" />
+                              </div>
+                              <div>
+                                <div className="font-medium group-hover:text-primary transition-colors">{entry.userName}</div>
+                                <div className="text-xs text-muted-foreground">
+                                  {entry.totalTests} {entry.totalTests === 1 ? 'test' : 'tests'}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="p-3 text-center">
+                            <div className="font-bold text-blue-600">{entry.averageWpm}</div>
+                            <div className="text-xs text-muted-foreground">avg</div>
+                          </td>
+                          <td className="p-3 text-center">
+                            <div className="font-bold text-blue-500">{entry.bestWpm}</div>
+                            <div className="text-xs text-muted-foreground">best</div>
+                          </td>
+                          <td className="p-3 text-center">
+                            <div className="font-bold text-green-600">{entry.averageAccuracy}%</div>
+                            <div className="text-xs text-muted-foreground">avg</div>
+                          </td>
+                          <td className="p-3 text-center">
+                            <div className="font-medium">{entry.totalTests}</div>
+                            <div className="text-xs text-muted-foreground">{formatTime(entry.totalTimeTyped)}</div>
+                          </td>
+                          <td className="p-3 text-center">
+                            <div className="font-bold text-purple-600">{entry.score}</div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Pagination Controls */}
+          {getTotalPages() > 1 && (
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-muted-foreground">
+                    Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, leaderboardData.length)} of {leaderboardData.length} players
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(1)}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronsLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+
+                    <div className="flex items-center gap-1">
+                      {getPageNumbers().map((pageNum, idx) => (
+                        <Button
+                          key={idx}
+                          variant={pageNum === currentPage ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => typeof pageNum === 'number' && setCurrentPage(pageNum)}
+                          disabled={pageNum === '...'}
+                          className="min-w-[40px]"
+                        >
+                          {pageNum}
+                        </Button>
+                      ))}
+                    </div>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.min(getTotalPages(), prev + 1))}
+                      disabled={currentPage === getTotalPages()}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(getTotalPages())}
+                      disabled={currentPage === getTotalPages()}
+                    >
+                      <ChevronsRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* User Detail Modal */}
+          {selectedUser && (
+            <UserDetailModal
+              isOpen={!!selectedUser}
+              onClose={() => setSelectedUser(null)}
+              userId={selectedUser.userId}
+              username={selectedUser.username}
+              initialStats={selectedUser.stats}
+            />
+          )}
+        </>
       )}
 
       {/* Stats Summary */}

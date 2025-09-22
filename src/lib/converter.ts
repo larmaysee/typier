@@ -25,8 +25,6 @@ function replaceWithRule(rules: Rule[], output: string): string {
  * @returns The transformed Unicode string.
  */
 export function getLisuChar(output: string): string {
-  console.log("getLisuChar", output);
-
   const rules: Rule[] = [
     { from: "a", to: "ꓮ" },
     { from: "A", to: "ꓯ" },

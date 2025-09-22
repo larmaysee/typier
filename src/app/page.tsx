@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { AuthProvider } from "@/components/auth-provider";
+import { SiteConfigProvider } from "@/components/site-config";
 import { TypingStatisticsProvider } from "@/components/typing-statistics";
 import SiteFooter from "@/components/site-footer";
 import SiteToolbox from "@/components/site-toolbox";
@@ -15,25 +16,27 @@ export default function Home() {
   return (
     <>
       <AuthProvider>
-        <TypingStatisticsProvider>
-          <div className="grid grid-rows-[auto,1fr,auto] col-span-3 gap-2 min-h-screen">
-            <SiteToolbox currentView={currentView} onViewChange={setCurrentView} />
+        <SiteConfigProvider>
+          <TypingStatisticsProvider>
+            <div className="grid grid-rows-[auto,1fr,auto] col-span-3 gap-2 min-h-screen">
+              <SiteToolbox currentView={currentView} onViewChange={setCurrentView} />
 
-            <div className="flex flex-col gap-4 w-full md:max-w-[800px] md:m-auto sm:p-4">
-              {/* <AdsBlock /> */}
-              {currentView === 'typing' ? (
-                <TestUi />
-              ) : currentView === 'statistics' ? (
-                <StatisticsDashboard />
-              ) : currentView === 'leaderboard' ? (
-                <Leaderboard />
-              ) : (
-                <SettingsPage />
-              )}
+              <div className="flex flex-col gap-4 w-full md:max-w-[800px] md:m-auto sm:p-4">
+                {/* <AdsBlock /> */}
+                {currentView === 'typing' ? (
+                  <TestUi />
+                ) : currentView === 'statistics' ? (
+                  <StatisticsDashboard />
+                ) : currentView === 'leaderboard' ? (
+                  <Leaderboard />
+                ) : (
+                  <SettingsPage />
+                )}
+              </div>
+              <SiteFooter />
             </div>
-            <SiteFooter />
-          </div>
-        </TypingStatisticsProvider>
+          </TypingStatisticsProvider>
+        </SiteConfigProvider>
       </AuthProvider>
     </>
   );

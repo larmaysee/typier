@@ -1,7 +1,6 @@
 "use client";
 
 import { Keyboard } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 interface FocusOverlayProps {
   isVisible: boolean;
@@ -12,7 +11,7 @@ export function FocusOverlay({ isVisible, onClick }: FocusOverlayProps) {
   if (!isVisible) return null;
 
   return (
-    <div 
+    <div
       className="absolute inset-0 z-10 bg-background/80 backdrop-blur-sm rounded-lg flex items-center justify-center cursor-pointer transition-all duration-200 hover:bg-background/90"
       onClick={onClick}
     >

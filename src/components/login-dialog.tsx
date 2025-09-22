@@ -18,7 +18,7 @@ import { Icons } from "./icons";
 
 export function LoginDialog() {
   const [loading, setLoading] = useState(false);
-  const { login, logout } = useAuth();
+  const { logout } = useAuth();
 
   const loginWithGoogle = async () => {
     setLoading(true);
@@ -31,11 +31,9 @@ export function LoginDialog() {
     const user = await account.get();
 
     if (user) {
-      login({
-        name: user.name,
-        email: user.email,
-        id: user.$id,
-      });
+      // User is already authenticated, just close the loading state
+      setLoading(false);
+      // The auth provider will handle setting the user via checkAuthStatus
     } else {
       setLoading(false);
       logout();

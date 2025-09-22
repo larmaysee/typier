@@ -105,17 +105,17 @@ export default function DataBox() {
       const chars = dataset.chars;
       const sequenceLength = Math.floor(Math.random() * 20) + 10; // 10-30 characters
       let sequence = '';
-      
+
       for (let i = 0; i < sequenceLength; i++) {
         const randomChar = chars[Math.floor(Math.random() * chars.length)];
         sequence += randomChar;
-        
+
         // Add spaces occasionally for word separation
         if (i > 0 && i % 5 === 0 && Math.random() > 0.7) {
           sequence += ' ';
         }
       }
-      
+
       setCurrentData(sequence.trim());
     } else if (syntaxs.length) {
       // Use syntax mode (sentences)
@@ -123,33 +123,6 @@ export default function DataBox() {
       setCurrentData(syntaxs[randomIndex]);
     }
   }, [syntaxs, language, config.difficultyMode]);
-
-  const saveTestResult = useCallback(() => {
-    if (startTime === null || testCompleted) return;
-
-    const totalWords = correctWords + incorrectWords;
-    const accuracy = totalWords > 0 ? Math.round((correctWords / totalWords) * 100) : 0;
-    const testDuration = selectedTime - timeLeft;
-    const charactersTyped = typedText.length;
-    const errors = incorrectWords;
-
-    const testResult = {
-      wpm: calculateWPM(),
-      accuracy,
-      correctWords,
-      incorrectWords,
-      totalWords,
-      testDuration,
-      language: config.language.code,
-      charactersTyped,
-      errors,
-    };
-
-    addTestResult(testResult);
-    setLastTestResult(testResult);
-    setTestCompleted(true);
-    setShowResults(true);
-  }, [startTime, testCompleted, correctWords, incorrectWords, selectedTime, timeLeft, typedText.length, calculateWPM, config.language.code, addTestResult]);
 
   const handleRefresh = useCallback(() => {
     setTypedText("");
@@ -265,27 +238,27 @@ export default function DataBox() {
 
     if (language) {
       const dataset = datasets[language];
-      
+
       if (config.difficultyMode === 'chars' && dataset.chars) {
         // Generate random character sequences for character mode
         const generateCharSequence = () => {
           const chars = dataset.chars!;
           const sequenceLength = Math.floor(Math.random() * 20) + 10; // 10-30 characters
           let sequence = '';
-          
+
           for (let i = 0; i < sequenceLength; i++) {
             const randomChar = chars[Math.floor(Math.random() * chars.length)];
             sequence += randomChar;
-            
+
             // Add spaces occasionally for word separation
             if (i > 0 && i % 5 === 0 && Math.random() > 0.7) {
               sequence += ' ';
             }
           }
-          
+
           return sequence.trim();
         };
-        
+
         const charSequences = Array.from({ length: 10 }, generateCharSequence);
         setSyntaxs(charSequences);
         setCurrentData(charSequences[0]);
@@ -566,8 +539,8 @@ export default function DataBox() {
         ref={textContainerRef}
       >
         {/* Focus Overlay */}
-        <FocusOverlay 
-          isVisible={!isFocused && !testCompleted} 
+        <FocusOverlay
+          isVisible={!isFocused && !testCompleted}
           onClick={handleFocusInput}
         />
 
@@ -594,10 +567,10 @@ export default function DataBox() {
                 const words = typedText.split("");
                 const typedChar = words[charIndex] || "";
                 const isCursorPosition = charIndex === typedText.length;
-                
+
                 let bgColor = "bg-muted/30";
                 let textColor = "text-muted-foreground";
-                
+
                 if (typedChar) {
                   if (typedChar === char) {
                     bgColor = "bg-green-100 dark:bg-green-900/30";

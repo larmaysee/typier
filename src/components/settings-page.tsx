@@ -6,8 +6,9 @@ import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Separator } from './ui/separator';
 import { Badge } from './ui/badge';
-import { Palette, Monitor, Sun, Moon, Check } from 'lucide-react';
+import { Palette, Monitor, Sun, Moon, Check, Cloud, HardDrive } from 'lucide-react';
 import { useSiteConfig } from './site-config';
+import { useAuth } from './auth-provider';
 import { LanguageCode } from '@/enums/site-config';
 import kbLayouts from '@/layouts/kb-layouts';
 import themesConfig from '@/config/themes.json';
@@ -22,13 +23,14 @@ interface Theme {
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
-  const { config, setConfig } = useSiteConfig();
+  const { config, setConfig, loading } = useSiteConfig();
+  const { user } = useAuth();
   const [selectedTheme, setSelectedTheme] = useState('default');
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    // Load saved theme from localStorage
+    // Load saved theme from localStorage (will be populated by SiteConfigProvider if user is authenticated)
     const savedTheme = localStorage.getItem('selectedColorTheme') || 'default';
     setSelectedTheme(savedTheme);
 
@@ -37,7 +39,8 @@ export default function SettingsPage() {
     if (savedThemeData) {
       applyThemeColors(savedThemeData);
     }
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [config]); // Added config dependency to reload when settings load from database
 
   useEffect(() => {
     // Reapply theme colors when light/dark mode changes
@@ -47,17 +50,28 @@ export default function SettingsPage() {
         applyThemeColors(selectedThemeData);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [theme, mounted, selectedTheme]);
 
   const themes: Theme[] = themesConfig.themes;
 
-  const handleThemeChange = (themeId: string) => {
+  const handleThemeChange = async (themeId: string) => {
     setSelectedTheme(themeId);
     localStorage.setItem('selectedColorTheme', themeId);
 
     const selectedThemeData = themes.find(t => t.id === themeId);
     if (selectedThemeData) {
       applyThemeColors(selectedThemeData);
+    }
+
+    // Save color theme preference for authenticated users
+    try {
+      await setConfig({
+        ...config,
+        // Trigger a settings save that will include the color theme
+      });
+    } catch (error) {
+      console.error('Error saving theme preference:', error);
     }
   };
 
@@ -70,10 +84,10 @@ export default function SettingsPage() {
     });
   };
 
-  const handleLanguageChange = (languageCode: LanguageCode) => {
+  const handleLanguageChange = async (languageCode: LanguageCode) => {
     const language = kbLayouts.find(layout => layout.code === languageCode);
     if (language) {
-      setConfig({
+      await setConfig({
         ...config,
         language: {
           code: languageCode,
@@ -91,9 +105,31 @@ export default function SettingsPage() {
     <div className="space-y-6 max-w-4xl mx-auto">
       {/* Header */}
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Settings</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Settings</h1>
+          <div className="flex items-center gap-2">
+            {user && !user.id.startsWith('guest_') && !user.id.startsWith('anonymous') ? (
+              <Badge variant="outline" className="flex items-center gap-1">
+                <Cloud className="h-3 w-3" />
+                Synced to Cloud
+              </Badge>
+            ) : (
+              <Badge variant="secondary" className="flex items-center gap-1">
+                <HardDrive className="h-3 w-3" />
+                Stored Locally
+              </Badge>
+            )}
+            {loading && (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+            )}
+          </div>
+        </div>
         <p className="text-gray-600 dark:text-gray-400">
           Customize your typing experience with themes, languages, and preferences.
+          {user && !user.id.startsWith('guest_') && !user.id.startsWith('anonymous')
+            ? ' Your settings are automatically saved to your account.'
+            : ' Sign in to sync your settings across devices.'
+          }
         </p>
       </div>
 
@@ -150,8 +186,8 @@ export default function SettingsPage() {
                 <div
                   key={themeOption.id}
                   className={`relative p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${selectedTheme === themeOption.id
-                      ? 'border-primary ring-2 ring-primary/20'
-                      : 'border-gray-200 dark:border-gray-700'
+                    ? 'border-primary ring-2 ring-primary/20'
+                    : 'border-gray-200 dark:border-gray-700'
                     }`}
                   onClick={() => handleThemeChange(themeOption.id)}
                 >

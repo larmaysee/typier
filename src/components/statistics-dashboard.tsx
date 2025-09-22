@@ -1,6 +1,6 @@
 "use client";
-import React from "react";
-import { useTypingStatistics } from "./typing-statistics";
+import React, { useState, useEffect } from "react";
+import { useTypingStatistics, TypingTestResult } from "./typing-statistics";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
@@ -29,12 +29,10 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, description, icon, tr
           <p className="text-xs text-slate-600 dark:text-slate-400">{description}</p>
         )}
         {trend !== undefined && trend !== 0 && (
-          <div className={`flex items-center text-xs mt-1 ${
-            trend > 0 ? 'text-green-600' : 'text-red-600'
-          }`}>
-            <TrendingUp className={`h-3 w-3 mr-1 ${
-              trend < 0 ? 'rotate-180' : ''
-            }`} />
+          <div className={`flex items-center text-xs mt-1 ${trend > 0 ? 'text-green-600' : 'text-red-600'
+            }`}>
+            <TrendingUp className={`h-3 w-3 mr-1 ${trend < 0 ? 'rotate-180' : ''
+              }`} />
             {trend > 0 ? '+' : ''}{trend}% from last 10 tests
           </div>
         )}
@@ -47,7 +45,7 @@ const formatTime = (seconds: number): string => {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   const remainingSeconds = seconds % 60;
-  
+
   if (hours > 0) {
     return `${hours}h ${minutes}m ${remainingSeconds}s`;
   } else if (minutes > 0) {
@@ -68,7 +66,21 @@ const formatDate = (timestamp: number): string => {
 
 export default function StatisticsDashboard() {
   const { statistics, clearStatistics, getTestHistory } = useTypingStatistics();
-  const recentTests = getTestHistory(5);
+  const [recentTests, setRecentTests] = useState<TypingTestResult[]>([]);
+
+  useEffect(() => {
+    const loadRecentTests = async () => {
+      try {
+        const tests = await getTestHistory(5);
+        setRecentTests(tests);
+      } catch (error) {
+        console.error('Failed to load recent tests:', error);
+        setRecentTests([]);
+      }
+    };
+
+    loadRecentTests();
+  }, [getTestHistory, statistics.totalTests]); // Reload when totalTests changes
 
   const handleClearStats = () => {
     if (window.confirm('Are you sure you want to clear all your typing statistics? This action cannot be undone.')) {
@@ -185,7 +197,7 @@ export default function StatisticsDashboard() {
             <div className="flex justify-between items-center">
               <span className="text-sm font-medium">Error Rate</span>
               <Badge variant="secondary">
-                {statistics.totalCharactersTyped > 0 
+                {statistics.totalCharactersTyped > 0
                   ? ((statistics.totalErrors / statistics.totalCharactersTyped) * 100).toFixed(2)
                   : 0}%
               </Badge>
