@@ -12,14 +12,7 @@ import { useAuth } from './auth-provider';
 import { LanguageCode } from '@/enums/site-config';
 import kbLayouts from '@/layouts/kb-layouts';
 import themesConfig from '@/config/themes.json';
-
-interface Theme {
-  id: string;
-  name: string;
-  description: string;
-  colors: Record<string, string>;
-  darkColors: Record<string, string>;
-}
+import { applyThemeColors, Theme } from '@/lib/utils';
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
@@ -37,7 +30,7 @@ export default function SettingsPage() {
     // Apply the saved theme
     const savedThemeData = themes.find(t => t.id === savedTheme);
     if (savedThemeData) {
-      applyThemeColors(savedThemeData);
+      applyThemeColors(savedThemeData, theme === 'dark');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config]); // Added config dependency to reload when settings load from database
@@ -47,7 +40,7 @@ export default function SettingsPage() {
     if (mounted && selectedTheme) {
       const selectedThemeData = themes.find(t => t.id === selectedTheme);
       if (selectedThemeData) {
-        applyThemeColors(selectedThemeData);
+        applyThemeColors(selectedThemeData, theme === 'dark');
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -61,7 +54,7 @@ export default function SettingsPage() {
 
     const selectedThemeData = themes.find(t => t.id === themeId);
     if (selectedThemeData) {
-      applyThemeColors(selectedThemeData);
+      applyThemeColors(selectedThemeData, theme === 'dark');
     }
 
     // Save color theme preference for authenticated users
@@ -73,15 +66,6 @@ export default function SettingsPage() {
     } catch (error) {
       console.error('Error saving theme preference:', error);
     }
-  };
-
-  const applyThemeColors = (themeData: Theme) => {
-    const root = document.documentElement;
-    const colors = theme === 'dark' ? themeData.darkColors : themeData.colors;
-
-    Object.entries(colors).forEach(([key, value]) => {
-      root.style.setProperty(`--${key}`, value);
-    });
   };
 
   const handleLanguageChange = async (languageCode: LanguageCode) => {

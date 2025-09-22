@@ -4,6 +4,9 @@ import layouts from "@/layouts/kb-layouts";
 import React, { createContext, ReactNode, useContext, useState, useEffect, useCallback } from "react";
 import { TypingDatabaseService, languageCodeToDb, dbToLanguageCode } from "@/lib/appwrite";
 import { useAuth } from "./auth-provider";
+import { applyThemeColors, Theme } from "@/lib/utils";
+import { useTheme } from "next-themes";
+import themesConfig from "@/config/themes.json";
 
 interface SiteConfig {
   theme: ThemeMode;
@@ -51,8 +54,23 @@ export const SiteConfigProvider: React.FC<SiteConfigProviderProps> = ({
   const [config, setConfig] = useState<SiteConfig>(defaultConfig);
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
+  const { theme } = useTheme();
 
   const STORAGE_KEY = 'typoria_site_config';
+
+  // Function to apply color theme
+  const applyColorTheme = useCallback((themeId?: string) => {
+    if (typeof window === 'undefined') return; // Guard for SSR
+
+    const colorThemeId = themeId || localStorage.getItem('selectedColorTheme') || 'default';
+    const themes = themesConfig.themes;
+    const selectedThemeData = themes.find(t => t.id === colorThemeId);
+
+    if (selectedThemeData) {
+      const isDarkMode = theme === 'dark';
+      applyThemeColors(selectedThemeData, isDarkMode);
+    }
+  }, [theme]);
 
   const loadSettings = useCallback(async () => {
     setLoading(true);
@@ -75,9 +93,13 @@ export const SiteConfigProvider: React.FC<SiteConfigProviderProps> = ({
           };
           setConfig(loadedConfig);
 
-          // Also save color theme if present
+          // Also save color theme if present and apply it
           if (userSettings.color_theme) {
             localStorage.setItem('selectedColorTheme', userSettings.color_theme);
+            applyColorTheme(userSettings.color_theme);
+          } else {
+            // Apply default theme
+            applyColorTheme();
           }
         }
       } else {
@@ -87,9 +109,15 @@ export const SiteConfigProvider: React.FC<SiteConfigProviderProps> = ({
           try {
             const parsedConfig = JSON.parse(saved);
             setConfig({ ...defaultConfig, ...parsedConfig });
+
+            // Apply saved color theme for guest users
+            applyColorTheme();
           } catch (error) {
             console.error('Error parsing saved config:', error);
           }
+        } else {
+          // Apply default theme for new users
+          applyColorTheme();
         }
       }
     } catch (error) {
@@ -100,19 +128,34 @@ export const SiteConfigProvider: React.FC<SiteConfigProviderProps> = ({
         try {
           const parsedConfig = JSON.parse(saved);
           setConfig({ ...defaultConfig, ...parsedConfig });
+
+          // Apply color theme from localStorage fallback
+          applyColorTheme();
         } catch (parseError) {
           console.error('Error parsing saved config:', parseError);
+          // Apply default theme as final fallback
+          applyColorTheme();
         }
+      } else {
+        // Apply default theme
+        applyColorTheme();
       }
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, applyColorTheme]);
 
   // Load settings when user changes or on mount
   useEffect(() => {
     loadSettings();
   }, [loadSettings]);
+
+  // Reapply color theme when light/dark mode changes
+  useEffect(() => {
+    if (theme) {
+      applyColorTheme();
+    }
+  }, [theme, applyColorTheme]);
 
   const saveSettings = async (newConfig: SiteConfig) => {
     setLoading(true);
