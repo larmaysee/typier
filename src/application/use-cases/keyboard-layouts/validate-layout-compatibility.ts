@@ -1,143 +1,301 @@
-import { IKeyboardLayoutRepository } from '@/domain/interfaces/repositories';
-import { ILayoutManagerService } from '@/domain/interfaces/services';
-import { ValidateLayoutCompatibilityQuery } from '@/application/queries/typing.queries';
-import { LayoutCompatibilityDto } from '@/application/dto/keyboard-layout.dto';
-import { KeyboardLayout } from '@/domain/entities/keyboard-layout';
+import { LanguageCode } from "@/enums/site-config";
+import { TypingMode } from "../../domain/entities/typing";
+import { IKeyboardLayoutRepository } from "../../domain/interfaces/repositories";
+import { GetLayoutCompatibilityQueryDTO } from "../dto/queries.dto";
+import { LayoutCompatibilityResponseDTO } from "../dto/keyboard-layouts.dto";
 
 export class ValidateLayoutCompatibilityUseCase {
   constructor(
-    private layoutRepository: IKeyboardLayoutRepository,
-    private layoutManager: ILayoutManagerService
-  ) {}
+    private layoutRepository: IKeyboardLayoutRepository
+  ) { }
 
-  async execute(query: ValidateLayoutCompatibilityQuery): Promise<LayoutCompatibilityDto> {
-    const { layoutId, textContent } = query;
+  async execute(query: GetLayoutCompatibilityQueryDTO): Promise<LayoutCompatibilityResponseDTO> {
+    const { layoutId, targetLanguage, mode } = query;
 
-    // 1. Validate layout exists
-    const layout = await this.layoutRepository.findById(layoutId);
+    // 1. Get the layout to validate
+    const layout = await this.layoutRepository.getLayoutById(layoutId);
     if (!layout) {
-      throw new Error(`Layout not found: ${layoutId}`);
+      return {
+        isCompatible: false,
+        compatibilityScore: 0,
+        issues: [{
+          type: 'error',
+          message: `Layout not found: ${layoutId}`
+        }],
+        recommendations: []
+      };
     }
 
-    // 2. Check basic compatibility
-    const isCompatible = await this.layoutManager.isCompatible(layoutId, textContent);
+    // 2. Perform validation checks
+    const validationResults = await this.performValidationChecks(
+      layout,
+      targetLanguage,
+      mode
+    );
 
-    // 3. Analyze text content for compatibility details
-    const analysisResult = this.analyzeTextCompatibility(layout, textContent);
+    // 3. Calculate compatibility score
+    const compatibilityScore = this.calculateCompatibilityScore(validationResults);
+
+    // 4. Generate recommendations
+    const recommendations = this.generateRecommendations(validationResults, layout, mode);
 
     return {
-      layoutId,
-      textContent: textContent.substring(0, 100) + (textContent.length > 100 ? '...' : ''), // Truncate for response
-      isCompatible,
-      compatibilityScore: analysisResult.score,
-      missingCharacters: analysisResult.missingChars,
-      recommendations: analysisResult.recommendations
-    };
-  }
-
-  private analyzeTextCompatibility(layout: KeyboardLayout, textContent: string): {
-    score: number;
-    missingChars: string[];
-    recommendations: string[];
-  } {
-    // Extract unique characters from text content
-    const textChars = new Set(textContent.split(''));
-    
-    // Get available characters from layout
-    const layoutChars = new Set();
-    for (const mapping of layout.keyMappings || []) {
-      layoutChars.add(mapping.character);
-      if (mapping.shiftCharacter) {
-        layoutChars.add(mapping.shiftCharacter);
-      }
-      if (mapping.altCharacter) {
-        layoutChars.add(mapping.altCharacter);
-      }
-    }
-
-    // Find missing characters
-    const missingChars: string[] = [];
-    const unsupportedChars: string[] = [];
-
-    for (const char of textChars) {
-      // Skip whitespace and common punctuation that's usually available
-      if (char === ' ' || char === '\n' || char === '\t') {
-        continue;
-      }
-
-      if (!layoutChars.has(char)) {
-        missingChars.push(char);
-        
-        // Check if it's a complex character that might need special input methods
-        if (this.isComplexCharacter(char)) {
-          unsupportedChars.push(char);
-        }
-      }
-    }
-
-    // Calculate compatibility score
-    const totalUniqueChars = textChars.size;
-    const supportedChars = totalUniqueChars - missingChars.length;
-    const score = totalUniqueChars > 0 ? Math.round((supportedChars / totalUniqueChars) * 100) : 100;
-
-    // Generate recommendations
-    const recommendations = this.generateRecommendations(layout, missingChars, unsupportedChars);
-
-    return {
-      score,
-      missingChars: [...new Set(missingChars)].slice(0, 20), // Limit to first 20 unique missing chars
+      isCompatible: compatibilityScore >= 70, // 70% threshold for compatibility
+      compatibilityScore,
+      issues: validationResults.issues,
       recommendations
     };
   }
 
-  private isComplexCharacter(char: string): boolean {
-    const codePoint = char.codePointAt(0);
-    if (!codePoint) return false;
+  private async performValidationChecks(layout: any, targetLanguage: LanguageCode, mode: TypingMode): Promise<{
+    issues: Array<{ type: 'error' | 'warning' | 'info'; message: string; affectedKeys?: string[] }>;
+    checks: {
+      languageMatch: boolean;
+      modeCompatibility: boolean;
+      characterSupport: boolean;
+      layoutIntegrity: boolean;
+      performanceOptimized: boolean;
+    };
+  }> {
+    const issues: Array<{ type: 'error' | 'warning' | 'info'; message: string; affectedKeys?: string[] }> = [];
 
-    // Unicode blocks for complex scripts
-    const complexScriptRanges = [
-      [0x0900, 0x097F], // Devanagari
-      [0x0980, 0x09FF], // Bengali
-      [0x1000, 0x109F], // Myanmar
-      [0xA4D0, 0xA4FF], // Lisu
-      [0x0E00, 0x0E7F], // Thai
-      [0x3400, 0x4DBF], // CJK Extension A
-      [0x4E00, 0x9FFF], // CJK Unified Ideographs
-    ];
+    // Language compatibility check
+    const languageMatch = layout.language === targetLanguage;
+    if (!languageMatch) {
+      issues.push({
+        type: 'error',
+        message: `Layout language (${layout.language}) does not match target language (${targetLanguage})`
+      });
+    }
 
-    return complexScriptRanges.some(([start, end]) => codePoint >= start && codePoint <= end);
+    // Mode compatibility check
+    const modeCompatibility = this.checkModeCompatibility(layout, mode);
+    if (!modeCompatibility.isCompatible) {
+      issues.push({
+        type: modeCompatibility.severity,
+        message: modeCompatibility.message
+      });
+    }
+
+    // Character support validation
+    const characterSupport = await this.validateCharacterSupport(layout, targetLanguage);
+    if (characterSupport.missingChars.length > 0) {
+      issues.push({
+        type: 'warning',
+        message: `Layout may not support all required characters for ${targetLanguage}`,
+        affectedKeys: characterSupport.missingChars
+      });
+    }
+
+    // Layout integrity check
+    const layoutIntegrity = this.validateLayoutIntegrity(layout);
+    if (!layoutIntegrity.isValid) {
+      issues.push({
+        type: 'error',
+        message: 'Layout has structural issues',
+        affectedKeys: layoutIntegrity.problematicKeys
+      });
+    }
+
+    // Performance optimization check
+    const performanceOptimized = this.checkPerformanceOptimization(layout);
+    if (performanceOptimized.warnings.length > 0) {
+      performanceOptimized.warnings.forEach(warning => {
+        issues.push({
+          type: 'info',
+          message: warning
+        });
+      });
+    }
+
+    return {
+      issues,
+      checks: {
+        languageMatch,
+        modeCompatibility: modeCompatibility.isCompatible,
+        characterSupport: characterSupport.missingChars.length === 0,
+        layoutIntegrity: layoutIntegrity.isValid,
+        performanceOptimized: performanceOptimized.warnings.length === 0
+      }
+    };
   }
 
-  private generateRecommendations(layout: KeyboardLayout, missingChars: string[], unsupportedChars: string[]): string[] {
-    const recommendations: string[] = [];
+  private checkModeCompatibility(layout: any, mode: TypingMode): {
+    isCompatible: boolean;
+    severity: 'error' | 'warning' | 'info';
+    message: string;
+  } {
+    if (mode === TypingMode.COMPETITION) {
+      if (layout.isCustom) {
+        return {
+          isCompatible: false,
+          severity: 'error',
+          message: 'Custom layouts are not allowed in competition mode'
+        };
+      }
 
-    if (missingChars.length === 0) {
-      recommendations.push('Layout is fully compatible with the text content');
-      return recommendations;
+      if (layout.metadata.version !== '1.0') {
+        return {
+          isCompatible: false,
+          severity: 'warning',
+          message: 'Only standard layout versions are recommended for competition mode'
+        };
+      }
     }
 
-    if (missingChars.length > 0 && missingChars.length <= 5) {
-      recommendations.push(`Consider adding mappings for: ${missingChars.join(', ')}`);
+    if (mode === TypingMode.PRACTICE && !layout.metadata.supportsDeadKeys) {
+      return {
+        isCompatible: true,
+        severity: 'info',
+        message: 'Layout may provide limited feedback in practice mode'
+      };
     }
 
-    if (unsupportedChars.length > 0) {
-      recommendations.push('Text contains complex characters that may require specialized input methods');
+    return {
+      isCompatible: true,
+      severity: 'info',
+      message: 'Layout is compatible with the selected mode'
+    };
+  }
+
+  private async validateCharacterSupport(layout: any, language: LanguageCode): Promise<{
+    missingChars: string[];
+    supportedChars: string[];
+  }> {
+    // Get required character set for the language
+    const requiredChars = this.getRequiredCharacterSet(language);
+    const layoutChars = new Set(layout.keyMappings.map((mapping: any) => mapping.outputChar));
+
+    const missingChars = requiredChars.filter(char => !layoutChars.has(char));
+    const supportedChars = requiredChars.filter(char => layoutChars.has(char));
+
+    return { missingChars, supportedChars };
+  }
+
+  private validateLayoutIntegrity(layout: any): {
+    isValid: boolean;
+    problematicKeys: string[];
+  } {
+    const problematicKeys: string[] = [];
+
+    // Check for duplicate key mappings
+    const keyMap = new Map();
+    layout.keyMappings.forEach((mapping: any) => {
+      if (keyMap.has(mapping.key)) {
+        problematicKeys.push(mapping.key);
+      }
+      keyMap.set(mapping.key, mapping);
+    });
+
+    // Check for essential keys
+    const essentialKeys = ['space', 'backspace', 'enter'];
+    essentialKeys.forEach(key => {
+      if (!keyMap.has(key) && !keyMap.has(`{${key}}`)) {
+        problematicKeys.push(key);
+      }
+    });
+
+    return {
+      isValid: problematicKeys.length === 0,
+      problematicKeys
+    };
+  }
+
+  private checkPerformanceOptimization(layout: any): {
+    warnings: string[];
+  } {
+    const warnings: string[] = [];
+
+    // Check layout efficiency metrics
+    if (layout.metadata.popularity < 30) {
+      warnings.push('This layout has low popularity, which may indicate suboptimal design');
     }
 
-    if (missingChars.length > 10) {
-      recommendations.push('Many characters are missing - consider using a different layout');
-      recommendations.push(`Alternative layouts for ${layout.language} might be more suitable`);
+    if (layout.keyMappings.length > 100) {
+      warnings.push('Layout has many key mappings, which may impact performance');
     }
 
-    // Layout-specific recommendations
-    if (layout.layoutType === 'custom' && missingChars.length > 0) {
-      recommendations.push('Custom layout can be modified to include missing characters');
+    if (layout.metadata.requiresComposition) {
+      warnings.push('Layout requires key composition, which may slow down typing');
     }
 
-    if (layout.layoutType === 'qwerty' && layout.language !== 'en' && missingChars.length > 0) {
-      recommendations.push('Consider using a native layout for this language');
+    return { warnings };
+  }
+
+  private calculateCompatibilityScore(results: any): number {
+    let score = 100;
+
+    // Deduct points for each issue
+    results.issues.forEach((issue: any) => {
+      switch (issue.type) {
+        case 'error':
+          score -= 30;
+          break;
+        case 'warning':
+          score -= 15;
+          break;
+        case 'info':
+          score -= 5;
+          break;
+      }
+    });
+
+    return Math.max(0, score);
+  }
+
+  private generateRecommendations(results: any, layout: any, mode: TypingMode): Array<{
+    title: string;
+    description: string;
+    priority: 'high' | 'medium' | 'low';
+  }> {
+    const recommendations: Array<{
+      title: string;
+      description: string;
+      priority: 'high' | 'medium' | 'low';
+    }> = [];
+
+    // Generate recommendations based on issues found
+    const hasErrors = results.issues.some((issue: any) => issue.type === 'error');
+    const hasWarnings = results.issues.some((issue: any) => issue.type === 'warning');
+
+    if (hasErrors) {
+      recommendations.push({
+        title: 'Consider Alternative Layout',
+        description: 'This layout has compatibility issues. Consider using a different layout for better performance.',
+        priority: 'high'
+      });
+    }
+
+    if (hasWarnings && mode === TypingMode.COMPETITION) {
+      recommendations.push({
+        title: 'Use Standard Layout for Competition',
+        description: 'For competition mode, use a standard, well-tested layout to ensure fair play.',
+        priority: 'medium'
+      });
+    }
+
+    if (!hasErrors && !hasWarnings) {
+      recommendations.push({
+        title: 'Layout Ready to Use',
+        description: 'This layout is fully compatible and optimized for your selected mode.',
+        priority: 'low'
+      });
     }
 
     return recommendations;
+  }
+
+  private getRequiredCharacterSet(language: LanguageCode): string[] {
+    // Basic character sets for each language
+    const characterSets = {
+      [LanguageCode.EN]: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
+        'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', ' '],
+      [LanguageCode.LI]: ['ꓐ', 'ꓑ', 'ꓒ', 'ꓓ', 'ꓔ', 'ꓕ', 'ꓖ', 'ꓗ', 'ꓘ', 'ꓙ', 'ꓚ', 'ꓛ', 'ꓜ',
+        'ꓝ', 'ꓞ', 'ꓟ', 'ꓠ', 'ꓡ', 'ꓢ', 'ꓣ', 'ꓤ', 'ꓥ', 'ꓦ', 'ꓧ', 'ꓨ', 'ꓩ', ' '],
+      [LanguageCode.MY]: ['က', 'ခ', 'ဂ', 'ဃ', 'င', 'စ', 'ဆ', 'ဇ', 'ဈ', 'ဉ', 'ညဉ', 'ညီ', 'ညု',
+        'တ', 'ထ', 'ဒ', 'ဓ', 'န', 'ပ', 'ဖ', 'ဗ', 'ဘ', 'မ', 'ယ', 'ရ', 'လ', ' ']
+    };
+
+    return characterSets[language] || [];
   }
 }

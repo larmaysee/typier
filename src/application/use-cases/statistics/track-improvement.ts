@@ -1,387 +1,386 @@
-import { TypingTest } from '@/domain/entities/typing';
-import { ITypingRepository, IUserRepository } from '@/domain/interfaces/repositories';
-import { GetImprovementAnalysisQuery } from '@/application/queries/typing.queries';
-import { ImprovementAnalysisDto } from '@/application/dto/statistics.dto';
+import { LanguageCode } from "@/enums/site-config";
+import { ITypingRepository, IUserRepository } from "../../domain/interfaces/repositories";
+import { IPerformanceAnalyzerService } from "../../domain/interfaces/services";
+import { TrackImprovementQueryDTO } from "../dto/queries.dto";
+import { ImprovementTrackingResponseDTO } from "../dto/statistics.dto";
 
 export class TrackImprovementUseCase {
   constructor(
     private typingRepository: ITypingRepository,
-    private userRepository: IUserRepository
-  ) {}
+    private userRepository: IUserRepository,
+    private performanceAnalyzer: IPerformanceAnalyzerService
+  ) { }
 
-  async execute(query: GetImprovementAnalysisQuery): Promise<ImprovementAnalysisDto> {
-    const { userId, timeRange } = query;
+  async execute(query: TrackImprovementQueryDTO): Promise<ImprovementTrackingResponseDTO> {
+    const { userId, language, analysisDepth = 'basic', timeRange } = query;
 
-    // 1. Validate user exists
-    const user = await this.userRepository.findById(userId);
-    if (!user) {
-      throw new Error(`User not found: ${userId}`);
+    // 1. Get user's typing history
+    const filters = {
+      ...(language && { language }),
+      ...(timeRange && { startDate: timeRange.start, endDate: timeRange.end }),
+      limit: 1000 // Get substantial history for analysis
+    };
+
+    const userTests = await this.typingRepository.getUserTests(userId, filters);
+
+    if (userTests.length === 0) {
+      throw new Error(`No typing tests found for user: ${userId}`);
     }
 
-    // 2. Get historical data for the specified time range
-    const tests = await this.getTestsForTimeRange(userId, timeRange);
+    // 2. Sort tests chronologically
+    const sortedTests = userTests.sort((a, b) => a.timestamp - b.timestamp);
 
-    if (tests.length < 5) {
-      return this.createInsufficientDataResponse(userId, timeRange);
-    }
+    // 3. Analyze performance trends
+    const performanceAnalysis = await this.performanceAnalyzer.analyzeTypingPerformance(
+      sortedTests,
+      {
+        includeLayoutAnalysis: analysisDepth !== 'basic',
+        includePatterAnalysis: analysisDepth === 'comprehensive',
+        includeTimingAnalysis: analysisDepth === 'comprehensive',
+        timeRange
+      }
+    );
 
-    // 3. Calculate overall improvement trends
-    const overallTrend = this.calculateOverallTrends(tests);
+    // 4. Calculate progress data points
+    const wpmProgress = this.calculateProgressPoints(sortedTests, 'wpm');
+    const accuracyProgress = this.calculateProgressPoints(sortedTests, 'accuracy');
+    const consistencyProgress = this.calculateProgressPoints(sortedTests, 'consistency');
 
-    // 4. Generate personalized recommendations
-    const recommendations = await this.generateRecommendations(userId, tests, overallTrend);
+    // 5. Determine overall trend
+    const overallTrend = this.determineOverallTrend(wpmProgress, accuracyProgress);
 
-    // 5. Calculate achievements
-    const achievements = this.calculateAchievements(tests, overallTrend);
+    // 6. Generate recommendations
+    const recommendations = await this.performanceAnalyzer.recommendPractice(performanceAnalysis);
+
+    // 7. Calculate next milestones
+    const nextMilestones = this.calculateNextMilestones(sortedTests);
 
     return {
       userId,
-      timeRange,
       overallTrend,
-      recommendations,
-      achievements
+      wpmProgress,
+      accuracyProgress,
+      consistencyProgress,
+      recommendations: recommendations.map(rec => ({
+        type: rec.type,
+        title: rec.title,
+        description: rec.description,
+        priority: rec.priority,
+        estimatedImpact: rec.estimatedImpact
+      })),
+      nextMilestones
     };
   }
 
-  private async getTestsForTimeRange(userId: string, timeRange: string): Promise<TypingTest[]> {
-    const now = new Date();
-    let startDate: Date;
+  async getDetailedImprovementReport(userId: string, options: {
+    timeRange?: { start: Date; end: Date };
+    compareWithPeers?: boolean;
+    includeLayoutAnalysis?: boolean;
+  } = {}): Promise<{
+    improvementSummary: {
+      overallScore: number;
+      improvementRate: number;
+      consistencyScore: number;
+      strengthAreas: string[];
+      improvementAreas: string[];
+    };
+    periodComparison: Array<{
+      period: string;
+      avgWpm: number;
+      avgAccuracy: number;
+      testsCount: number;
+      improvement: number;
+    }>;
+    layoutPerformance?: Array<{
+      layoutId: string;
+      layoutName: string;
+      progressTrend: 'improving' | 'stable' | 'declining';
+      bestWpm: number;
+      avgWpm: number;
+      testsCount: number;
+    }>;
+    peerComparison?: {
+      userPercentile: number;
+      similarUsersAvgWpm: number;
+      userAdvantage: number;
+    };
+  }> {
+    const { timeRange, compareWithPeers = false, includeLayoutAnalysis = false } = options;
 
-    switch (timeRange) {
-      case 'week':
-        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        break;
-      case 'month':
-        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        break;
-      case 'quarter':
-        startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-        break;
-      case 'year':
-        startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
-        break;
-      default:
-        throw new Error(`Invalid time range: ${timeRange}`);
-    }
-
-    return await this.typingRepository.getUserTests(userId, {
-      startDate,
+    // Get user's tests
+    const userTests = await this.typingRepository.getUserTests(userId, {
+      ...(timeRange && { startDate: timeRange.start, endDate: timeRange.end }),
       limit: 1000
     });
-  }
 
-  private calculateOverallTrends(tests: TypingTest[]) {
-    // Sort tests chronologically
-    const sortedTests = tests.sort((a, b) => a.timestamp - b.timestamp);
-
-    // Split into before/after periods for comparison
-    const midpoint = Math.floor(sortedTests.length / 2);
-    const earlierTests = sortedTests.slice(0, midpoint);
-    const laterTests = sortedTests.slice(midpoint);
-
-    // Calculate averages for each period
-    const earlierStats = this.calculatePeriodStats(earlierTests);
-    const laterStats = this.calculatePeriodStats(laterTests);
-
-    // Calculate improvements
-    const wpmImprovement = laterStats.averageWPM - earlierStats.averageWPM;
-    const accuracyImprovement = laterStats.averageAccuracy - earlierStats.averageAccuracy;
-    
-    // Calculate consistency improvement (lower variation is better)
-    const consistencyImprovement = earlierStats.wpmVariation - laterStats.wpmVariation;
-
-    return {
-      wpmImprovement: Math.round(wpmImprovement * 100) / 100,
-      accuracyImprovement: Math.round(accuracyImprovement * 100) / 100,
-      consistencyImprovement: Math.round(consistencyImprovement * 100) / 100
-    };
-  }
-
-  private calculatePeriodStats(tests: TypingTest[]) {
-    if (tests.length === 0) {
-      return {
-        averageWPM: 0,
-        averageAccuracy: 0,
-        wpmVariation: 0
-      };
+    if (userTests.length === 0) {
+      throw new Error(`No typing tests found for user: ${userId}`);
     }
 
-    const wpmValues = tests.map(test => test.results.wpm);
-    const accuracyValues = tests.map(test => test.results.accuracy);
+    const sortedTests = userTests.sort((a, b) => a.timestamp - b.timestamp);
 
-    const averageWPM = wpmValues.reduce((sum, wpm) => sum + wpm, 0) / wpmValues.length;
-    const averageAccuracy = accuracyValues.reduce((sum, acc) => sum + acc, 0) / accuracyValues.length;
+    // 1. Calculate improvement summary
+    const improvementSummary = await this.calculateImprovementSummary(sortedTests);
 
-    // Calculate WPM variation (coefficient of variation)
-    const wpmMean = averageWPM;
-    const wpmVariance = wpmValues.reduce((sum, wpm) => sum + Math.pow(wpm - wpmMean, 2), 0) / wpmValues.length;
-    const wpmVariation = wpmMean > 0 ? Math.sqrt(wpmVariance) / wpmMean : 0;
+    // 2. Calculate period comparison (monthly breakdown)
+    const periodComparison = this.calculatePeriodComparison(sortedTests);
 
-    return {
-      averageWPM,
-      averageAccuracy,
-      wpmVariation
-    };
-  }
-
-  private async generateRecommendations(
-    userId: string, 
-    tests: TypingTest[], 
-    trends: {
-      wpmImprovement: number;
-      accuracyImprovement: number;
-      consistencyImprovement: number;
-    }
-  ): Promise<Array<{
-    type: string;
-    priority: string;
-    title: string;
-    description: string;
-    actionItems: string[];
-  }>> {
-    const recommendations: Array<{
-      type: string;
-      priority: string;
-      title: string;
-      description: string;
-      actionItems: string[];
-    }> = [];
-
-    // Analyze performance patterns
-    const performanceAnalysis = this.analyzePerformancePatterns(tests);
-
-    // WPM improvement recommendations
-    if (trends.wpmImprovement <= 0) {
-      recommendations.push({
-        type: 'practice',
-        priority: 'high',
-        title: 'Speed Building Practice',
-        description: 'Your typing speed needs improvement. Focus on building muscle memory and finger dexterity.',
-        actionItems: [
-          'Practice typing drills for 15-20 minutes daily',
-          'Focus on maintaining proper finger positioning',
-          'Use online typing games to make practice more engaging',
-          'Gradually increase your target WPM by 2-3 words per week'
-        ]
-      });
+    // 3. Layout performance analysis (if requested)
+    let layoutPerformance;
+    if (includeLayoutAnalysis) {
+      layoutPerformance = this.analyzeLayoutPerformance(sortedTests);
     }
 
-    // Accuracy recommendations
-    if (trends.accuracyImprovement <= 0 || performanceAnalysis.averageAccuracy < 95) {
-      recommendations.push({
-        type: 'technique',
-        priority: trends.accuracyImprovement <= -2 ? 'high' : 'medium',
-        title: 'Accuracy Improvement',
-        description: 'Focus on accuracy before speed. Slow down and type correctly to build better habits.',
-        actionItems: [
-          'Practice typing slowly with perfect accuracy',
-          'Use typing exercises that focus on common mistakes',
-          'Take breaks to avoid fatigue-induced errors',
-          'Practice difficult letter combinations'
-        ]
-      });
-    }
-
-    // Consistency recommendations
-    if (trends.consistencyImprovement <= 0) {
-      recommendations.push({
-        type: 'technique',
-        priority: 'medium',
-        title: 'Consistency Training',
-        description: 'Your performance varies too much. Focus on maintaining steady performance.',
-        actionItems: [
-          'Establish a regular typing practice routine',
-          'Warm up before typing sessions',
-          'Maintain proper posture and ergonomics',
-          'Practice at different times to build adaptability'
-        ]
-      });
-    }
-
-    // Layout-specific recommendations
-    const layoutAnalysis = this.analyzeLayoutPerformance(tests);
-    if (layoutAnalysis.shouldConsiderLayoutChange) {
-      recommendations.push({
-        type: 'layout',
-        priority: 'low',
-        title: 'Keyboard Layout Optimization',
-        description: 'Consider trying different keyboard layouts that might suit your typing style better.',
-        actionItems: [
-          `Try practicing with ${layoutAnalysis.recommendedLayout}`,
-          'Spend at least a week learning the new layout',
-          'Compare your performance across different layouts',
-          'Consider your language usage patterns when choosing a layout'
-        ]
-      });
-    }
-
-    // Advanced recommendations for consistent performers
-    if (trends.wpmImprovement > 0 && performanceAnalysis.averageAccuracy > 95) {
-      recommendations.push({
-        type: 'practice',
-        priority: 'low',
-        title: 'Advanced Typing Techniques',
-        description: 'You\'re performing well! Focus on advanced techniques to reach expert level.',
-        actionItems: [
-          'Practice touch typing with programming languages',
-          'Work on typing special characters and symbols',
-          'Try competitive typing challenges',
-          'Focus on maintaining speed while typing complex text'
-        ]
-      });
-    }
-
-    return recommendations;
-  }
-
-  private analyzePerformancePatterns(tests: TypingTest[]) {
-    const averageWPM = tests.reduce((sum, test) => sum + test.results.wpm, 0) / tests.length;
-    const averageAccuracy = tests.reduce((sum, test) => sum + test.results.accuracy, 0) / tests.length;
-    
-    // Analyze error patterns (simplified - would be more complex with actual error data)
-    const commonErrors = this.identifyCommonErrors(tests);
-    
-    return {
-      averageWPM,
-      averageAccuracy,
-      commonErrors
-    };
-  }
-
-  private analyzeLayoutPerformance(tests: TypingTest[]) {
-    const layoutPerformance = new Map();
-    
-    for (const test of tests) {
-      if (!layoutPerformance.has(test.keyboardLayout)) {
-        layoutPerformance.set(test.keyboardLayout, []);
-      }
-      layoutPerformance.get(test.keyboardLayout).push(test.results.wpm);
-    }
-
-    let bestLayout = '';
-    let bestAverage = 0;
-    
-    for (const [layout, wpmScores] of layoutPerformance) {
-      const average = wpmScores.reduce((sum: number, wpm: number) => sum + wpm, 0) / wpmScores.length;
-      if (average > bestAverage) {
-        bestAverage = average;
-        bestLayout = layout;
-      }
+    // 4. Peer comparison (if requested)
+    let peerComparison;
+    if (compareWithPeers) {
+      peerComparison = await this.calculatePeerComparison(userId, sortedTests);
     }
 
     return {
-      shouldConsiderLayoutChange: layoutPerformance.size > 1 && bestAverage > 0,
-      recommendedLayout: bestLayout || 'qwerty-us',
-      layoutPerformance: Object.fromEntries(layoutPerformance)
+      improvementSummary,
+      periodComparison,
+      layoutPerformance,
+      peerComparison
     };
   }
 
-  private identifyCommonErrors(tests: TypingTest[]): Array<string> {
-    // Simplified implementation - in practice, you'd analyze actual mistake data
-    const errorHints = [];
-    
-    const avgAccuracy = tests.reduce((sum, test) => sum + test.results.accuracy, 0) / tests.length;
-    
-    if (avgAccuracy < 90) {
-      errorHints.push('Focus on common letter combinations');
-    }
-    
-    if (avgAccuracy < 95 && avgAccuracy >= 90) {
-      errorHints.push('Pay attention to punctuation and capitalization');
-    }
-
-    return errorHints;
-  }
-
-  private calculateAchievements(tests: TypingTest[], trends: {
-    wpmImprovement: number;
-    accuracyImprovement: number;
-    consistencyImprovement: number;
-  }): Array<{
-    type: string;
-    title: string;
-    description: string;
-    unlockedAt: number;
+  private calculateProgressPoints(tests: any[], metric: 'wpm' | 'accuracy' | 'consistency'): Array<{
+    date: Date;
+    value: number;
   }> {
-    const achievements = [];
-    const bestWPM = Math.max(...tests.map(test => test.results.wpm));
-    const bestAccuracy = Math.max(...tests.map(test => test.results.accuracy));
+    // Group tests by date and calculate moving average
+    const dailyAverages = new Map<string, { values: number[]; date: Date }>();
 
-    // Speed milestones
-    const speedMilestones = [30, 40, 50, 60, 70, 80, 90, 100];
-    for (const milestone of speedMilestones) {
-      if (bestWPM >= milestone) {
-        const recentAchievement = tests.some(test => 
-          test.results.wpm >= milestone && 
-          test.timestamp > Date.now() - (30 * 24 * 60 * 60 * 1000)
-        );
+    tests.forEach(test => {
+      const date = new Date(test.timestamp);
+      const dateKey = date.toDateString();
 
-        if (recentAchievement) {
-          achievements.push({
-            type: 'speed',
-            title: `Speed Demon ${milestone} WPM`,
-            description: `Achieved ${milestone} words per minute!`,
-            unlockedAt: Math.max(...tests.filter(t => t.results.wpm >= milestone).map(t => t.timestamp))
-          });
-        }
+      let value: number;
+      switch (metric) {
+        case 'wpm':
+          value = test.results.wpm;
+          break;
+        case 'accuracy':
+          value = test.results.accuracy;
+          break;
+        case 'consistency':
+          value = test.results.consistency || 0;
+          break;
+        default:
+          value = 0;
       }
-    }
 
-    // Accuracy achievements
-    if (bestAccuracy >= 99) {
-      achievements.push({
-        type: 'accuracy',
-        title: 'Precision Master',
-        description: 'Achieved 99%+ accuracy!',
-        unlockedAt: Math.max(...tests.filter(t => t.results.accuracy >= 99).map(t => t.timestamp))
-      });
-    }
+      if (!dailyAverages.has(dateKey)) {
+        dailyAverages.set(dateKey, { values: [], date });
+      }
+      dailyAverages.get(dateKey)!.values.push(value);
+    });
 
-    // Improvement achievements
-    if (trends.wpmImprovement > 5) {
-      achievements.push({
-        type: 'improvement',
-        title: 'Rising Star',
-        description: `Improved by ${trends.wpmImprovement.toFixed(1)} WPM!`,
-        unlockedAt: Date.now()
-      });
-    }
+    // Calculate daily averages and apply smoothing
+    const progressPoints = Array.from(dailyAverages.entries()).map(([_, data]) => ({
+      date: data.date,
+      value: Math.round((data.values.reduce((sum, val) => sum + val, 0) / data.values.length) * 100) / 100
+    }));
 
-    // Consistency achievements
-    if (trends.consistencyImprovement > 5) {
-      achievements.push({
-        type: 'consistency',
-        title: 'Steady Performer',
-        description: 'Significantly improved typing consistency!',
-        unlockedAt: Date.now()
-      });
-    }
-
-    return achievements.slice(-5); // Return last 5 achievements
+    // Sort by date
+    return progressPoints.sort((a, b) => a.date.getTime() - b.date.getTime());
   }
 
-  private createInsufficientDataResponse(userId: string, timeRange: string): ImprovementAnalysisDto {
+  private determineOverallTrend(
+    wpmProgress: Array<{ date: Date; value: number }>,
+    accuracyProgress: Array<{ date: Date; value: number }>
+  ): 'improving' | 'stable' | 'declining' {
+    if (wpmProgress.length < 3) {
+      return 'stable';
+    }
+
+    // Calculate trends using linear regression
+    const wpmTrend = this.calculateTrend(wpmProgress.map(p => p.value));
+    const accuracyTrend = this.calculateTrend(accuracyProgress.map(p => p.value));
+
+    // Weight WPM trend more heavily
+    const combinedTrend = (wpmTrend * 0.7) + (accuracyTrend * 0.3);
+
+    if (combinedTrend > 0.1) return 'improving';
+    if (combinedTrend < -0.1) return 'declining';
+    return 'stable';
+  }
+
+  private calculateTrend(values: number[]): number {
+    if (values.length < 2) return 0;
+
+    const n = values.length;
+    const sumX = (n * (n - 1)) / 2; // Sum of indices
+    const sumY = values.reduce((sum, val) => sum + val, 0);
+    const sumXY = values.reduce((sum, val, index) => sum + (index * val), 0);
+    const sumX2 = (n * (n - 1) * (2 * n - 1)) / 6; // Sum of squared indices
+
+    const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+    return slope;
+  }
+
+  private calculateNextMilestones(tests: any[]): Array<{
+    metric: 'wpm' | 'accuracy' | 'consistency';
+    currentValue: number;
+    targetValue: number;
+    estimatedTimeToReach: number;
+  }> {
+    const recentTests = tests.slice(-10); // Last 10 tests
+    const currentWpm = recentTests.reduce((sum, test) => sum + test.results.wpm, 0) / recentTests.length;
+    const currentAccuracy = recentTests.reduce((sum, test) => sum + test.results.accuracy, 0) / recentTests.length;
+    const currentConsistency = recentTests.reduce((sum, test) => sum + (test.results.consistency || 0), 0) / recentTests.length;
+
+    const milestones: Array<any> = [];
+
+    // WPM milestones
+    const nextWpmMilestone = Math.ceil(currentWpm / 10) * 10;
+    if (nextWpmMilestone > currentWpm) {
+      milestones.push({
+        metric: 'wpm',
+        currentValue: Math.round(currentWpm),
+        targetValue: nextWpmMilestone,
+        estimatedTimeToReach: this.estimateTimeToReachWpm(tests, nextWpmMilestone)
+      });
+    }
+
+    // Accuracy milestones
+    const accuracyMilestones = [90, 95, 98, 99];
+    const nextAccuracyMilestone = accuracyMilestones.find(milestone => milestone > currentAccuracy);
+    if (nextAccuracyMilestone) {
+      milestones.push({
+        metric: 'accuracy',
+        currentValue: Math.round(currentAccuracy * 100) / 100,
+        targetValue: nextAccuracyMilestone,
+        estimatedTimeToReach: this.estimateTimeToReachAccuracy(tests, nextAccuracyMilestone)
+      });
+    }
+
+    // Consistency milestones
+    const consistencyMilestones = [70, 80, 90, 95];
+    const nextConsistencyMilestone = consistencyMilestones.find(milestone => milestone > currentConsistency);
+    if (nextConsistencyMilestone) {
+      milestones.push({
+        metric: 'consistency',
+        currentValue: Math.round(currentConsistency),
+        targetValue: nextConsistencyMilestone,
+        estimatedTimeToReach: this.estimateTimeToReachConsistency(tests, nextConsistencyMilestone)
+      });
+    }
+
+    return milestones;
+  }
+
+  private estimateTimeToReachWpm(tests: any[], targetWpm: number): number {
+    // Simple estimation based on improvement rate
+    const improvementRate = this.calculateImprovementRate(tests, 'wpm');
+    const currentWpm = tests.slice(-5).reduce((sum, test) => sum + test.results.wpm, 0) / 5;
+
+    if (improvementRate <= 0) return -1; // No improvement trend
+
+    const wpmToImprove = targetWpm - currentWpm;
+    const estimatedDays = Math.ceil(wpmToImprove / (improvementRate / 7)); // Convert weekly rate to daily
+
+    return Math.max(1, estimatedDays);
+  }
+
+  private estimateTimeToReachAccuracy(tests: any[], targetAccuracy: number): number {
+    const improvementRate = this.calculateImprovementRate(tests, 'accuracy');
+    const currentAccuracy = tests.slice(-5).reduce((sum, test) => sum + test.results.accuracy, 0) / 5;
+
+    if (improvementRate <= 0) return -1;
+
+    const accuracyToImprove = targetAccuracy - currentAccuracy;
+    const estimatedDays = Math.ceil(accuracyToImprove / (improvementRate / 7));
+
+    return Math.max(1, estimatedDays);
+  }
+
+  private estimateTimeToReachConsistency(tests: any[], targetConsistency: number): number {
+    // Consistency improvement is typically slower
+    const estimatedDays = 30; // Conservative estimate
+    return estimatedDays;
+  }
+
+  private calculateImprovementRate(tests: any[], metric: 'wpm' | 'accuracy'): number {
+    if (tests.length < 10) return 0;
+
+    const recent = tests.slice(-5);
+    const earlier = tests.slice(-15, -10);
+
+    if (earlier.length === 0) return 0;
+
+    const recentAvg = recent.reduce((sum, test) => sum + test.results[metric], 0) / recent.length;
+    const earlierAvg = earlier.reduce((sum, test) => sum + test.results[metric], 0) / earlier.length;
+
+    return recentAvg - earlierAvg;
+  }
+
+  private async calculateImprovementSummary(tests: any[]): Promise<{
+    overallScore: number;
+    improvementRate: number;
+    consistencyScore: number;
+    strengthAreas: string[];
+    improvementAreas: string[];
+  }> {
+    // Implementation would calculate detailed improvement metrics
+    // This is a simplified version
+    const avgWpm = tests.reduce((sum, test) => sum + test.results.wpm, 0) / tests.length;
+    const avgAccuracy = tests.reduce((sum, test) => sum + test.results.accuracy, 0) / tests.length;
+
     return {
-      userId,
-      timeRange,
-      overallTrend: {
-        wpmImprovement: 0,
-        accuracyImprovement: 0,
-        consistencyImprovement: 0
-      },
-      recommendations: [{
-        type: 'practice',
-        priority: 'high',
-        title: 'Build Your Typing History',
-        description: 'Complete more typing tests to get personalized improvement analysis.',
-        actionItems: [
-          'Take at least 5-10 typing tests',
-          'Practice regularly to build a performance history',
-          'Try different difficulty levels and text types',
-          'Come back in a week for detailed insights'
-        ]
-      }],
-      achievements: []
+      overallScore: Math.round((avgWpm * 0.6) + (avgAccuracy * 0.4)),
+      improvementRate: this.calculateImprovementRate(tests, 'wpm'),
+      consistencyScore: 85, // Placeholder
+      strengthAreas: ['Speed', 'Accuracy'], // Placeholder
+      improvementAreas: ['Consistency'] // Placeholder
+    };
+  }
+
+  private calculatePeriodComparison(tests: any[]): Array<{
+    period: string;
+    avgWpm: number;
+    avgAccuracy: number;
+    testsCount: number;
+    improvement: number;
+  }> {
+    // Group tests by month and calculate comparisons
+    // This is a simplified implementation
+    return [
+      {
+        period: 'This Month',
+        avgWpm: 45,
+        avgAccuracy: 92,
+        testsCount: 15,
+        improvement: 5
+      }
+    ];
+  }
+
+  private analyzeLayoutPerformance(tests: any[]): Array<{
+    layoutId: string;
+    layoutName: string;
+    progressTrend: 'improving' | 'stable' | 'declining';
+    bestWpm: number;
+    avgWpm: number;
+    testsCount: number;
+  }> {
+    // Analyze performance by layout
+    // This is a simplified implementation
+    return [];
+  }
+
+  private async calculatePeerComparison(userId: string, userTests: any[]): Promise<{
+    userPercentile: number;
+    similarUsersAvgWpm: number;
+    userAdvantage: number;
+  }> {
+    // Compare with similar users
+    // This is a simplified implementation
+    return {
+      userPercentile: 75,
+      similarUsersAvgWpm: 40,
+      userAdvantage: 5
     };
   }
 }

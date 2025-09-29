@@ -6,7 +6,7 @@ import { TypingSessionDto } from '@/application/dto/typing-session.dto';
 export class ProcessTypingInputUseCase {
   constructor(
     private sessionRepository: ISessionRepository
-  ) {}
+  ) { }
 
   async execute(command: ProcessInputCommand): Promise<TypingSessionDto> {
     // 1. Get current session
@@ -59,7 +59,7 @@ export class ProcessTypingInputUseCase {
   private updateCursorPosition(session: TypingSession): void {
     const input = session.currentInput;
     const words = session.test.textContent.split(' ');
-    
+
     let charCount = 0;
     let wordIndex = 0;
     let charIndex = 0;
@@ -67,15 +67,15 @@ export class ProcessTypingInputUseCase {
     for (let i = 0; i < words.length; i++) {
       const wordLength = words[i].length;
       const wordEnd = charCount + wordLength;
-      
+
       if (input.length <= wordEnd) {
         wordIndex = i;
         charIndex = input.length - charCount;
         break;
       }
-      
+
       charCount = wordEnd + 1; // +1 for space
-      
+
       if (input.length === charCount - 1) {
         wordIndex = i + 1;
         charIndex = 0;
@@ -93,14 +93,14 @@ export class ProcessTypingInputUseCase {
   private detectMistakes(session: TypingSession, previousInput: string, timestamp: number): void {
     const targetText = session.test.textContent;
     const currentInput = session.currentInput;
-    
+
     // Only check for new mistakes in the newly typed characters
     const startIndex = previousInput.length;
-    
+
     for (let i = startIndex; i < currentInput.length && i < targetText.length; i++) {
       const expectedChar = targetText[i];
       const actualChar = currentInput[i];
-      
+
       if (expectedChar !== actualChar) {
         const mistake: TypingMistake = {
           position: i,
@@ -108,7 +108,7 @@ export class ProcessTypingInputUseCase {
           actualChar,
           timestamp
         };
-        
+
         session.mistakes.push(mistake);
       }
     }
@@ -119,17 +119,17 @@ export class ProcessTypingInputUseCase {
 
     const timeElapsed = (timestamp - session.startTime) / 1000; // seconds
     const timeElapsedMinutes = timeElapsed / 60; // minutes
-    
+
     // Calculate WPM (words per minute)
     const correctChars = this.countCorrectCharacters(session);
     const words = correctChars / 5; // Standard: 5 characters = 1 word
     const currentWPM = timeElapsedMinutes > 0 ? Math.round(words / timeElapsedMinutes) : 0;
-    
+
     // Calculate accuracy
     const totalTyped = session.currentInput.length;
     const errorCount = session.mistakes.length;
     const currentAccuracy = totalTyped > 0 ? Math.round(((totalTyped - errorCount) / totalTyped) * 100) : 100;
-    
+
     session.liveStats = {
       currentWPM,
       currentAccuracy,
@@ -141,16 +141,16 @@ export class ProcessTypingInputUseCase {
   private countCorrectCharacters(session: TypingSession): number {
     const targetText = session.test.textContent;
     const currentInput = session.currentInput;
-    
+
     let correctCount = 0;
     const minLength = Math.min(targetText.length, currentInput.length);
-    
+
     for (let i = 0; i < minLength; i++) {
       if (targetText[i] === currentInput[i]) {
         correctCount++;
       }
     }
-    
+
     return correctCount;
   }
 

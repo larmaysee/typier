@@ -1,93 +1,117 @@
-import { TypingSession, SessionStatus } from '@/domain/entities/typing';
-import { ISessionRepository } from '@/domain/interfaces/repositories';
-import { PauseSessionCommand, ResumeSessionCommand } from '@/application/commands/session.commands';
-import { TypingSessionDto } from '@/application/dto/typing-session.dto';
+import { TypingSession, SessionStatus } from "../../domain/entities/typing";
+import { ISessionRepository } from "../../domain/interfaces/repositories";
+import { PauseResumeSessionCommandDTO } from "../dto/typing-session.dto";
 
 export class PauseResumeSessionUseCase {
   constructor(
     private sessionRepository: ISessionRepository
-  ) {}
+  ) { }
 
-  async pauseSession(command: PauseSessionCommand): Promise<TypingSessionDto> {
-    // 1. Get current session
+  async execute(command: PauseResumeSessionCommandDTO): Promise<TypingSession> {
+    // 1. Get the session
     const session = await this.sessionRepository.findById(command.sessionId);
     if (!session) {
       throw new Error(`Session not found: ${command.sessionId}`);
     }
 
-    // 2. Validate session can be paused
-    if (session.status !== SessionStatus.ACTIVE) {
-      throw new Error('Only active sessions can be paused');
+    // 2. Validate session state
+    if (session.status === SessionStatus.COMPLETED) {
+      throw new Error('Cannot pause/resume a completed session');
     }
 
-    // 3. Calculate time elapsed and update time left
-    if (session.startTime) {
-      const timeElapsed = (command.pausedAt - session.startTime) / 1000;
-      session.timeLeft = Math.max(0, session.timeLeft - timeElapsed);
+    if (session.status === SessionStatus.CANCELLED) {
+      throw new Error('Cannot pause/resume a cancelled session');
     }
 
-    // 4. Update session status
-    session.status = SessionStatus.PAUSED;
+    if (session.status === SessionStatus.IDLE && command.action === 'pause') {
+      throw new Error('Cannot pause a session that hasn\'t started');
+    }
 
-    // 5. Update focus state
-    session.focusState.isFocused = false;
-    session.focusState.focusLossCount += 1;
+    // 3. Handle pause action
+    if (command.action === 'pause') {
+      if (session.status === SessionStatus.PAUSED) {
+        return session; // Already paused
+      }
+
+      session.status = SessionStatus.PAUSED;
+      session.focusState.isFocused = false;
+      session.focusState.lastFocusTime = command.timestamp;
+    }
+
+    // 4. Handle resume action
+    if (command.action === 'resume') {
+      if (session.status === SessionStatus.ACTIVE) {
+        return session; // Already active
+      }
+
+      if (session.status === SessionStatus.PAUSED) {
+        session.status = SessionStatus.ACTIVE;
+        session.focusState.isFocused = true;
+
+        // Calculate focus lost duration
+        const pauseDuration = command.timestamp - session.focusState.lastFocusTime;
+        session.focusState.focusLostDuration += pauseDuration;
+        session.focusState.lastFocusTime = command.timestamp;
+      }
+
+      if (session.status === SessionStatus.IDLE) {
+        // Resume from idle state (first input)
+        session.status = SessionStatus.ACTIVE;
+        session.startTime = command.timestamp;
+        session.focusState.isFocused = true;
+        session.focusState.lastFocusTime = command.timestamp;
+      }
+    }
+
+    // 5. Update timestamp
+    session.updated_at = new Date();
 
     // 6. Save session
-    await this.sessionRepository.update(session);
+    await this.sessionRepository.save(session);
 
-    return this.mapSessionToDto(session);
+    return session;
   }
 
-  async resumeSession(command: ResumeSessionCommand): Promise<TypingSessionDto> {
-    // 1. Get current session
-    const session = await this.sessionRepository.findById(command.sessionId);
+  async cancelSession(sessionId: string): Promise<TypingSession> {
+    const session = await this.sessionRepository.findById(sessionId);
     if (!session) {
-      throw new Error(`Session not found: ${command.sessionId}`);
+      throw new Error(`Session not found: ${sessionId}`);
     }
 
-    // 2. Validate session can be resumed
-    if (session.status !== SessionStatus.PAUSED) {
-      throw new Error('Only paused sessions can be resumed');
+    if (session.status === SessionStatus.COMPLETED) {
+      throw new Error('Cannot cancel a completed session');
     }
 
-    // 3. Check if there's still time left
-    if (session.timeLeft <= 0) {
-      session.status = SessionStatus.COMPLETED;
-      await this.sessionRepository.update(session);
-      throw new Error('Session time has expired');
-    }
+    session.status = SessionStatus.CANCELLED;
+    session.updated_at = new Date();
 
-    // 4. Update session status and start time
-    session.status = SessionStatus.ACTIVE;
-    session.startTime = command.resumedAt;
-
-    // 5. Update focus state
-    session.focusState.isFocused = true;
-    session.focusState.lastFocusTime = command.resumedAt;
-
-    // 6. Save session
-    await this.sessionRepository.update(session);
-
-    return this.mapSessionToDto(session);
+    await this.sessionRepository.save(session);
+    return session;
   }
 
-  private mapSessionToDto(session: TypingSession): TypingSessionDto {
+  async getSessionStatus(sessionId: string): Promise<{
+    status: SessionStatus;
+    timeLeft: number;
+    elapsedTime: number;
+    focusLostDuration: number;
+    canResume: boolean;
+    canPause: boolean;
+  }> {
+    const session = await this.sessionRepository.findById(sessionId);
+    if (!session) {
+      throw new Error(`Session not found: ${sessionId}`);
+    }
+
+    const currentTime = Date.now();
+    const elapsedTime = session.startTime ? (currentTime - session.startTime) / 1000 : 0;
+
     return {
-      id: session.id,
-      userId: session.test.userId,
-      mode: session.test.mode,
-      difficulty: session.test.difficulty,
-      language: session.test.language,
-      keyboardLayoutId: session.activeLayoutId,
-      textContent: session.test.textContent,
-      currentInput: session.currentInput,
-      startTime: session.startTime,
-      timeLeft: session.timeLeft,
       status: session.status,
-      cursorPosition: session.cursorPosition,
-      liveStats: session.liveStats,
-      mistakes: session.mistakes
+      timeLeft: session.timeLeft,
+      elapsedTime,
+      focusLostDuration: session.focusState.focusLostDuration,
+      canResume: session.status === SessionStatus.PAUSED || session.status === SessionStatus.IDLE,
+      canPause: session.status === SessionStatus.ACTIVE
     };
   }
 }

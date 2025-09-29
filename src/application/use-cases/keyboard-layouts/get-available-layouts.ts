@@ -1,109 +1,159 @@
-import { KeyboardLayout } from '@/domain/entities/keyboard-layout';
-import { IKeyboardLayoutRepository, IUserRepository } from '@/domain/interfaces/repositories';
-import { GetLayoutsQuery } from '@/application/queries/typing.queries';
-import { AvailableLayoutsDto, KeyboardLayoutDto } from '@/application/dto/keyboard-layout.dto';
+import { LanguageCode } from "@/enums/site-config";
+import { KeyboardLayout } from "../../domain/entities/keyboard-layout";
+import { IKeyboardLayoutRepository, IUserRepository } from "../../domain/interfaces/repositories";
+import { GetAvailableLayoutsQueryDTO } from "../dto/queries.dto";
+import { LayoutsResponseDTO } from "../dto/keyboard-layouts.dto";
 
 export class GetAvailableLayoutsUseCase {
   constructor(
     private layoutRepository: IKeyboardLayoutRepository,
     private userRepository: IUserRepository
-  ) {}
+  ) { }
 
-  async execute(query: GetLayoutsQuery): Promise<AvailableLayoutsDto> {
-    const { language, userId } = query;
+  async execute(query: GetAvailableLayoutsQueryDTO): Promise<LayoutsResponseDTO> {
+    const { language, userId, includeCustom = true } = query;
 
     // 1. Get all available layouts for the language
     const allLayouts = await this.layoutRepository.getAvailableLayouts(language);
 
     if (allLayouts.length === 0) {
-      throw new Error(`No layouts available for language: ${language}`);
+      throw new Error(`No keyboard layouts available for language: ${language}`);
     }
 
-    // 2. Get user's preferred layout if user is provided
+    // 2. Get user's preferred layout if user is authenticated
     let preferredLayoutId: string | null = null;
     if (userId) {
-      try {
-        preferredLayoutId = await this.layoutRepository.getUserPreferredLayout(userId, language);
-      } catch (error) {
-        // Continue without preferred layout if user not found or no preference set
-        console.warn(`Could not get preferred layout for user ${userId}: ${error}`);
-      }
+      preferredLayoutId = await this.layoutRepository.getUserPreferredLayout(userId, language);
     }
 
-    // 3. Sort layouts: preferred first, then by popularity, then by name
-    const sortedLayouts = this.sortLayoutsByPreference(allLayouts, preferredLayoutId);
+    // 3. Get user-specific statistics for layouts (if available)
+    const layoutStats = userId ? await this.getUserLayoutStats(userId, language) : new Map();
 
-    // 4. Determine default layout (first non-custom layout or first layout)
-    const defaultLayoutId = this.determineDefaultLayout(sortedLayouts);
+    // 4. Process and enrich layout information
+    const enrichedLayouts = allLayouts.map(layout => {
+      const userStats = layoutStats.get(layout.id);
+      const isRecommended = this.isLayoutRecommended(layout, userStats);
 
-    // 5. Map to DTOs
-    const layoutDtos = sortedLayouts.map(layout => this.mapLayoutToDto(layout));
+      return {
+        id: layout.id,
+        name: layout.name,
+        displayName: layout.displayName,
+        language: layout.language,
+        layoutType: layout.layoutType,
+        variant: layout.variant,
+        isCustom: layout.isCustom,
+        popularity: layout.metadata.popularity,
+        isRecommended,
+        userTestsCount: userStats?.testsCount || 0,
+        userAverageWpm: userStats?.averageWpm,
+        userAverageAccuracy: userStats?.averageAccuracy
+      };
+    });
+
+    // 5. Sort layouts by preference and popularity
+    const sortedLayouts = this.sortLayoutsByPreference(
+      enrichedLayouts,
+      preferredLayoutId
+    );
+
+    // 6. Filter out custom layouts if not requested
+    const filteredLayouts = includeCustom
+      ? sortedLayouts
+      : sortedLayouts.filter(layout => !layout.isCustom);
+
+    // 7. Determine default layout
+    const defaultLayoutId = this.getDefaultLayoutForLanguage(language, allLayouts);
+
+    // 8. Count custom layouts
+    const customLayoutsCount = sortedLayouts.filter(layout => layout.isCustom).length;
 
     return {
-      layouts: layoutDtos,
+      layouts: filteredLayouts,
       preferredLayoutId,
-      defaultLayoutId
+      defaultLayoutId,
+      customLayoutsCount
     };
   }
 
-  private sortLayoutsByPreference(layouts: KeyboardLayout[], preferredLayoutId: string | null): KeyboardLayout[] {
+  private async getUserLayoutStats(userId: string, language: LanguageCode): Promise<Map<string, {
+    testsCount: number;
+    averageWpm: number;
+    averageAccuracy: number;
+  }>> {
+    // In a real implementation, this would fetch user's typing test history
+    // and calculate statistics per layout
+    // For now, return empty map
+    return new Map();
+  }
+
+  private isLayoutRecommended(
+    layout: KeyboardLayout,
+    userStats?: { testsCount: number; averageWpm: number; averageAccuracy: number }
+  ): boolean {
+    // Recommend layouts based on various criteria
+    const popularityThreshold = 70;
+    const isPopular = layout.metadata.popularity >= popularityThreshold;
+
+    // If user has stats with this layout, consider their performance
+    if (userStats && userStats.testsCount >= 5) {
+      const hasGoodPerformance = userStats.averageWpm >= 40 && userStats.averageAccuracy >= 90;
+      return hasGoodPerformance;
+    }
+
+    // For new users, recommend popular, standard layouts
+    const isStandardLayout = !layout.isCustom && layout.variant === 'standard';
+
+    return isPopular || isStandardLayout;
+  }
+
+  private sortLayoutsByPreference(
+    layouts: Array<{
+      id: string;
+      popularity: number;
+      isRecommended: boolean;
+      userTestsCount: number;
+      [key: string]: any;
+    }>,
+    preferredLayoutId: string | null
+  ): Array<any> {
     return layouts.sort((a, b) => {
-      // 1. Preferred layout first
+      // 1. Preferred layout comes first
       if (preferredLayoutId) {
         if (a.id === preferredLayoutId) return -1;
         if (b.id === preferredLayoutId) return 1;
       }
 
-      // 2. Non-custom layouts before custom ones
-      if (a.isCustom !== b.isCustom) {
-        return a.isCustom ? 1 : -1;
+      // 2. Recommended layouts come next
+      if (a.isRecommended && !b.isRecommended) return -1;
+      if (!a.isRecommended && b.isRecommended) return 1;
+
+      // 3. Layouts with user experience come next
+      if (a.userTestsCount > 0 && b.userTestsCount === 0) return -1;
+      if (a.userTestsCount === 0 && b.userTestsCount > 0) return 1;
+
+      // 4. Sort by popularity
+      if (a.popularity !== b.popularity) {
+        return b.popularity - a.popularity;
       }
 
-      // 3. Sort by popularity (higher first)
-      if (a.metadata.popularity !== b.metadata.popularity) {
-        return b.metadata.popularity - a.metadata.popularity;
-      }
-
-      // 4. Sort by difficulty (easier first)
-      if (a.metadata.difficulty !== b.metadata.difficulty) {
-        return a.metadata.difficulty - b.metadata.difficulty;
-      }
-
-      // 5. Sort alphabetically by display name
-      return a.displayName.localeCompare(b.displayName);
+      // 5. Alphabetical order as fallback
+      return a.name.localeCompare(b.name);
     });
   }
 
-  private determineDefaultLayout(layouts: KeyboardLayout[]): string {
-    // First, try to find a non-custom layout
-    const nonCustomLayout = layouts.find(layout => !layout.isCustom);
-    if (nonCustomLayout) {
-      return nonCustomLayout.id;
-    }
-
-    // Fall back to first layout if all are custom
-    return layouts[0].id;
-  }
-
-  private mapLayoutToDto(layout: KeyboardLayout): KeyboardLayoutDto {
-    return {
-      id: layout.id,
-      name: layout.name,
-      displayName: layout.displayName,
-      language: layout.language,
-      layoutType: layout.layoutType,
-      variant: layout.variant,
-      isCustom: layout.isCustom,
-      metadata: {
-        description: layout.metadata.description,
-        author: layout.metadata.author,
-        version: layout.metadata.version,
-        compatibility: layout.metadata.compatibility,
-        tags: layout.metadata.tags,
-        difficulty: layout.metadata.difficulty,
-        popularity: layout.metadata.popularity
-      },
-      createdBy: layout.createdBy
+  private getDefaultLayoutForLanguage(language: LanguageCode, layouts: KeyboardLayout[]): string {
+    // Define default layouts for each language
+    const defaults = {
+      [LanguageCode.EN]: 'qwerty_us',
+      [LanguageCode.LI]: 'lisu_sil_basic',
+      [LanguageCode.MY]: 'myanmar3'
     };
+
+    const defaultLayoutName = defaults[language];
+    const defaultLayout = layouts.find(layout =>
+      layout.id === defaultLayoutName || layout.name.toLowerCase().includes(defaultLayoutName)
+    );
+
+    return defaultLayout?.id || layouts[0]?.id || '';
   }
 }

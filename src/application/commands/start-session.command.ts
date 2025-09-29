@@ -1,7 +1,7 @@
 import { LanguageCode } from "@/enums/site-config";
-import { TypingMode, DifficultyLevel, SessionStatus } from "../entities/typing";
+import { TypingMode, DifficultyLevel } from "../entities/typing";
 
-export interface StartSessionCommandDTO {
+export interface StartSessionCommand {
   userId?: string;
   mode: TypingMode;
   difficulty: DifficultyLevel;
@@ -12,7 +12,7 @@ export interface StartSessionCommandDTO {
   competitionId?: string;
 }
 
-export interface ProcessInputCommandDTO {
+export interface ProcessInputCommand {
   sessionId: string;
   input: string;
   timestamp: number;
@@ -23,20 +23,20 @@ export interface ProcessInputCommandDTO {
   };
 }
 
-export interface CompleteSessionCommandDTO {
+export interface CompleteSessionCommand {
   sessionId: string;
   finalInput: string;
   completionTime: number;
   isManualCompletion?: boolean;
 }
 
-export interface PauseResumeSessionCommandDTO {
+export interface PauseResumeSessionCommand {
   sessionId: string;
   action: 'pause' | 'resume';
   timestamp: number;
 }
 
-export interface SwitchLayoutCommandDTO {
+export interface SwitchLayoutCommand {
   sessionId?: string;
   layoutId: string;
   userId?: string;

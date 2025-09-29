@@ -1,149 +1,106 @@
-import { LanguageCode } from '@/enums/site-config';
-import { KeyboardLayout, LayoutType } from '../entities/keyboard-layout';
-import { TypingResults, DifficultyLevel, TextType } from '../entities/typing';
+import { LanguageCode } from "@/enums/site-config";
+import { DifficultyLevel, TypingMode } from "../entities/typing";
+import { KeyboardLayout } from "../entities/keyboard-layout";
 
 export interface ITextGenerationService {
   generate(config: TextGenerationConfig): Promise<string>;
   validateText(text: string, language: LanguageCode): Promise<boolean>;
+  getDifficultyScore(text: string, language: LanguageCode): Promise<number>;
 }
 
 export interface ILayoutManagerService {
-  getAvailableLayouts(language: LanguageCode): Promise<KeyboardLayout[]>;
+  getLayoutsForLanguage(language: LanguageCode): Promise<KeyboardLayout[]>;
   validateLayout(layout: KeyboardLayout): Promise<ValidationResult>;
-  isCompatible(layoutId: string, textContent: string): Promise<boolean>;
-  createCustomLayout(config: CustomLayoutConfig): Promise<KeyboardLayout>;
+  createCustomLayout(baseLayout: KeyboardLayout, modifications: KeyboardModification[]): Promise<KeyboardLayout>;
+  optimizeLayoutForUser(userId: string, language: LanguageCode): Promise<KeyboardLayout>;
 }
 
 export interface IPerformanceAnalyzerService {
-  calculateResults(input: string, targetText: string, timeElapsed: number): TypingResults;
-  analyzeFingerUtilization(input: string, layout: KeyboardLayout): Record<string, number>;
-  calculateConsistency(wpmHistory: number[]): number;
+  analyzeTypingPerformance(tests: any[], options?: AnalysisOptions): Promise<PerformanceAnalysis>;
+  calculateImprovement(oldStats: any, newStats: any): Promise<ImprovementMetrics>;
+  recommendPractice(analysis: PerformanceAnalysis): Promise<PracticeRecommendation[]>;
 }
 
+export interface IEventBus {
+  publish(event: DomainEvent): Promise<void>;
+  subscribe<T extends DomainEvent>(eventType: string, handler: (event: T) => Promise<void>): void;
+  unsubscribe(eventType: string, handler: (event: any) => Promise<void>): void;
+}
+
+// Supporting types
 export interface TextGenerationConfig {
   language: LanguageCode;
   difficulty: DifficultyLevel;
-  textType: TextType;
+  textType: 'words' | 'sentences' | 'paragraphs' | 'code';
   length: number;
-  layoutId?: string;
   userId?: string;
-}
-/**
- * Domain service interfaces for external dependencies
- * These define contracts for services that interact with external systems
- */
-
-import { LanguageCode } from '../enums/languages';
-import { DifficultyLevel, TextType } from '../enums/typing-mode';
-import { LayoutType, LayoutVariant, InputMethod } from '../enums/keyboard-layouts';
-import { KeyboardLayout, TypingTest, User, Competition } from './repositories';
-
-// Text generation and content services
-export interface ITextGenerationService {
-  generateText(
-    language: LanguageCode,
-    textType: TextType,
-    difficulty: DifficultyLevel,
-    wordCount?: number
-  ): Promise<string>;
-
-  generateCustomText(
-    characterSet: string[],
-    wordCount: number,
-    includeNumbers?: boolean,
-    includePunctuation?: boolean
-  ): Promise<string>;
-
-  validateTextContent(content: string, language: LanguageCode): boolean;
+  customWords?: string[];
+  avoidRecentWords?: boolean;
 }
 
-// Keyboard layout management services
-export interface ILayoutManagerService {
-  getLayoutsForLanguage(language: LanguageCode): Promise<KeyboardLayout[]>;
-  validateLayoutCompatibility(layoutId: string, language: LanguageCode): Promise<boolean>;
-  generateKeyMappings(layoutType: LayoutType, variant: LayoutVariant, language: LanguageCode): Promise<KeyMapping[]>;
-  optimizeLayoutForUser(userId: string, language: LanguageCode): Promise<KeyboardLayout>;
-  detectInputMethod(input: string, language: LanguageCode): Promise<InputMethod>;
+export interface ValidationResult {
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
 }
 
-// Authentication and user management services  
-export interface IAuthenticationService {
-  authenticate(email: string, password: string): Promise<AuthResult>;
-  register(userData: RegisterData): Promise<User>;
-  refreshToken(token: string): Promise<string>;
-  logout(userId: string): Promise<void>;
-  resetPassword(email: string): Promise<void>;
-  verifyEmail(token: string): Promise<boolean>;
+export interface KeyboardModification {
+  key: string;
+  newOutput: string;
+  modifiers?: string[];
 }
 
-// Performance analysis services
-export interface IPerformanceAnalysisService {
-  analyzeTypingSession(test: TypingTest): Promise<PerformanceAnalysis>;
-  calculateImprovement(userId: string, language: LanguageCode): Promise<ImprovementMetrics>;
-  generateRecommendations(userId: string): Promise<TypingRecommendation[]>;
-  predictPerformance(userId: string, difficulty: DifficultyLevel): Promise<PerformancePrediction>;
-}
-
-// Competition management services
-export interface ICompetitionService {
-  createCompetition(competitionData: CreateCompetitionData): Promise<Competition>;
-  validateCompetitionEntry(competitionId: string, userId: string): Promise<ValidationResult>;
-  calculateRankings(competitionId: string): Promise<CompetitionRanking[]>;
-  notifyParticipants(competitionId: string, message: string): Promise<void>;
-}
-
-// Notification services
-export interface INotificationService {
-  sendEmail(to: string, subject: string, content: string): Promise<boolean>;
-  sendInAppNotification(userId: string, notification: Notification): Promise<void>;
-  scheduleReminder(userId: string, reminderData: ReminderData): Promise<string>;
-  cancelReminder(reminderId: string): Promise<void>;
-}
-
-// Caching services
-export interface ICacheService {
-  get<T>(key: string): Promise<T | null>;
-  set<T>(key: string, value: T, ttl?: number): Promise<void>;
-  delete(key: string): Promise<void>;
-  clear(): Promise<void>;
-  has(key: string): Promise<boolean>;
-}
-
-// Logging services
-export interface ILogger {
-  info(message: string, context?: Record<string, any>): void;
-  warn(message: string, context?: Record<string, any>): void;
-  error(message: string, error?: Error, context?: Record<string, any>): void;
-  debug(message: string, context?: Record<string, any>): void;
-}
-
-// Event publishing services
-export interface IEventBus {
-  publish<T>(event: DomainEvent<T>): Promise<void>;
-  subscribe<T>(eventType: string, handler: EventHandler<T>): void;
-  unsubscribe(eventType: string, handler: EventHandler<any>): void;
-}
-
-// Supporting types and interfaces
-export interface AuthResult {
-  success: boolean;
-  user?: User;
-  token?: string;
-  refreshToken?: string;
-  error?: string;
-}
-
-export interface RegisterData {
-  username: string;
-  email: string;
-  password: string;
-  preferredLanguage?: LanguageCode;
+export interface AnalysisOptions {
+  includeLayoutAnalysis?: boolean;
+  includePatterAnalysis?: boolean;
+  includeTimingAnalysis?: boolean;
+  timeRange?: {
+    start: Date;
+    end: Date;
+  };
 }
 
 export interface PerformanceAnalysis {
   overallScore: number;
   strengths: string[];
   weaknesses: string[];
+  layoutEfficiency: Record<string, number>;
+  commonMistakes: Array<{
+    character: string;
+    frequency: number;
+    contexts: string[];
+  }>;
+  typingPattern: {
+    peakTimes: number[];
+    consistencyScore: number;
+    speedVariation: number;
+  };
+}
+
+export interface ImprovementMetrics {
+  wpmImprovement: number;
+  accuracyImprovement: number;
+  consistencyImprovement: number;
+  timeToImprove: number;
+  trendDirection: 'improving' | 'stable' | 'declining';
+}
+
+export interface PracticeRecommendation {
+  type: 'layout' | 'difficulty' | 'content' | 'timing';
+  title: string;
+  description: string;
+  priority: 'high' | 'medium' | 'low';
+  estimatedImpact: number;
+  suggestedDuration: number;
+}
+
+export interface DomainEvent {
+  id: string;
+  type: string;
+  aggregateId: string;
+  data: any;
+  timestamp: Date;
+  userId?: string;
   improvementAreas: string[];
   consistencyScore: number;
   speedProgression: number[];

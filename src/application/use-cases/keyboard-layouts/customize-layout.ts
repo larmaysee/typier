@@ -1,219 +1,282 @@
-import { KeyboardLayout, LayoutVariant, FingerAssignment } from '@/domain/entities/keyboard-layout';
-import { IKeyboardLayoutRepository } from '@/domain/interfaces/repositories';
-import { ILayoutManagerService } from '@/domain/interfaces/services';
-import { CreateCustomLayoutCommand } from '@/application/commands/layout.commands';
-import { KeyboardLayoutDto } from '@/application/dto/keyboard-layout.dto';
+import { LanguageCode } from "@/enums/site-config";
+import { KeyboardLayout, LayoutType, LayoutVariant, KeyMapping } from "../../domain/entities/keyboard-layout";
+import { IKeyboardLayoutRepository } from "../../domain/interfaces/repositories";
+import { ILayoutManagerService } from "../../domain/interfaces/services";
+import { CustomLayoutCreationResponseDTO } from "../dto/keyboard-layouts.dto";
+
+export interface CreateCustomLayoutCommandDTO {
+  userId: string;
+  baseLayoutId: string;
+  name: string;
+  displayName?: string;
+  description?: string;
+  keyboardModifications: Array<{
+    key: string;
+    newOutput: string;
+    modifiers?: string[];
+  }>;
+}
 
 export class CustomizeLayoutUseCase {
   constructor(
     private layoutRepository: IKeyboardLayoutRepository,
-    private layoutManager: ILayoutManagerService
-  ) {}
+    private layoutManagerService: ILayoutManagerService
+  ) { }
 
-  async execute(command: CreateCustomLayoutCommand): Promise<KeyboardLayoutDto> {
-    const { userId, name, displayName, language, layoutType, baseLayoutId, keyMappings, metadata } = command;
-
-    // 1. Validate user exists and has permissions
-    if (!userId || userId === 'anonymous') {
-      throw new Error('User must be authenticated to create custom layouts');
-    }
-
-    // 2. Validate layout name is unique for this user
-    await this.validateLayoutNameUnique(userId, name);
-
-    // 3. Get base layout if specified
-    let baseLayout: KeyboardLayout | null = null;
-    if (baseLayoutId) {
-      baseLayout = await this.layoutRepository.findById(baseLayoutId);
+  async execute(command: CreateCustomLayoutCommandDTO): Promise<CustomLayoutCreationResponseDTO> {
+    try {
+      // 1. Validate the base layout exists
+      const baseLayout = await this.layoutRepository.getLayoutById(command.baseLayoutId);
       if (!baseLayout) {
-        throw new Error(`Base layout not found: ${baseLayoutId}`);
+        return {
+          success: false,
+          errors: [{ field: 'baseLayoutId', message: `Base layout not found: ${command.baseLayoutId}` }]
+        };
       }
-      
-      // Validate language compatibility
-      if (baseLayout.language !== language) {
-        throw new Error('Base layout language must match new layout language');
+
+      // 2. Validate the command
+      const validationResult = this.validateCommand(command);
+      if (!validationResult.isValid) {
+        return {
+          success: false,
+          errors: validationResult.errors
+        };
       }
+
+      // 3. Create modified key mappings
+      const modifiedKeyMappings = this.createModifiedKeyMappings(
+        baseLayout.keyMappings,
+        command.keyboardModifications
+      );
+
+      // 4. Create the custom layout
+      const customLayout: KeyboardLayout = {
+        id: this.generateCustomLayoutId(command.userId, command.name),
+        name: command.name,
+        displayName: command.displayName || command.name,
+        language: baseLayout.language,
+        layoutType: baseLayout.layoutType,
+        variant: LayoutVariant.EXTENDED, // Custom layouts are typically extended variants
+        keyMappings: modifiedKeyMappings,
+        metadata: {
+          ...baseLayout.metadata,
+          author: command.userId,
+          description: command.description || `Custom layout based on ${baseLayout.name}`,
+          version: '1.0',
+          popularity: 0 // New custom layout starts with 0 popularity
+        },
+        isCustom: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      // 5. Validate the resulting layout
+      const layoutValidation = await this.layoutManagerService.validateLayout(customLayout);
+      if (!layoutValidation.isValid) {
+        return {
+          success: false,
+          errors: layoutValidation.errors.map(error => ({ field: 'layout', message: error })),
+          warnings: layoutValidation.warnings
+        };
+      }
+
+      // 6. Save the custom layout
+      await this.layoutRepository.saveCustomLayout(customLayout);
+
+      // 7. Set as user's preferred layout for this language
+      await this.layoutRepository.setUserPreferredLayout(
+        command.userId,
+        customLayout.language,
+        customLayout.id
+      );
+
+      return {
+        success: true,
+        layoutId: customLayout.id,
+        layout: customLayout,
+        warnings: layoutValidation.warnings
+      };
+
+    } catch (error) {
+      return {
+        success: false,
+        errors: [{ field: 'general', message: `Failed to create custom layout: ${error}` }]
+      };
+    }
+  }
+
+  async cloneLayout(userId: string, sourceLayoutId: string, newName: string): Promise<CustomLayoutCreationResponseDTO> {
+    // Clone an existing layout as a starting point for customization
+    const sourceLayout = await this.layoutRepository.getLayoutById(sourceLayoutId);
+    if (!sourceLayout) {
+      return {
+        success: false,
+        errors: [{ field: 'sourceLayoutId', message: `Source layout not found: ${sourceLayoutId}` }]
+      };
     }
 
-    // 4. Create layout entity
-    const customLayout: KeyboardLayout = {
-      id: this.generateLayoutId(userId, name),
-      name,
-      displayName,
-      language,
-      layoutType,
-      variant: LayoutVariant.CUSTOM,
-      keyMappings: this.buildKeyMappings(keyMappings, baseLayout),
-      metadata: {
-        description: metadata.description,
-        author: metadata.author,
-        version: '1.0.0',
-        compatibility: ['Web', 'Custom'],
-        tags: ['custom', 'user-created'],
-        difficulty: this.calculateLayoutDifficulty(keyMappings),
-        popularity: 0
-      },
-      isCustom: true,
-      createdBy: userId,
-      createdAt: Date.now(),
-      updatedAt: Date.now()
+    return this.execute({
+      userId,
+      baseLayoutId: sourceLayoutId,
+      name: newName,
+      displayName: `${newName} (Cloned from ${sourceLayout.name})`,
+      description: `Cloned from ${sourceLayout.name}`,
+      keyboardModifications: [] // No modifications for a simple clone
+    });
+  }
+
+  async updateCustomLayout(
+    userId: string,
+    layoutId: string,
+    modifications: CreateCustomLayoutCommandDTO['keyboardModifications']
+  ): Promise<CustomLayoutCreationResponseDTO> {
+    // Update an existing custom layout
+    const existingLayout = await this.layoutRepository.getLayoutById(layoutId);
+    if (!existingLayout) {
+      return {
+        success: false,
+        errors: [{ field: 'layoutId', message: `Layout not found: ${layoutId}` }]
+      };
+    }
+
+    if (!existingLayout.isCustom) {
+      return {
+        success: false,
+        errors: [{ field: 'layoutId', message: 'Cannot modify non-custom layout' }]
+      };
+    }
+
+    if (existingLayout.metadata.author !== userId) {
+      return {
+        success: false,
+        errors: [{ field: 'userId', message: 'Cannot modify layout created by another user' }]
+      };
+    }
+
+    // Apply modifications to existing layout
+    const modifiedKeyMappings = this.createModifiedKeyMappings(
+      existingLayout.keyMappings,
+      modifications
+    );
+
+    const updatedLayout: KeyboardLayout = {
+      ...existingLayout,
+      keyMappings: modifiedKeyMappings,
+      updatedAt: new Date()
     };
 
-    // 5. Validate the created layout
-    const validationResult = await this.layoutManager.validateLayout(customLayout);
-    if (!validationResult.isValid) {
-      throw new Error(`Invalid layout: ${validationResult.errors.join(', ')}`);
+    // Validate the updated layout
+    const layoutValidation = await this.layoutManagerService.validateLayout(updatedLayout);
+    if (!layoutValidation.isValid) {
+      return {
+        success: false,
+        errors: layoutValidation.errors.map(error => ({ field: 'layout', message: error })),
+        warnings: layoutValidation.warnings
+      };
     }
 
-    // 6. Save the custom layout
-    await this.layoutRepository.saveCustomLayout(customLayout);
+    // Save the updated layout
+    await this.layoutRepository.saveCustomLayout(updatedLayout);
 
-    return this.mapLayoutToDto(customLayout);
+    return {
+      success: true,
+      layoutId: updatedLayout.id,
+      layout: updatedLayout,
+      warnings: layoutValidation.warnings
+    };
   }
 
-  private async validateLayoutNameUnique(userId: string, name: string): Promise<void> {
-    const existingLayouts = await this.layoutRepository.getCustomLayouts(userId);
-    const nameExists = existingLayouts.some(layout => 
-      layout.name.toLowerCase() === name.toLowerCase()
-    );
-    
-    if (nameExists) {
-      throw new Error(`Layout name '${name}' already exists for this user`);
+  async deleteCustomLayout(userId: string, layoutId: string): Promise<{ success: boolean; error?: string }> {
+    const layout = await this.layoutRepository.getLayoutById(layoutId);
+    if (!layout) {
+      return { success: false, error: `Layout not found: ${layoutId}` };
     }
+
+    if (!layout.isCustom) {
+      return { success: false, error: 'Cannot delete non-custom layout' };
+    }
+
+    if (layout.metadata.author !== userId) {
+      return { success: false, error: 'Cannot delete layout created by another user' };
+    }
+
+    await this.layoutRepository.deleteCustomLayout(layoutId, userId);
+    return { success: true };
   }
 
-  private generateLayoutId(userId: string, name: string): string {
-    const cleanName = name.toLowerCase().replace(/[^a-z0-9]/g, '_');
-    const userPrefix = userId.substring(0, 8);
-    const timestamp = Date.now().toString(36);
-    
-    return `custom_${userPrefix}_${cleanName}_${timestamp}`;
+  private validateCommand(command: CreateCustomLayoutCommandDTO): {
+    isValid: boolean;
+    errors: Array<{ field: string; message: string }>;
+  } {
+    const errors: Array<{ field: string; message: string }> = [];
+
+    if (!command.name || command.name.trim().length === 0) {
+      errors.push({ field: 'name', message: 'Layout name is required' });
+    }
+
+    if (command.name && command.name.length > 50) {
+      errors.push({ field: 'name', message: 'Layout name must be 50 characters or less' });
+    }
+
+    if (!command.userId || command.userId.trim().length === 0) {
+      errors.push({ field: 'userId', message: 'User ID is required' });
+    }
+
+    if (!Array.isArray(command.keyboardModifications)) {
+      errors.push({ field: 'keyboardModifications', message: 'Keyboard modifications must be an array' });
+    }
+
+    // Validate individual modifications
+    command.keyboardModifications.forEach((mod, index) => {
+      if (!mod.key || mod.key.trim().length === 0) {
+        errors.push({ field: `keyboardModifications[${index}].key`, message: 'Key is required' });
+      }
+
+      if (!mod.newOutput || mod.newOutput.trim().length === 0) {
+        errors.push({ field: `keyboardModifications[${index}].newOutput`, message: 'New output is required' });
+      }
+    });
+
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
   }
 
-  private buildKeyMappings(customMappings: Array<{
-    key: string;
-    character: string;
-    shiftCharacter?: string;
-    altCharacter?: string;
-  }>, baseLayout: KeyboardLayout | null) {
-    // Start with base layout mappings if available
-    const keyMappings = baseLayout ? [...baseLayout.keyMappings] : [];
+  private createModifiedKeyMappings(
+    baseKeyMappings: KeyMapping[],
+    modifications: CreateCustomLayoutCommandDTO['keyboardModifications']
+  ): KeyMapping[] {
+    // Create a copy of the base key mappings
+    const modifiedMappings = [...baseKeyMappings];
 
-    // Apply custom mappings
-    for (const customMapping of customMappings) {
-      const existingIndex = keyMappings.findIndex(mapping => mapping.key === customMapping.key);
-      
-      if (existingIndex >= 0) {
-        // Update existing mapping
-        keyMappings[existingIndex] = {
-          ...keyMappings[existingIndex],
-          character: customMapping.character,
-          shiftCharacter: customMapping.shiftCharacter,
-          altCharacter: customMapping.altCharacter
+    // Apply each modification
+    modifications.forEach(mod => {
+      const existingIndex = modifiedMappings.findIndex(mapping => mapping.key === mod.key);
+
+      if (existingIndex !== -1) {
+        // Update existing key mapping
+        modifiedMappings[existingIndex] = {
+          ...modifiedMappings[existingIndex],
+          outputChar: mod.newOutput,
+          modifiers: mod.modifiers
         };
       } else {
-        // Add new mapping (need to infer position)
-        keyMappings.push({
-          key: customMapping.key,
-          character: customMapping.character,
-          shiftCharacter: customMapping.shiftCharacter,
-          altCharacter: customMapping.altCharacter,
-          position: this.inferKeyPosition(customMapping.key)
+        // Add new key mapping
+        modifiedMappings.push({
+          key: mod.key,
+          outputChar: mod.newOutput,
+          modifiers: mod.modifiers
         });
       }
-    }
+    });
 
-    return keyMappings;
+    return modifiedMappings;
   }
 
-  private inferKeyPosition(key: string) {
-    // Basic QWERTY position mapping - in a real implementation this would be more sophisticated
-    const qwertyRows = [
-      'qwertyuiop',
-      'asdfghjkl',
-      'zxcvbnm'
-    ];
-
-    for (let row = 0; row < qwertyRows.length; row++) {
-      const column = qwertyRows[row].indexOf(key.toLowerCase());
-      if (column >= 0) {
-        return {
-          row,
-          column,
-          finger: this.determineFingerAssignment(row, column),
-          hand: (column < qwertyRows[row].length / 2 ? 'left' : 'right') as 'left' | 'right'
-        };
-      }
-    }
-
-    // Default position for unknown keys
-    return {
-      row: 0,
-      column: 0,
-      finger: 'index' as FingerAssignment,
-      hand: 'left' as 'left' | 'right'
-    };
-  }
-
-  private determineFingerAssignment(row: number, column: number): FingerAssignment {
-    // Simplified finger assignment logic
-    if (column <= 1) return 'pinky';
-    if (column <= 3) return 'ring';
-    if (column <= 4) return 'middle';
-    if (column <= 6) return 'index';
-    if (column <= 7) return 'index';
-    if (column <= 8) return 'middle';
-    if (column <= 9) return 'ring';
-    return 'pinky';
-  }
-
-  private calculateLayoutDifficulty(keyMappings: Array<{
-    key: string;
-    character: string;
-    shiftCharacter?: string;
-    altCharacter?: string;
-  }>): number {
-    // Calculate difficulty based on character complexity and layout ergonomics
-    let complexityScore = 0;
-    
-    for (const mapping of keyMappings) {
-      const char = mapping.character;
-      
-      // Add complexity for non-ASCII characters
-      if (char && char.charCodeAt(0) > 127) {
-        complexityScore += 2;
-      }
-      
-      // Add complexity for characters requiring modifiers
-      if (mapping.shiftCharacter || mapping.altCharacter) {
-        complexityScore += 1;
-      }
-    }
-
-    // Normalize to 1-10 scale
-    const maxScore = keyMappings.length * 3;
-    return Math.min(10, Math.max(1, Math.round((complexityScore / maxScore) * 10)));
-  }
-
-  private mapLayoutToDto(layout: KeyboardLayout): KeyboardLayoutDto {
-    return {
-      id: layout.id,
-      name: layout.name,
-      displayName: layout.displayName,
-      language: layout.language,
-      layoutType: layout.layoutType,
-      variant: layout.variant,
-      isCustom: layout.isCustom,
-      metadata: {
-        description: layout.metadata.description,
-        author: layout.metadata.author,
-        version: layout.metadata.version,
-        compatibility: layout.metadata.compatibility,
-        tags: layout.metadata.tags,
-        difficulty: layout.metadata.difficulty,
-        popularity: layout.metadata.popularity
-      },
-      createdBy: layout.createdBy
-    };
+  private generateCustomLayoutId(userId: string, layoutName: string): string {
+    const sanitizedName = layoutName.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    const timestamp = Date.now();
+    return `custom_${userId}_${sanitizedName}_${timestamp}`;
   }
 }

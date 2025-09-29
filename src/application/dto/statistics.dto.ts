@@ -1,79 +1,83 @@
-import { LanguageCode } from '@/enums/site-config';
+import { LanguageCode } from "@/enums/site-config";
+import { TypingMode, DifficultyLevel } from "../entities/typing";
 
-export interface UserStatisticsDto {
+export interface UserStatisticsResponseDTO {
   userId: string;
   totalTests: number;
-  bestWPM: number;
-  averageWPM: number;
-  averageAccuracy: number;
   totalTimeTyped: number;
-  improvementTrend: {
-    wpmTrend: number; // positive = improving, negative = declining
-    accuracyTrend: number;
-    consistencyScore: number;
-  };
-  languageBreakdown: Array<{
-    language: LanguageCode;
-    testsCompleted: number;
-    bestWPM: number;
-    averageWPM: number;
-    averageAccuracy: number;
-  }>;
-  layoutBreakdown: Array<{
+  bestWpm: number;
+  averageWpm: number;
+  bestAccuracy: number;
+  averageAccuracy: number;
+  totalWordsTyped: number;
+  totalCharactersTyped: number;
+  improvementRate: number;
+  lastTestDate: Date;
+  layoutStats: Array<{
     layoutId: string;
     layoutName: string;
-    testsCompleted: number;
-    bestWPM: number;
-    averageWPM: number;
+    testsCount: number;
+    averageWpm: number;
     averageAccuracy: number;
-    errorPatterns: Array<{
-      character: string;
-      errorCount: number;
-    }>;
   }>;
-}
-
-export interface LeaderboardDto {
-  entries: Array<{
-    rank: number;
-    userId: string;
-    username: string;
+  recentTests: Array<{
+    date: Date;
     wpm: number;
     accuracy: number;
+    mode: TypingMode;
     language: LanguageCode;
-    keyboardLayout: string;
-    timestamp: number;
-    mode: string;
   }>;
-  userRank?: number;
-  totalEntries: number;
+}
+
+export interface LeaderboardResponseDTO {
+  entries: Array<{
+    userId: string;
+    username: string;
+    bestWpm: number;
+    bestAccuracy: number;
+    totalTests: number;
+    language: LanguageCode;
+    layoutId: string;
+    layoutName: string;
+    rank: number;
+  }>;
+  totalCount: number;
+  currentUserRank?: number;
   filters: {
     language?: LanguageCode;
-    mode?: string;
-    keyboardLayout?: string;
-    timeRange?: 'day' | 'week' | 'month' | 'all';
+    mode?: TypingMode;
+    difficulty?: DifficultyLevel;
+    layoutId?: string;
+    timeRange?: string;
   };
 }
 
-export interface ImprovementAnalysisDto {
+export interface ImprovementTrackingResponseDTO {
   userId: string;
-  timeRange: string; // Changed from union to string for flexibility
-  overallTrend: {
-    wpmImprovement: number;
-    accuracyImprovement: number;
-    consistencyImprovement: number;
-  };
-  recommendations: Array<{
-    type: string; // Changed from union to string for flexibility
-    priority: string; // Changed from union to string for flexibility
-    title: string;
-    description: string;
-    actionItems: string[];
+  overallTrend: 'improving' | 'stable' | 'declining';
+  wpmProgress: Array<{
+    date: Date;
+    value: number;
   }>;
-  achievements: Array<{
+  accuracyProgress: Array<{
+    date: Date;
+    value: number;
+  }>;
+  consistencyProgress: Array<{
+    date: Date;
+    value: number;
+  }>;
+  recommendations: Array<{
     type: string;
     title: string;
     description: string;
-    unlockedAt: number;
+    priority: 'high' | 'medium' | 'low';
+    estimatedImpact: number;
+  }>;
+  nextMilestones: Array<{
+    metric: 'wpm' | 'accuracy' | 'consistency';
+    currentValue: number;
+    targetValue: number;
+    estimatedTimeToReach: number;
   }>;
 }

@@ -1,274 +1,309 @@
-import { LanguageStatistics, LayoutStatistics } from '@/domain/entities/user';
-import { TypingTest } from '@/domain/entities/typing';
-import { IUserRepository, ITypingRepository } from '@/domain/interfaces/repositories';
-import { GetUserStatsQuery } from '@/application/queries/typing.queries';
-import { UserStatisticsDto } from '@/application/dto/statistics.dto';
+import { LanguageCode } from "@/enums/site-config";
+import { TypingMode } from "../../domain/entities/typing";
+import { ITypingRepository, IUserRepository, TestFilters } from "../../domain/interfaces/repositories";
+import { GetUserStatsQueryDTO } from "../dto/queries.dto";
+import { UserStatisticsResponseDTO } from "../dto/statistics.dto";
 
 export class CalculateUserStatisticsUseCase {
   constructor(
-    private userRepository: IUserRepository,
-    private typingRepository: ITypingRepository
-  ) {}
+    private typingRepository: ITypingRepository,
+    private userRepository: IUserRepository
+  ) { }
 
-  async execute(query: GetUserStatsQuery): Promise<UserStatisticsDto> {
-    const { userId, timeRange, language, layoutId } = query;
+  async execute(query: GetUserStatsQueryDTO): Promise<UserStatisticsResponseDTO> {
+    const { userId, language, mode, layoutId, timeRange } = query;
 
-    // 1. Validate user exists
-    const user = await this.userRepository.findById(userId);
-    if (!user) {
-      throw new Error(`User not found: ${userId}`);
+    // 1. Get user's basic statistics
+    const userStats = await this.userRepository.getStatistics(userId);
+    if (!userStats) {
+      throw new Error(`User statistics not found for user: ${userId}`);
     }
 
-    // 2. Get typing tests based on filters
-    const tests = await this.getFilteredTests(userId, timeRange, language, layoutId);
+    // 2. Build filters for detailed analysis
+    const filters: TestFilters = {
+      ...(language && { language }),
+      ...(mode && { mode }),
+      ...(layoutId && { layoutId }),
+      ...(timeRange && { startDate: timeRange.start, endDate: timeRange.end })
+    };
 
-    if (tests.length === 0) {
-      return this.createEmptyStatistics(userId);
-    }
+    // 3. Get user's typing tests for detailed analysis
+    const userTests = await this.typingRepository.getUserTests(userId, filters);
 
-    // 3. Calculate overall statistics
-    const overallStats = this.calculateOverallStatistics(tests);
+    // 4. Calculate layout-specific statistics
+    const layoutStats = this.calculateLayoutStats(userTests);
 
-    // 4. Calculate language breakdown
-    const languageBreakdown = this.calculateLanguageBreakdown(tests);
+    // 5. Get recent tests for trend analysis
+    const recentTests = userTests
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, 10)
+      .map(test => ({
+        date: new Date(test.timestamp),
+        wpm: test.results.wpm,
+        accuracy: test.results.accuracy,
+        mode: test.mode,
+        language: test.language
+      }));
 
-    // 5. Calculate layout breakdown
-    const layoutBreakdown = this.calculateLayoutBreakdown(tests);
-
-    // 6. Calculate improvement trends
-    const improvementTrend = this.calculateImprovementTrend(tests);
+    // 6. Calculate improvement rate
+    const improvementRate = this.calculateImprovementRate(userTests);
 
     return {
       userId,
-      totalTests: tests.length,
-      bestWPM: overallStats.bestWPM,
-      averageWPM: overallStats.averageWPM,
-      averageAccuracy: overallStats.averageAccuracy,
-      totalTimeTyped: overallStats.totalTimeTyped,
-      improvementTrend,
-      languageBreakdown,
-      layoutBreakdown
+      totalTests: userStats.totalTests,
+      totalTimeTyped: userStats.totalTimeTyped,
+      bestWpm: userStats.bestWpm,
+      averageWpm: userStats.averageWpm,
+      bestAccuracy: userStats.bestAccuracy,
+      averageAccuracy: userStats.averageAccuracy,
+      totalWordsTyped: userStats.totalWordsTyped,
+      totalCharactersTyped: userStats.totalCharactersTyped,
+      improvementRate,
+      lastTestDate: userStats.lastTestDate,
+      layoutStats,
+      recentTests
     };
   }
 
-  private async getFilteredTests(
-    userId: string, 
-    timeRange?: string, 
-    language?: string, 
-    layoutId?: string
-  ): Promise<TypingTest[]> {
-    const filters: Record<string, any> = {
-      limit: 1000 // Get enough data for meaningful statistics
+  async getUserPerformanceAnalysis(userId: string, depth: 'basic' | 'detailed' | 'comprehensive' = 'basic'): Promise<{
+    overallPerformance: {
+      score: number;
+      level: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+      strengths: string[];
+      weaknesses: string[];
     };
-
-    if (language) {
-      filters.language = language;
-    }
-
-    if (timeRange) {
-      const now = new Date();
-      let startDate: Date;
-
-      switch (timeRange) {
-        case 'week':
-          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-          break;
-        case 'month':
-          startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-          break;
-        case 'quarter':
-          startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-          break;
-        case 'year':
-          startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
-          break;
-        default:
-          startDate = new Date(0); // All time
-      }
-
-      filters.startDate = startDate;
-    }
-
-    const tests = await this.typingRepository.getUserTests(userId, filters);
-
-    // Apply layout filter if specified
-    if (layoutId) {
-      return tests.filter(test => test.keyboardLayout === layoutId);
-    }
-
-    return tests;
-  }
-
-  private calculateOverallStatistics(tests: TypingTest[]) {
-    const bestWPM = Math.max(...tests.map(t => t.results.wpm));
-    const averageWPM = tests.reduce((sum, t) => sum + t.results.wpm, 0) / tests.length;
-    const averageAccuracy = tests.reduce((sum, t) => sum + t.results.accuracy, 0) / tests.length;
-    const totalTimeTyped = tests.reduce((sum, t) => sum + t.results.duration, 0);
-
-    return {
-      bestWPM: Math.round(bestWPM),
-      averageWPM: Math.round(averageWPM),
-      averageAccuracy: Math.round(averageAccuracy * 100) / 100,
-      totalTimeTyped
+    consistencyAnalysis?: {
+      consistencyScore: number;
+      speedVariation: number;
+      accuracyStability: number;
     };
-  }
+    improvementSuggestions?: Array<{
+      category: string;
+      suggestion: string;
+      priority: 'high' | 'medium' | 'low';
+      estimatedImpact: number;
+    }>;
+  }> {
+    const userTests = await this.typingRepository.getUserTests(userId, { limit: 100 });
 
-  private calculateLanguageBreakdown(tests: TypingTest[]) {
-    const languageMap = new Map();
-
-    for (const test of tests) {
-      if (!languageMap.has(test.language)) {
-        languageMap.set(test.language, []);
-      }
-      languageMap.get(test.language).push(test);
-    }
-
-    const breakdown = [];
-    for (const [language, languageTests] of languageMap) {
-      const stats = this.calculateLanguageStatistics(languageTests);
-      breakdown.push({
-        language,
-        testsCompleted: languageTests.length,
-        bestWPM: stats.bestWPM,
-        averageWPM: stats.averageWPM,
-        averageAccuracy: stats.averageAccuracy
-      });
-    }
-
-    return breakdown.sort((a, b) => b.testsCompleted - a.testsCompleted);
-  }
-
-  private calculateLayoutBreakdown(tests: TypingTest[]) {
-    const layoutMap = new Map();
-
-    for (const test of tests) {
-      if (!layoutMap.has(test.keyboardLayout)) {
-        layoutMap.set(test.keyboardLayout, []);
-      }
-      layoutMap.get(test.keyboardLayout).push(test);
-    }
-
-    const breakdown = [];
-    for (const [layoutId, layoutTests] of layoutMap) {
-      const stats = this.calculateLayoutStatistics(layoutTests);
-      const errorPatterns = this.analyzeErrorPatterns(layoutTests);
-
-      breakdown.push({
-        layoutId,
-        layoutName: this.getLayoutDisplayName(layoutId),
-        testsCompleted: layoutTests.length,
-        bestWPM: stats.bestWPM,
-        averageWPM: stats.averageWPM,
-        averageAccuracy: stats.averageAccuracy,
-        errorPatterns
-      });
-    }
-
-    return breakdown.sort((a, b) => b.testsCompleted - a.testsCompleted);
-  }
-
-  private calculateImprovementTrend(tests: TypingTest[]) {
-    if (tests.length < 2) {
+    if (userTests.length === 0) {
       return {
-        wpmTrend: 0,
-        accuracyTrend: 0,
-        consistencyScore: 0
+        overallPerformance: {
+          score: 0,
+          level: 'beginner',
+          strengths: [],
+          weaknesses: ['No typing tests completed yet']
+        }
       };
+    }
+
+    // Calculate overall performance score
+    const avgWpm = userTests.reduce((sum, test) => sum + test.results.wpm, 0) / userTests.length;
+    const avgAccuracy = userTests.reduce((sum, test) => sum + test.results.accuracy, 0) / userTests.length;
+
+    const overallScore = Math.round((avgWpm * 0.6) + (avgAccuracy * 0.4));
+    const level = this.determineSkillLevel(avgWpm, avgAccuracy);
+    const { strengths, weaknesses } = this.analyzeStrengthsWeaknesses(userTests);
+
+    const result: any = {
+      overallPerformance: {
+        score: overallScore,
+        level,
+        strengths,
+        weaknesses
+      }
+    };
+
+    if (depth === 'detailed' || depth === 'comprehensive') {
+      result.consistencyAnalysis = this.analyzeConsistency(userTests);
+    }
+
+    if (depth === 'comprehensive') {
+      result.improvementSuggestions = this.generateImprovementSuggestions(userTests, level);
+    }
+
+    return result;
+  }
+
+  private calculateLayoutStats(tests: any[]): Array<{
+    layoutId: string;
+    layoutName: string;
+    testsCount: number;
+    averageWpm: number;
+    averageAccuracy: number;
+  }> {
+    const layoutMap = new Map<string, {
+      layoutId: string;
+      layoutName: string;
+      tests: any[];
+    }>();
+
+    // Group tests by layout
+    tests.forEach(test => {
+      const layoutId = test.keyboardLayoutId || 'unknown';
+      if (!layoutMap.has(layoutId)) {
+        layoutMap.set(layoutId, {
+          layoutId,
+          layoutName: layoutId, // In real implementation, get layout name from repository
+          tests: []
+        });
+      }
+      layoutMap.get(layoutId)!.tests.push(test);
+    });
+
+    // Calculate statistics for each layout
+    return Array.from(layoutMap.values()).map(layoutData => {
+      const testsCount = layoutData.tests.length;
+      const totalWpm = layoutData.tests.reduce((sum, test) => sum + test.results.wpm, 0);
+      const totalAccuracy = layoutData.tests.reduce((sum, test) => sum + test.results.accuracy, 0);
+
+      return {
+        layoutId: layoutData.layoutId,
+        layoutName: layoutData.layoutName,
+        testsCount,
+        averageWpm: testsCount > 0 ? Math.round(totalWpm / testsCount) : 0,
+        averageAccuracy: testsCount > 0 ? Math.round((totalAccuracy / testsCount) * 100) / 100 : 0
+      };
+    }).sort((a, b) => b.testsCount - a.testsCount); // Sort by test count desc
+  }
+
+  private calculateImprovementRate(tests: any[]): number {
+    if (tests.length < 2) {
+      return 0;
     }
 
     // Sort tests by timestamp
     const sortedTests = tests.sort((a, b) => a.timestamp - b.timestamp);
-    
-    // Calculate trends using linear regression
-    const wpmTrend = this.calculateTrend(sortedTests.map(t => t.results.wpm));
-    const accuracyTrend = this.calculateTrend(sortedTests.map(t => t.results.accuracy));
-    
-    // Calculate consistency score (inverse of coefficient of variation)
-    const wpmValues = sortedTests.map(t => t.results.wpm);
-    const wpmMean = wpmValues.reduce((sum, val) => sum + val, 0) / wpmValues.length;
-    const wpmStdDev = Math.sqrt(
-      wpmValues.reduce((sum, val) => sum + Math.pow(val - wpmMean, 2), 0) / wpmValues.length
-    );
-    const consistencyScore = wpmMean > 0 ? Math.max(0, 100 - (wpmStdDev / wpmMean) * 100) : 0;
+
+    // Calculate improvement by comparing first 25% with last 25% of tests
+    const quarterSize = Math.max(1, Math.floor(sortedTests.length / 4));
+    const earlyTests = sortedTests.slice(0, quarterSize);
+    const recentTests = sortedTests.slice(-quarterSize);
+
+    const earlyAvgWpm = earlyTests.reduce((sum, test) => sum + test.results.wpm, 0) / earlyTests.length;
+    const recentAvgWpm = recentTests.reduce((sum, test) => sum + test.results.wpm, 0) / recentTests.length;
+
+    const improvementRate = earlyAvgWpm > 0 ? ((recentAvgWpm - earlyAvgWpm) / earlyAvgWpm) * 100 : 0;
+    return Math.round(improvementRate * 100) / 100;
+  }
+
+  private determineSkillLevel(avgWpm: number, avgAccuracy: number): 'beginner' | 'intermediate' | 'advanced' | 'expert' {
+    if (avgWpm < 20 || avgAccuracy < 80) return 'beginner';
+    if (avgWpm < 40 || avgAccuracy < 90) return 'intermediate';
+    if (avgWpm < 70 || avgAccuracy < 95) return 'advanced';
+    return 'expert';
+  }
+
+  private analyzeStrengthsWeaknesses(tests: any[]): {
+    strengths: string[];
+    weaknesses: string[];
+  } {
+    const strengths: string[] = [];
+    const weaknesses: string[] = [];
+
+    const avgWpm = tests.reduce((sum, test) => sum + test.results.wpm, 0) / tests.length;
+    const avgAccuracy = tests.reduce((sum, test) => sum + test.results.accuracy, 0) / tests.length;
+    const avgConsistency = tests.reduce((sum, test) => sum + test.results.consistency, 0) / tests.length;
+
+    // Analyze strengths
+    if (avgWpm > 60) strengths.push('High typing speed');
+    if (avgAccuracy > 95) strengths.push('Excellent accuracy');
+    if (avgConsistency > 80) strengths.push('Consistent typing rhythm');
+
+    // Analyze weaknesses  
+    if (avgWpm < 30) weaknesses.push('Typing speed needs improvement');
+    if (avgAccuracy < 90) weaknesses.push('Accuracy needs attention');
+    if (avgConsistency < 60) weaknesses.push('Inconsistent typing rhythm');
+
+    return { strengths, weaknesses };
+  }
+
+  private analyzeConsistency(tests: any[]): {
+    consistencyScore: number;
+    speedVariation: number;
+    accuracyStability: number;
+  } {
+    if (tests.length < 3) {
+      return {
+        consistencyScore: 100,
+        speedVariation: 0,
+        accuracyStability: 100
+      };
+    }
+
+    const speeds = tests.map(test => test.results.wpm);
+    const accuracies = tests.map(test => test.results.accuracy);
+
+    // Calculate coefficient of variation for speed
+    const avgSpeed = speeds.reduce((a, b) => a + b) / speeds.length;
+    const speedVariance = speeds.reduce((acc, speed) => acc + Math.pow(speed - avgSpeed, 2), 0) / speeds.length;
+    const speedStdDev = Math.sqrt(speedVariance);
+    const speedVariation = avgSpeed > 0 ? (speedStdDev / avgSpeed) * 100 : 0;
+
+    // Calculate accuracy stability
+    const avgAccuracy = accuracies.reduce((a, b) => a + b) / accuracies.length;
+    const accuracyVariance = accuracies.reduce((acc, acc_val) => acc + Math.pow(acc_val - avgAccuracy, 2), 0) / accuracies.length;
+    const accuracyStdDev = Math.sqrt(accuracyVariance);
+    const accuracyStability = Math.max(0, 100 - accuracyStdDev);
+
+    // Overall consistency score
+    const consistencyScore = Math.max(0, 100 - speedVariation);
 
     return {
-      wpmTrend: Math.round(wpmTrend * 100) / 100,
-      accuracyTrend: Math.round(accuracyTrend * 100) / 100,
-      consistencyScore: Math.round(consistencyScore)
+      consistencyScore: Math.round(consistencyScore),
+      speedVariation: Math.round(speedVariation * 100) / 100,
+      accuracyStability: Math.round(accuracyStability * 100) / 100
     };
   }
 
-  private calculateTrend(values: number[]): number {
-    if (values.length < 2) return 0;
+  private generateImprovementSuggestions(tests: any[], level: string): Array<{
+    category: string;
+    suggestion: string;
+    priority: 'high' | 'medium' | 'low';
+    estimatedImpact: number;
+  }> {
+    const suggestions: Array<{
+      category: string;
+      suggestion: string;
+      priority: 'high' | 'medium' | 'low';
+      estimatedImpact: number;
+    }> = [];
 
-    const n = values.length;
-    const sumX = (n * (n - 1)) / 2; // Sum of indices 0, 1, 2, ...
-    const sumY = values.reduce((sum, val) => sum + val, 0);
-    const sumXY = values.reduce((sum, val, index) => sum + val * index, 0);
-    const sumXX = (n * (n - 1) * (2 * n - 1)) / 6; // Sum of squares of indices
+    const avgWpm = tests.reduce((sum, test) => sum + test.results.wpm, 0) / tests.length;
+    const avgAccuracy = tests.reduce((sum, test) => sum + test.results.accuracy, 0) / tests.length;
 
-    const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
-    return slope;
-  }
+    // Speed improvement suggestions
+    if (avgWpm < 40) {
+      suggestions.push({
+        category: 'Speed',
+        suggestion: 'Focus on increasing typing speed through regular practice with simple texts',
+        priority: 'high',
+        estimatedImpact: 15
+      });
+    }
 
-  private calculateLanguageStatistics(tests: TypingTest[]): LanguageStatistics {
-    return {
-      testsCompleted: tests.length,
-      bestWPM: Math.max(...tests.map(t => t.results.wpm)),
-      averageWPM: Math.round(tests.reduce((sum, t) => sum + t.results.wpm, 0) / tests.length),
-      averageAccuracy: Math.round((tests.reduce((sum, t) => sum + t.results.accuracy, 0) / tests.length) * 100) / 100,
-      totalTimeTyped: tests.reduce((sum, t) => sum + t.results.duration, 0)
-    };
-  }
+    // Accuracy improvement suggestions
+    if (avgAccuracy < 95) {
+      suggestions.push({
+        category: 'Accuracy',
+        suggestion: 'Slow down and focus on accuracy. Use practice mode to identify problem keys',
+        priority: 'high',
+        estimatedImpact: 20
+      });
+    }
 
-  private calculateLayoutStatistics(tests: TypingTest[]): LayoutStatistics {
-    const layoutId = tests[0]?.keyboardLayout || '';
-    
-    return {
-      layoutId,
-      testsCompleted: tests.length,
-      bestWPM: Math.max(...tests.map(t => t.results.wpm)),
-      averageWPM: Math.round(tests.reduce((sum, t) => sum + t.results.wpm, 0) / tests.length),
-      averageAccuracy: Math.round((tests.reduce((sum, t) => sum + t.results.accuracy, 0) / tests.length) * 100) / 100,
-      totalTimeTyped: tests.reduce((sum, t) => sum + t.results.duration, 0),
-      errorPatterns: {}
-    };
-  }
+    // Layout optimization suggestions
+    const layoutStats = this.calculateLayoutStats(tests);
+    if (layoutStats.length > 1) {
+      const bestLayout = layoutStats[0];
+      suggestions.push({
+        category: 'Layout',
+        suggestion: `Consider using ${bestLayout.layoutName} more often as you perform better with it`,
+        priority: 'medium',
+        estimatedImpact: 10
+      });
+    }
 
-  private analyzeErrorPatterns(_tests: TypingTest[]): Array<{ character: string; errorCount: number }> {
-    // This is a simplified implementation - in practice, you'd need mistake data from sessions
-    // For now, return empty patterns
-    return [];
-  }
-
-  private getLayoutDisplayName(layoutId: string): string {
-    // Simple mapping - in practice, you'd look this up from the layout repository
-    const names: Record<string, string> = {
-      'qwerty-us': 'QWERTY US',
-      'dvorak': 'Dvorak',
-      'colemak': 'Colemak',
-      'lisu-sil-basic': 'Lisu SIL Basic',
-      'myanmar3': 'Myanmar3'
-    };
-    
-    return names[layoutId] || layoutId;
-  }
-
-  private createEmptyStatistics(userId: string): UserStatisticsDto {
-    return {
-      userId,
-      totalTests: 0,
-      bestWPM: 0,
-      averageWPM: 0,
-      averageAccuracy: 0,
-      totalTimeTyped: 0,
-      improvementTrend: {
-        wpmTrend: 0,
-        accuracyTrend: 0,
-        consistencyScore: 0
-      },
-      languageBreakdown: [],
-      layoutBreakdown: []
-    };
+    return suggestions;
   }
 }

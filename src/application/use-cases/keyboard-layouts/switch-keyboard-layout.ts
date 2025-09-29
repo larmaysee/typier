@@ -1,103 +1,163 @@
-import { TypingSession } from '@/domain/entities/typing';
-import { ISessionRepository, IKeyboardLayoutRepository } from '@/domain/interfaces/repositories';
-import { ILayoutManagerService } from '@/domain/interfaces/services';
-import { SwitchLayoutCommand } from '@/application/commands/layout.commands';
-import { TypingSessionDto } from '@/application/dto/typing-session.dto';
+import { IKeyboardLayoutRepository, ISessionRepository } from "../../domain/interfaces/repositories";
+import { IEventBus } from "../../domain/interfaces/services";
+import { SwitchLayoutCommandDTO } from "../dto/typing-session.dto";
+
+// Domain event for layout switching
+export interface LayoutSwitchedEvent {
+  id: string;
+  type: 'LayoutSwitched';
+  aggregateId: string;
+  data: {
+    sessionId?: string;
+    userId?: string;
+    previousLayoutId?: string;
+    newLayoutId: string;
+    timestamp: number;
+  };
+  timestamp: Date;
+  userId?: string;
+}
 
 export class SwitchKeyboardLayoutUseCase {
   constructor(
-    private sessionRepository: ISessionRepository,
     private layoutRepository: IKeyboardLayoutRepository,
-    private layoutManager: ILayoutManagerService
-  ) {}
+    private sessionRepository: ISessionRepository,
+    private eventBus: IEventBus
+  ) { }
 
-  async execute(command: SwitchLayoutCommand): Promise<TypingSessionDto> {
-    const { sessionId, layoutId, userId } = command;
+  async execute(command: SwitchLayoutCommandDTO): Promise<void> {
+    const { sessionId, layoutId, userId, previousLayoutId } = command;
 
-    // 1. Get current session
-    const session = await this.sessionRepository.findById(sessionId);
-    if (!session) {
-      throw new Error(`Session not found: ${sessionId}`);
-    }
-
-    // 2. Validate session can be modified
-    if (session.status === 'completed' || session.status === 'cancelled') {
-      throw new Error('Cannot switch layout for completed or cancelled session');
-    }
-
-    // 3. Validate new layout exists and is compatible
-    const newLayout = await this.layoutRepository.findById(layoutId);
+    // 1. Validate that the new layout exists
+    const newLayout = await this.layoutRepository.getLayoutById(layoutId);
     if (!newLayout) {
-      throw new Error(`Layout not found: ${layoutId}`);
+      throw new Error(`Keyboard layout not found: ${layoutId}`);
     }
 
-    // 4. Check language compatibility
-    if (newLayout.language !== session.test.language) {
-      throw new Error(`Layout language ${newLayout.language} does not match session language ${session.test.language}`);
-    }
+    // 2. Update active session if exists
+    if (sessionId) {
+      const session = await this.sessionRepository.findById(sessionId);
+      if (session) {
+        // Validate that the session can accept layout changes
+        if (session.status === 'completed') {
+          throw new Error('Cannot change layout for completed session');
+        }
 
-    // 5. Check layout compatibility with current text content
-    const isCompatible = await this.layoutManager.isCompatible(layoutId, session.test.textContent);
-    if (!isCompatible) {
-      throw new Error(`Layout ${layoutId} is not compatible with current text content`);
-    }
+        // Update the session's active layout
+        session.activeLayout = newLayout;
+        session.test.keyboardLayoutId = layoutId;
+        session.updated_at = new Date();
 
-    // 6. Prevent switching in competition mode after session has started
-    if (session.test.mode === 'competition' && session.status === 'active') {
-      throw new Error('Layout switching is not allowed in active competition sessions');
-    }
-
-    // 7. Update session with new layout
-    const previousLayoutId = session.activeLayoutId;
-    session.activeLayoutId = layoutId;
-    session.test.keyboardLayout = layoutId;
-
-    // 8. Save user preference if user is provided
-    if (userId && userId !== 'anonymous') {
-      try {
-        await this.layoutRepository.setUserPreferredLayout(userId, session.test.language, layoutId);
-      } catch (error) {
-        console.warn(`Failed to save layout preference for user ${userId}: ${error}`);
-        // Continue with layout switch even if preference save fails
+        await this.sessionRepository.save(session);
       }
     }
 
-    // 9. Update session
-    await this.sessionRepository.update(session);
+    // 3. Save user preference if user is authenticated
+    if (userId) {
+      await this.layoutRepository.setUserPreferredLayout(
+        userId,
+        newLayout.language,
+        layoutId
+      );
+    }
 
-    // 10. Log the layout switch for analytics
-    this.logLayoutSwitch(sessionId, previousLayoutId, layoutId, session.status);
-
-    return this.mapSessionToDto(session);
-  }
-
-  private logLayoutSwitch(sessionId: string, fromLayoutId: string, toLayoutId: string, sessionStatus: string): void {
-    // In a real implementation, this would log to an analytics service
-    console.info('Layout switched', {
-      sessionId,
-      fromLayoutId,
-      toLayoutId,
-      sessionStatus,
-      timestamp: Date.now()
-    });
-  }
-
-  private mapSessionToDto(session: TypingSession): TypingSessionDto {
-    return {
-      id: session.id,
-      userId: session.test.userId,
-      mode: session.test.mode,
-      difficulty: session.test.difficulty,
-      language: session.test.language,
-      keyboardLayoutId: session.activeLayoutId,
-      textContent: session.test.textContent,
-      currentInput: session.currentInput,
-      startTime: session.startTime,
-      timeLeft: session.timeLeft,
-      status: session.status,
-      cursorPosition: session.cursorPosition,
-      liveStats: session.liveStats,
-      mistakes: session.mistakes
+    // 4. Publish layout changed event
+    const event: LayoutSwitchedEvent = {
+      id: this.generateEventId(),
+      type: 'LayoutSwitched',
+      aggregateId: sessionId || userId || 'anonymous',
+      data: {
+        sessionId,
+        userId,
+        previousLayoutId,
+        newLayoutId: layoutId,
+        timestamp: Date.now()
+      },
+      timestamp: new Date(),
+      userId
     };
+
+    await this.eventBus.publish(event);
+  }
+
+  async validateLayoutSwitch(
+    sessionId: string,
+    newLayoutId: string
+  ): Promise<{
+    canSwitch: boolean;
+    warnings: string[];
+    requiresConfirmation: boolean;
+  }> {
+    const session = await this.sessionRepository.findById(sessionId);
+    const newLayout = await this.layoutRepository.getLayoutById(newLayoutId);
+
+    const warnings: string[] = [];
+    let canSwitch = true;
+    let requiresConfirmation = false;
+
+    if (!session) {
+      return {
+        canSwitch: false,
+        warnings: ['Session not found'],
+        requiresConfirmation: false
+      };
+    }
+
+    if (!newLayout) {
+      return {
+        canSwitch: false,
+        warnings: ['Layout not found'],
+        requiresConfirmation: false
+      };
+    }
+
+    // Check session state
+    if (session.status === 'completed') {
+      canSwitch = false;
+      warnings.push('Cannot change layout for completed session');
+    }
+
+    // Check language compatibility
+    if (session.test.language !== newLayout.language) {
+      canSwitch = false;
+      warnings.push(`Layout language (${newLayout.language}) does not match session language (${session.test.language})`);
+    }
+
+    // Check if session has significant progress
+    const hasSignificantProgress = session.currentInput.length > 10 || session.mistakes.length > 0;
+    if (hasSignificantProgress && session.activeLayout.id !== newLayoutId) {
+      requiresConfirmation = true;
+      warnings.push('Switching layout mid-session may affect your performance statistics');
+    }
+
+    // Check competition mode restrictions
+    if (session.test.mode === 'competition') {
+      // In competition mode, layout switching might be restricted
+      const isAllowedCompetitionLayout = await this.isAllowedInCompetition(newLayoutId);
+      if (!isAllowedCompetitionLayout) {
+        canSwitch = false;
+        warnings.push('This layout is not allowed in competition mode');
+      } else if (hasSignificantProgress) {
+        canSwitch = false;
+        warnings.push('Cannot change layout during an active competition session');
+      }
+    }
+
+    return {
+      canSwitch,
+      warnings,
+      requiresConfirmation
+    };
+  }
+
+  private async isAllowedInCompetition(layoutId: string): Promise<boolean> {
+    // In a real implementation, this would check against competition rules
+    // For now, allow standard layouts only
+    const layout = await this.layoutRepository.getLayoutById(layoutId);
+    return layout ? !layout.isCustom : false;
+  }
+
+  private generateEventId(): string {
+    return `event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   }
 }

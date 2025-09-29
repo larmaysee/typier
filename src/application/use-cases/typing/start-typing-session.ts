@@ -10,7 +10,7 @@ export class StartTypingSessionUseCase {
     private userRepository: IUserRepository,
     private layoutRepository: IKeyboardLayoutRepository,
     private textGenerationService: ITextGenerationService
-  ) {}
+  ) { }
 
   async execute(command: StartSessionCommand): Promise<StartSessionResponseDto> {
     // 1. Validate user exists (except for practice mode)
@@ -27,7 +27,7 @@ export class StartTypingSessionUseCase {
       const preferredLayoutId = await this.layoutRepository.getUserPreferredLayout(command.userId, command.language);
       layoutId = preferredLayoutId || undefined;
     }
-    
+
     const availableLayouts = await this.layoutRepository.getAvailableLayouts(command.language);
     if (!layoutId && availableLayouts.length > 0) {
       // Use first available layout as default
