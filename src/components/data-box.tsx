@@ -14,7 +14,7 @@ import { FocusOverlay } from "@/components/focus-overlay";
 import DataMode from "./data-mode";
 
 import { RotateCcw } from "lucide-react";
-// import { Lisu_Bosa } from "next/font/google"; // Temporarily disabled for offline build
+// import { Lisu_Bosa } from "next/font/google"; // Temporarily disabled due to network issues
 import KeyboardSelector from "./keyboard-selector";
 import ModeToggler from "./mode-toggler";
 import TimerOptions from "./time-options";
@@ -24,7 +24,12 @@ import TooltipWrapper from "./tooltip-wrapper";
 //   weight: ["400", "700"],
 //   style: ["normal", "italic"],
 //   subsets: ["latin"],
-// }); // Temporarily disabled for offline build
+// });
+
+// Fallback font style for now
+const lisuBosa = {
+  className: "font-sans" // Use system font as fallback
+};
 
 export type DataBoxType = {
   data: string;
