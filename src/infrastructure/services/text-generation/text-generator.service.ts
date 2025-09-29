@@ -45,7 +45,7 @@ export class TextGeneratorService implements ITextGenerationService {
 
       return result;
     } catch (error) {
-      throw new Error(`Text generation failed: ${error.message}`);
+      throw new Error(`Text generation failed: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 

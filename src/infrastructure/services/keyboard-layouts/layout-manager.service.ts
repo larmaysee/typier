@@ -46,7 +46,7 @@ export class LayoutManagerService implements ILayoutManagerService {
       this.layoutCache.set(cacheKey, layouts);
       return layouts;
     } catch (error) {
-      throw new Error(`Failed to get layouts for ${language}: ${error.message}`);
+      throw new Error(`Failed to get layouts for ${language}: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 

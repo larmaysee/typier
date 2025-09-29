@@ -179,7 +179,7 @@ export class LayoutRegistryService implements ILayoutRegistryService {
         await this.registerLayout(layout);
         imported++;
       } catch (error) {
-        errors.push(`Failed to import layout ${layout.id}: ${error.message}`);
+        errors.push(`Failed to import layout ${layout.id}: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
 

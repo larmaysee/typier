@@ -123,7 +123,8 @@ export class LisuTextService implements ITextGenerationService {
 
   private generateParagraphs(config: TextGenerationConfig): string {
     // For paragraphs, combine multiple sentences
-    return this.generateSentences(Math.min(config.length, lidatasets.syntaxs.length));
+    const sentenceConfig = { ...config, length: Math.min(config.length, lidatasets.syntaxs.length) };
+    return this.generateSentences(sentenceConfig);
   }
 
   private getCharactersByDifficulty(difficulty: DifficultyLevel): string[] {
