@@ -1,29 +1,43 @@
 "use client";
 
-import { memo } from "react";
 import { Button } from "@/components/ui/button";
-import { TypingSessionState } from "@/presentation/hooks/typing/use-typing-session";
+import { RotateCcw } from "lucide-react";
 
 interface TypingStatsProps {
-  session: TypingSessionState;
+  correctWords: number;
+  incorrectWords: number;
+  timeLeft: number;
+  calculateWPM: () => number;
+  handleRefresh: () => void;
 }
 
-export const TypingStats = memo(function TypingStats({ session }: TypingStatsProps) {
-  const calculateWPM = () => {
-    if (session.startTime === null) return 0;
-    const elapsedTime = (session.selectedTime - session.timeLeft) / 60;
-    return elapsedTime > 0 ? Math.round(session.correctWords / elapsedTime) : 0;
-  };
-
+export default function TypingStats({
+  correctWords,
+  incorrectWords,
+  timeLeft,
+  calculateWPM,
+  handleRefresh
+}: TypingStatsProps) {
   return (
-    <Button variant={"secondary"} size={"sm"} className="p-2">
-      <span>
-        {session.correctWords} / {session.correctWords + session.incorrectWords}
-      </span>
-      <span className="mx-2">|</span>
-      <span className="font-bold">{calculateWPM()} WPM</span>
-      <span className="mx-2">|</span>
-      <span className="font-bold">{session.timeLeft}s</span>
-    </Button>
+    <div className="flex gap-2">
+      <Button variant={"secondary"} size={"sm"} className="p-2">
+        <span>
+          {correctWords} / {correctWords + incorrectWords}
+        </span>
+        <span className="mx-2">|</span>
+        <span className="font-bold">{calculateWPM()} WPM</span>
+        <span className="mx-2">|</span>
+        <span className="font-bold">{timeLeft}s</span>
+      </Button>
+
+      <Button
+        variant={"secondary"}
+        size={"icon"}
+        className="w-9 h-9"
+        onClick={handleRefresh}
+      >
+        <RotateCcw />
+      </Button>
+    </div>
   );
-});
+}

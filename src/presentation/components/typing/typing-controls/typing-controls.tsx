@@ -16,9 +16,9 @@ interface TypingControlsProps {
   onTimeChange: (time: number) => void;
 }
 
-export const TypingControls = memo(function TypingControls({ 
-  session, 
-  testCompleted, 
+export const TypingControls = memo(function TypingControls({
+  session,
+  testCompleted,
   onRefresh,
   onTimeChange
 }: TypingControlsProps) {
@@ -26,33 +26,20 @@ export const TypingControls = memo(function TypingControls({
     <div className="flex gap-2">
       <TooltipWrapper placement="center" tooltip="Select time">
         <TimerOptions
-          selectedTime={session.selectedTime}
-          setSelectedTime={onTimeChange}
+          selectedTime={selectedTime}
+          setSelectedTime={setSelectedTime}
           disabled={testCompleted}
         />
       </TooltipWrapper>
-      
       <TooltipWrapper placement="center" tooltip="Select keyboard layout">
-        <KeyboardLayoutSelector />
+        <KeyboardSelector />
       </TooltipWrapper>
-      
       <TooltipWrapper
         placement="center"
         tooltip="Enable/Disable practice mode"
       >
         <ModeToggler />
       </TooltipWrapper>
-
-      <TooltipWrapper placement="center" tooltip="Restart test">
-        <Button
-          variant={"secondary"}
-          size={"icon"}
-          className="w-9 h-9"
-          onClick={onRefresh}
-        >
-          <RotateCcw />
-        </Button>
-      </TooltipWrapper>
     </div>
   );
-});
+}

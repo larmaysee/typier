@@ -1,12 +1,12 @@
 "use client";
-import DataBox from "./data-box";
+import TypingContainer from "@/presentation/components/typing/typing-container";
 import Keyboard from "./keyboard";
 import { PracticeModeProvider } from "./pratice-mode";
 
 export default function TestUi() {
   return (
     <PracticeModeProvider>
-      <DataBox />
+      <TypingContainer />
       <Keyboard />
     </PracticeModeProvider>
   );
