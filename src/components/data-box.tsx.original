@@ -1,18 +1,30 @@
 "use client";
+import engdatasets from "@/datas/english-data";
+import lidatasets from "@/datas/lisu-data";
+import mydatasets from "@/datas/myanmar-data";
+import { cn } from "@/lib/utils";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { usePracticeMode } from "./pratice-mode";
+import { useSiteConfig } from "./site-config";
+import { useTypingStatistics } from "./typing-statistics";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { ResultsModal } from "@/components/results-modal";
+import { FocusOverlay } from "@/components/focus-overlay";
+import DataMode from "./data-mode";
 
 import { RotateCcw } from "lucide-react";
-// import { Lisu_Bosa } from "next/font/google";
+import { Lisu_Bosa } from "next/font/google";
 import KeyboardSelector from "./keyboard-selector";
 import ModeToggler from "./mode-toggler";
 import TimerOptions from "./time-options";
 import TooltipWrapper from "./tooltip-wrapper";
 
-// Temporarily disable Google Fonts for testing
-// const lisuBosa = Lisu_Bosa({
-//   weight: ["400", "700"],
-//   style: ["normal", "italic"],
-//   subsets: ["latin"],
-// });
+const lisuBosa = Lisu_Bosa({
+  weight: ["400", "700"],
+  style: ["normal", "italic"],
+  subsets: ["latin"],
+});
 
 export type DataBoxType = {
   data: string;
@@ -545,7 +557,7 @@ export default function DataBox() {
         <div
           className={cn(
             "databox h-[120px] relative focus-visible:border-primary overflow-hidden",
-
+            `${lisuBosa.className}`
           )}
         >
           {config.difficultyMode === 'chars' ? (
