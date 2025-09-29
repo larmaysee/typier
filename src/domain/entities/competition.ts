@@ -1,3 +1,23 @@
+import { CompetitionType } from "../enums/competition-type";
+import { LanguageCode } from "../enums/language-code";
+import { KeyboardLayoutVariant } from "../enums/keyboard-layout-variant";
+
+export interface Competition {
+  id: string;
+  name: string;
+  description: string;
+  type: CompetitionType;
+  language: LanguageCode;
+  allowedLayouts: KeyboardLayoutVariant[];
+  textContent: string;
+  duration: number; // in seconds
+  startDate: Date;
+  endDate: Date;
+  maxParticipants?: number;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
 /**
  * Domain entities for competition management
  * Contains competition logic, entry management, and ranking systems
@@ -87,7 +107,7 @@ export class Competition {
     updatedAt?: number;
   }): Competition {
     const now = Date.now();
-    
+
     return new Competition(
       data.id,
       data.name,
@@ -288,9 +308,9 @@ export class Competition {
 
   isRegistrationOpen(): boolean {
     const now = Date.now();
-    return this.status === CompetitionStatus.UPCOMING && 
-           now <= this.registrationDeadline &&
-           (!this.metadata.maxParticipants || this.participantCount < this.metadata.maxParticipants);
+    return this.status === CompetitionStatus.UPCOMING &&
+      now <= this.registrationDeadline &&
+      (!this.metadata.maxParticipants || this.participantCount < this.metadata.maxParticipants);
   }
 
   canAcceptParticipants(): boolean {
@@ -300,8 +320,8 @@ export class Competition {
   isActive(): boolean {
     const now = Date.now();
     return this.status === CompetitionStatus.ACTIVE &&
-           now >= this.startDate &&
-           now <= this.endDate;
+      now >= this.startDate &&
+      now <= this.endDate;
   }
 
   isCompleted(): boolean {
@@ -348,18 +368,18 @@ export class Competition {
 
   isValid(): boolean {
     return this.id.trim().length > 0 &&
-           this.name.trim().length > 0 &&
-           this.textContent.trim().length > 0 &&
-           this.createdBy.trim().length > 0 &&
-           this.startDate > 0 &&
-           this.endDate > this.startDate &&
-           this.registrationDeadline > 0 &&
-           this.registrationDeadline <= this.startDate &&
-           this.participantCount >= 0 &&
-           this.createdAt > 0 &&
-           this.updatedAt >= this.createdAt &&
-           this.metadata.rules.timeLimit > 0 &&
-           this.metadata.rules.attemptsAllowed > 0;
+      this.name.trim().length > 0 &&
+      this.textContent.trim().length > 0 &&
+      this.createdBy.trim().length > 0 &&
+      this.startDate > 0 &&
+      this.endDate > this.startDate &&
+      this.registrationDeadline > 0 &&
+      this.registrationDeadline <= this.startDate &&
+      this.participantCount >= 0 &&
+      this.createdAt > 0 &&
+      this.updatedAt >= this.createdAt &&
+      this.metadata.rules.timeLimit > 0 &&
+      this.metadata.rules.attemptsAllowed > 0;
   }
 
   equals(other: Competition): boolean {
@@ -428,9 +448,9 @@ export class CompetitionEntry {
     };
   }): CompetitionEntry {
     const score = CompetitionEntry.calculateScore(
-      data.wpm, 
-      data.accuracy, 
-      data.errors, 
+      data.wpm,
+      data.accuracy,
+      data.errors,
       data.qualificationRules?.penaltyPerError || 0
     );
 
@@ -472,24 +492,24 @@ export class CompetitionEntry {
     // Base score from WPM weighted by accuracy
     const accuracyMultiplier = accuracy / 100;
     const baseScore = wpm * accuracyMultiplier;
-    
+
     // Apply error penalty
     const errorPenalty = errors * penaltyPerError;
-    
+
     const finalScore = Math.max(0, baseScore - errorPenalty);
     return Math.round(finalScore * 100) / 100;
   }
 
   static checkQualification(
-    wpm: number, 
-    accuracy: number, 
+    wpm: number,
+    accuracy: number,
     rules?: { minAccuracy?: number; minWPM?: number }
   ): boolean {
     if (!rules) return true;
-    
+
     if (rules.minAccuracy && accuracy < rules.minAccuracy) return false;
     if (rules.minWPM && wpm < rules.minWPM) return false;
-    
+
     return true;
   }
 
@@ -539,7 +559,7 @@ export class CompetitionEntry {
 
   getRankCategory(): 'winner' | 'top_10' | 'top_50' | 'qualified' | 'participated' {
     if (!this.rank) return this.isQualified ? 'qualified' : 'participated';
-    
+
     if (this.rank === 1) return 'winner';
     if (this.rank <= 10) return 'top_10';
     if (this.rank <= 50) return 'top_50';
@@ -565,17 +585,17 @@ export class CompetitionEntry {
 
   isValid(): boolean {
     return this.id.trim().length > 0 &&
-           this.competitionId.trim().length > 0 &&
-           this.userId.trim().length > 0 &&
-           this.username.trim().length > 0 &&
-           this.wpm >= 0 &&
-           this.accuracy >= 0 && this.accuracy <= 100 &&
-           this.errors >= 0 &&
-           this.timeElapsed > 0 &&
-           this.layoutUsed.trim().length > 0 &&
-           this.attemptNumber >= 1 &&
-           this.score >= 0 &&
-           this.submittedAt > 0;
+      this.competitionId.trim().length > 0 &&
+      this.userId.trim().length > 0 &&
+      this.username.trim().length > 0 &&
+      this.wpm >= 0 &&
+      this.accuracy >= 0 && this.accuracy <= 100 &&
+      this.errors >= 0 &&
+      this.timeElapsed > 0 &&
+      this.layoutUsed.trim().length > 0 &&
+      this.attemptNumber >= 1 &&
+      this.score >= 0 &&
+      this.submittedAt > 0;
   }
 
   equals(other: CompetitionEntry): boolean {

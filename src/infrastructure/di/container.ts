@@ -1,3 +1,25 @@
+export interface Container {
+  register<T>(token: string, factory: () => T): void;
+  resolve<T>(token: string): T;
+}
+
+class DIContainer implements Container {
+  private registry = new Map<string, () => any>();
+
+  register<T>(token: string, factory: () => T): void {
+    this.registry.set(token, factory);
+  }
+
+  resolve<T>(token: string): T {
+    const factory = this.registry.get(token);
+    if (!factory) {
+      throw new Error(`No registration found for token: ${token}`);
+    }
+    return factory();
+  }
+}
+
+export const container = new DIContainer();
 /**
  * Dependency Injection Container
  * Provides type-safe service registration and resolution
@@ -102,10 +124,10 @@ export class DependencyContainer implements IDependencyContainer {
     switch (descriptor.lifetime) {
       case ServiceLifetime.Singleton:
         return this.createSingleton<T>(descriptor);
-      
+
       case ServiceLifetime.Scoped:
         return this.createScoped<T>(descriptor);
-      
+
       case ServiceLifetime.Transient:
       default:
         return this.createTransient<T>(descriptor);
@@ -136,11 +158,11 @@ export class DependencyContainer implements IDependencyContainer {
 
   private createNew<T>(descriptor: ServiceDescriptor): T {
     const { implementation } = descriptor;
-    
+
     if (typeof implementation === 'function') {
       return implementation();
     }
-    
+
     return implementation;
   }
 
