@@ -1,9 +1,10 @@
 "use client";
 
+import { memo } from "react";
 import { RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import TimerOptions from "@/components/time-options";
-import KeyboardSelector from "@/components/keyboard-selector";
+import { KeyboardLayoutSelector } from "../keyboard-layouts/keyboard-layout-selector";
 import ModeToggler from "@/components/mode-toggler";
 import TooltipWrapper from "@/components/tooltip-wrapper";
 import { TypingSessionState } from "@/presentation/hooks/typing/use-typing-session";
@@ -15,7 +16,7 @@ interface TypingControlsProps {
   onTimeChange: (time: number) => void;
 }
 
-export function TypingControls({ 
+export const TypingControls = memo(function TypingControls({ 
   session, 
   testCompleted, 
   onRefresh,
@@ -32,7 +33,7 @@ export function TypingControls({
       </TooltipWrapper>
       
       <TooltipWrapper placement="center" tooltip="Select keyboard layout">
-        <KeyboardSelector />
+        <KeyboardLayoutSelector />
       </TooltipWrapper>
       
       <TooltipWrapper
@@ -54,4 +55,4 @@ export function TypingControls({
       </TooltipWrapper>
     </div>
   );
-}
+});

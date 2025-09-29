@@ -5,10 +5,20 @@ import { useSessionControls } from "@/presentation/hooks/typing/use-session-cont
 import { TypingDisplay } from "./typing-display/typing-display";
 import { TypingControls } from "./typing-controls/typing-controls";
 import { TypingStats } from "./typing-stats/typing-stats";
+import { ErrorBoundary } from "./error-boundary";
+import { LoadingSpinner } from "./loading-spinner";
 import { ResultsModal } from "@/components/results-modal";
 import { FocusOverlay } from "@/components/focus-overlay";
 
 export function TypingContainer() {
+  return (
+    <ErrorBoundary>
+      <TypingContainerInner />
+    </ErrorBoundary>
+  );
+}
+
+function TypingContainerInner() {
   const {
     session,
     textContent,
@@ -56,12 +66,7 @@ export function TypingContainer() {
   }
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        <span className="ml-3 text-muted-foreground">Loading...</span>
-      </div>
-    );
+    return <LoadingSpinner message="Initializing typing session..." />;
   }
 
   return (

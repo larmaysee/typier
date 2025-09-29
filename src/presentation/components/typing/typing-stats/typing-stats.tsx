@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { Button } from "@/components/ui/button";
 import { TypingSessionState } from "@/presentation/hooks/typing/use-typing-session";
 
@@ -7,7 +8,7 @@ interface TypingStatsProps {
   session: TypingSessionState;
 }
 
-export function TypingStats({ session }: TypingStatsProps) {
+export const TypingStats = memo(function TypingStats({ session }: TypingStatsProps) {
   const calculateWPM = () => {
     if (session.startTime === null) return 0;
     const elapsedTime = (session.selectedTime - session.timeLeft) / 60;
@@ -25,4 +26,4 @@ export function TypingStats({ session }: TypingStatsProps) {
       <span className="font-bold">{session.timeLeft}s</span>
     </Button>
   );
-}
+});
