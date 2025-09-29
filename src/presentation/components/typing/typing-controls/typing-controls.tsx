@@ -1,21 +1,26 @@
 "use client";
 
-import TooltipWrapper from "@/components/tooltip-wrapper";
+import { memo } from "react";
+import { RotateCcw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import TimerOptions from "@/components/time-options";
-import KeyboardSelector from "@/components/keyboard-selector";
+import { KeyboardLayoutSelector } from "../keyboard-layouts/keyboard-layout-selector";
 import ModeToggler from "@/components/mode-toggler";
+import TooltipWrapper from "@/components/tooltip-wrapper";
+import { TypingSessionState } from "@/presentation/hooks/typing/use-typing-session";
 
 interface TypingControlsProps {
-  selectedTime: number;
-  setSelectedTime: (time: number) => void;
+  session: TypingSessionState;
   testCompleted: boolean;
-  handleRefresh: () => void;
+  onRefresh: () => void;
+  onTimeChange: (time: number) => void;
 }
 
-export default function TypingControls({
-  selectedTime,
-  setSelectedTime,
-  testCompleted
+export const TypingControls = memo(function TypingControls({
+  session,
+  testCompleted,
+  onRefresh,
+  onTimeChange
 }: TypingControlsProps) {
   return (
     <div className="flex gap-2">

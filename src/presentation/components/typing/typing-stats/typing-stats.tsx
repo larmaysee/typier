@@ -29,7 +29,7 @@ export default function TypingStats({
         <span className="mx-2">|</span>
         <span className="font-bold">{timeLeft}s</span>
       </Button>
-      
+
       <Button
         variant={"secondary"}
         size={"icon"}
