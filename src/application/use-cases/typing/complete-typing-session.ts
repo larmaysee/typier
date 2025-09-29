@@ -1,4 +1,4 @@
-import { TypingSession, TypingTest, TypingMode, SessionStatus } from '@/domain/entities/typing';
+import { TypingSession, TypingMode, SessionStatus } from '@/domain/entities/typing';
 import { ISessionRepository, ITypingRepository } from '@/domain/interfaces/repositories';
 import { IPerformanceAnalyzerService } from '@/domain/interfaces/services';
 import { CompleteSessionCommand } from '@/application/commands/session.commands';

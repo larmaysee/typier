@@ -31,7 +31,8 @@ export enum LayoutVariant {
   // Generic
   STANDARD = 'standard',
   BASIC = 'basic',
-  EXTENDED = 'extended'
+  EXTENDED = 'extended',
+  CUSTOM = 'custom'
 }
 
 export type FingerAssignment = 'pinky' | 'ring' | 'middle' | 'index' | 'thumb';

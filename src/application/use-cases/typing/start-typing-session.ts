@@ -1,5 +1,4 @@
-import { TypingSession, TypingTest, TypingMode, DifficultyLevel, SessionStatus } from '@/domain/entities/typing';
-import { KeyboardLayout } from '@/domain/entities/keyboard-layout';
+import { TypingSession, TypingTest, TypingMode, SessionStatus } from '@/domain/entities/typing';
 import { ISessionRepository, IUserRepository, IKeyboardLayoutRepository } from '@/domain/interfaces/repositories';
 import { ITextGenerationService } from '@/domain/interfaces/services';
 import { StartSessionCommand } from '@/application/commands/session.commands';
@@ -25,7 +24,8 @@ export class StartTypingSessionUseCase {
     // 2. Determine keyboard layout
     let layoutId = command.keyboardLayoutId;
     if (!layoutId && command.userId) {
-      layoutId = await this.layoutRepository.getUserPreferredLayout(command.userId, command.language);
+      const preferredLayoutId = await this.layoutRepository.getUserPreferredLayout(command.userId, command.language);
+      layoutId = preferredLayoutId || undefined;
     }
     
     const availableLayouts = await this.layoutRepository.getAvailableLayouts(command.language);

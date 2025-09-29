@@ -1,4 +1,4 @@
-import { KeyboardLayout, LayoutVariant } from '@/domain/entities/keyboard-layout';
+import { KeyboardLayout, LayoutVariant, FingerAssignment } from '@/domain/entities/keyboard-layout';
 import { IKeyboardLayoutRepository } from '@/domain/interfaces/repositories';
 import { ILayoutManagerService } from '@/domain/interfaces/services';
 import { CreateCustomLayoutCommand } from '@/application/commands/layout.commands';
@@ -90,9 +90,14 @@ export class CustomizeLayoutUseCase {
     return `custom_${userPrefix}_${cleanName}_${timestamp}`;
   }
 
-  private buildKeyMappings(customMappings: any[], baseLayout: KeyboardLayout | null): any[] {
+  private buildKeyMappings(customMappings: Array<{
+    key: string;
+    character: string;
+    shiftCharacter?: string;
+    altCharacter?: string;
+  }>, baseLayout: KeyboardLayout | null) {
     // Start with base layout mappings if available
-    let keyMappings = baseLayout ? [...baseLayout.keyMappings] : [];
+    const keyMappings = baseLayout ? [...baseLayout.keyMappings] : [];
 
     // Apply custom mappings
     for (const customMapping of customMappings) {
@@ -121,7 +126,7 @@ export class CustomizeLayoutUseCase {
     return keyMappings;
   }
 
-  private inferKeyPosition(key: string): any {
+  private inferKeyPosition(key: string) {
     // Basic QWERTY position mapping - in a real implementation this would be more sophisticated
     const qwertyRows = [
       'qwertyuiop',
@@ -136,7 +141,7 @@ export class CustomizeLayoutUseCase {
           row,
           column,
           finger: this.determineFingerAssignment(row, column),
-          hand: column < qwertyRows[row].length / 2 ? 'left' : 'right'
+          hand: (column < qwertyRows[row].length / 2 ? 'left' : 'right') as 'left' | 'right'
         };
       }
     }
@@ -145,12 +150,12 @@ export class CustomizeLayoutUseCase {
     return {
       row: 0,
       column: 0,
-      finger: 'index',
-      hand: 'left'
+      finger: 'index' as FingerAssignment,
+      hand: 'left' as 'left' | 'right'
     };
   }
 
-  private determineFingerAssignment(row: number, column: number): string {
+  private determineFingerAssignment(row: number, column: number): FingerAssignment {
     // Simplified finger assignment logic
     if (column <= 1) return 'pinky';
     if (column <= 3) return 'ring';
@@ -162,7 +167,12 @@ export class CustomizeLayoutUseCase {
     return 'pinky';
   }
 
-  private calculateLayoutDifficulty(keyMappings: any[]): number {
+  private calculateLayoutDifficulty(keyMappings: Array<{
+    key: string;
+    character: string;
+    shiftCharacter?: string;
+    altCharacter?: string;
+  }>): number {
     // Calculate difficulty based on character complexity and layout ergonomics
     let complexityScore = 0;
     

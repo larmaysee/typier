@@ -2,6 +2,7 @@ import { IKeyboardLayoutRepository } from '@/domain/interfaces/repositories';
 import { ILayoutManagerService } from '@/domain/interfaces/services';
 import { ValidateLayoutCompatibilityQuery } from '@/application/queries/typing.queries';
 import { LayoutCompatibilityDto } from '@/application/dto/keyboard-layout.dto';
+import { KeyboardLayout } from '@/domain/entities/keyboard-layout';
 
 export class ValidateLayoutCompatibilityUseCase {
   constructor(
@@ -34,7 +35,7 @@ export class ValidateLayoutCompatibilityUseCase {
     };
   }
 
-  private analyzeTextCompatibility(layout: any, textContent: string): {
+  private analyzeTextCompatibility(layout: KeyboardLayout, textContent: string): {
     score: number;
     missingChars: string[];
     recommendations: string[];
@@ -107,7 +108,7 @@ export class ValidateLayoutCompatibilityUseCase {
     return complexScriptRanges.some(([start, end]) => codePoint >= start && codePoint <= end);
   }
 
-  private generateRecommendations(layout: any, missingChars: string[], unsupportedChars: string[]): string[] {
+  private generateRecommendations(layout: KeyboardLayout, missingChars: string[], unsupportedChars: string[]): string[] {
     const recommendations: string[] = [];
 
     if (missingChars.length === 0) {

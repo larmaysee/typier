@@ -57,15 +57,15 @@ export interface LeaderboardDto {
 
 export interface ImprovementAnalysisDto {
   userId: string;
-  timeRange: 'week' | 'month' | 'quarter' | 'year';
+  timeRange: string; // Changed from union to string for flexibility
   overallTrend: {
     wpmImprovement: number;
     accuracyImprovement: number;
     consistencyImprovement: number;
   };
   recommendations: Array<{
-    type: 'layout' | 'practice' | 'technique';
-    priority: 'high' | 'medium' | 'low';
+    type: string; // Changed from union to string for flexibility
+    priority: string; // Changed from union to string for flexibility
     title: string;
     description: string;
     actionItems: string[];
