@@ -82,7 +82,7 @@ export class User {
     updatedAt?: number;
   }): User {
     const now = Date.now();
-    
+
     const defaultProfile: UserProfile = {
       totalTests: 0,
       bestWPM: 0,
@@ -155,7 +155,7 @@ export class User {
 
   updateProfile(updates: Partial<UserProfile>): User {
     const updatedProfile = { ...this.profile, ...updates };
-    
+
     return new User(
       this.id,
       this.username,
@@ -171,7 +171,7 @@ export class User {
 
   updatePreferences(updates: Partial<UserPreferences>): User {
     const updatedPreferences = { ...this.preferences, ...updates };
-    
+
     return new User(
       this.id,
       this.username,
@@ -188,7 +188,7 @@ export class User {
   setPreferredLayout(language: LanguageCode, layoutId: string): User {
     const updatedLayouts = { ...this.preferences.preferredLayouts };
     updatedLayouts[language] = layoutId;
-    
+
     return this.updatePreferences({
       preferredLayouts: updatedLayouts
     });
@@ -198,19 +198,19 @@ export class User {
     const isNewBest = wpm > this.profile.bestWPM;
     const newTotalTests = this.profile.totalTests + 1;
     const newTotalTime = this.profile.totalTimeTyped + timeTyped;
-    
+
     // Calculate new average WPM
     const previousTotalWPM = this.profile.averageWPM * this.profile.totalTests;
     const newAverageWPM = (previousTotalWPM + wpm) / newTotalTests;
-    
+
     // Calculate new average accuracy
     const previousTotalAccuracy = this.profile.averageAccuracy * this.profile.totalTests;
     const newAverageAccuracy = (previousTotalAccuracy + accuracy) / newTotalTests;
-    
+
     // Update streak
     let newCurrentStreak = this.profile.currentStreak;
     let newLongestStreak = this.profile.longestStreak;
-    
+
     if (accuracy >= 90) { // Consider 90%+ accuracy as maintaining streak
       newCurrentStreak++;
       newLongestStreak = Math.max(newLongestStreak, newCurrentStreak);
@@ -258,14 +258,14 @@ export class User {
     const requiredXP = Math.pow(level - 1, 2) * 100;
     const nextLevelXP = Math.pow(level, 2) * 100;
     const progress = ((experiencePoints - requiredXP) / (nextLevelXP - requiredXP)) * 100;
-    
+
     const levelNames = [
       'Beginner', 'Novice', 'Apprentice', 'Intermediate', 'Advanced',
       'Expert', 'Master', 'Grandmaster', 'Legend', 'Ultimate'
     ];
-    
+
     const levelName = levelNames[Math.min(level - 1, levelNames.length - 1)] || 'Ultimate';
-    
+
     return {
       current: level,
       name: levelName,
@@ -282,7 +282,7 @@ export class User {
 
     const updatedAchievements = [...this.profile.achievements, achievementId];
     const bonusXP = 25; // Bonus XP for earning achievement
-    
+
     return this.updateProfile({
       achievements: updatedAchievements,
       experiencePoints: this.profile.experiencePoints + bonusXP,
@@ -298,7 +298,7 @@ export class User {
 
   winCompetition(): User {
     const bonusXP = 100; // Large XP bonus for winning competition
-    
+
     return this.updateProfile({
       competitionsWon: this.profile.competitionsWon + 1,
       experiencePoints: this.profile.experiencePoints + bonusXP,
@@ -374,22 +374,22 @@ export class User {
   getTypingLevel(): 'beginner' | 'intermediate' | 'advanced' | 'expert' {
     const avgWPM = this.profile.averageWPM;
     if (avgWPM < 20) return 'beginner';
-    if (avgWPM < 40) return 'intermediate'; 
+    if (avgWPM < 40) return 'intermediate';
     if (avgWPM < 70) return 'advanced';
     return 'expert';
   }
 
   isValid(): boolean {
     return this.id.trim().length > 0 &&
-           this.username.trim().length >= 3 &&
-           this.username.trim().length <= 30 &&
-           this.isValidEmail(this.email) &&
-           this.isValidUsername(this.username) &&
-           this.createdAt > 0 &&
-           this.updatedAt >= this.createdAt &&
-           this.profile.totalTests >= 0 &&
-           this.profile.bestWPM >= 0 &&
-           this.profile.averageAccuracy >= 0 && this.profile.averageAccuracy <= 100;
+      this.username.trim().length >= 3 &&
+      this.username.trim().length <= 30 &&
+      this.isValidEmail(this.email) &&
+      this.isValidUsername(this.username) &&
+      this.createdAt > 0 &&
+      this.updatedAt >= this.createdAt &&
+      this.profile.totalTests >= 0 &&
+      this.profile.bestWPM >= 0 &&
+      this.profile.averageAccuracy >= 0 && this.profile.averageAccuracy <= 100;
   }
 
   equals(other: User): boolean {

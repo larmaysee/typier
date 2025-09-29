@@ -47,7 +47,7 @@ export class KeyboardLayout {
     public readonly keyMappings: KeyMapping[],
     public readonly metadata: LayoutMetadata,
     public readonly isCustom: boolean,
-    public readonly createdBy?: string,
+    public readonly createdBy: string,
     public readonly createdAt: number,
     public readonly updatedAt: number
   ) {
@@ -57,7 +57,7 @@ export class KeyboardLayout {
     if (keyMappings.length === 0) throw new Error('Layout must have key mappings');
     if (createdAt <= 0) throw new Error('Created timestamp must be positive');
     if (updatedAt < createdAt) throw new Error('Updated timestamp cannot be before created timestamp');
-    
+
     this.validateKeyMappings();
     this.validateLanguageCompatibility();
   }
@@ -73,12 +73,12 @@ export class KeyboardLayout {
     keyMappings: KeyMapping[];
     metadata: LayoutMetadata;
     isCustom?: boolean;
-    createdBy?: string;
-    createdAt?: number;
-    updatedAt?: number;
+    createdBy: string;
+    createdAt: number;
+    updatedAt: number;
   }): KeyboardLayout {
     const now = Date.now();
-    
+
     return new KeyboardLayout(
       data.id,
       data.name,
@@ -103,21 +103,21 @@ export class KeyboardLayout {
   private validateKeyMappings(): void {
     const positions = new Set<string>();
     const keys = new Set<string>();
-    
+
     for (const mapping of this.keyMappings) {
       // Check for duplicate keys
       if (keys.has(mapping.key)) {
         throw new Error(`Duplicate key mapping: ${mapping.key}`);
       }
       keys.add(mapping.key);
-      
+
       // Check for duplicate positions
       const positionKey = `${mapping.position.row}-${mapping.position.column}`;
       if (positions.has(positionKey)) {
         throw new Error(`Duplicate position mapping: row ${mapping.position.row}, column ${mapping.position.column}`);
       }
       positions.add(positionKey);
-      
+
       // Validate position values
       if (mapping.position.row < 0 || mapping.position.column < 0) {
         throw new Error('Key position row and column must be non-negative');
@@ -132,7 +132,7 @@ export class KeyboardLayout {
       [LanguageCode.LI]: [LayoutVariant.SIL_BASIC, LayoutVariant.SIL_STANDARD, LayoutVariant.UNICODE_STANDARD, LayoutVariant.TRADITIONAL],
       [LanguageCode.MY]: [LayoutVariant.MYANMAR3, LayoutVariant.ZAWGYI, LayoutVariant.UNICODE_MYANMAR, LayoutVariant.WININNWA]
     };
-    
+
     const validVariants = expectedVariants[this.language] || [];
     if (validVariants.length > 0 && !validVariants.includes(this.variant)) {
       console.warn(`Unexpected variant ${this.variant} for language ${this.language}`);
@@ -143,23 +143,23 @@ export class KeyboardLayout {
     return this.keyMappings.find(mapping => mapping.key === key);
   }
 
-  getCharacterForKey(key: string, modifiers: {shift?: boolean, alt?: boolean, ctrl?: boolean} = {}): string | undefined {
+  getCharacterForKey(key: string, modifiers: { shift?: boolean, alt?: boolean, ctrl?: boolean } = {}): string | undefined {
     const mapping = this.getKeyMapping(key);
     if (!mapping) return undefined;
-    
+
     if (modifiers.ctrl && mapping.ctrlCharacter) return mapping.ctrlCharacter;
     if (modifiers.alt && mapping.altCharacter) return mapping.altCharacter;
     if (modifiers.shift && mapping.shiftCharacter) return mapping.shiftCharacter;
-    
+
     return mapping.character;
   }
 
   getKeyForCharacter(character: string): string | undefined {
     for (const mapping of this.keyMappings) {
       if (mapping.character === character ||
-          mapping.shiftCharacter === character ||
-          mapping.altCharacter === character ||
-          mapping.ctrlCharacter === character) {
+        mapping.shiftCharacter === character ||
+        mapping.altCharacter === character ||
+        mapping.ctrlCharacter === character) {
         return mapping.key;
       }
     }
@@ -168,14 +168,14 @@ export class KeyboardLayout {
 
   getAllCharacters(): string[] {
     const characters = new Set<string>();
-    
+
     for (const mapping of this.keyMappings) {
       characters.add(mapping.character);
       if (mapping.shiftCharacter) characters.add(mapping.shiftCharacter);
       if (mapping.altCharacter) characters.add(mapping.altCharacter);
       if (mapping.ctrlCharacter) characters.add(mapping.ctrlCharacter);
     }
-    
+
     return Array.from(characters);
   }
 
@@ -189,12 +189,12 @@ export class KeyboardLayout {
 
   getFingerUtilization(): Record<string, number> {
     const utilization: Record<string, number> = {};
-    
+
     Object.values(FingerAssignment).forEach(finger => {
       const keys = this.getKeysForFinger(finger);
       utilization[finger] = keys.length;
     });
-    
+
     return utilization;
   }
 
@@ -209,8 +209,8 @@ export class KeyboardLayout {
       throw new Error(`Key ${mapping.key} already mapped`);
     }
 
-    const positionConflict = this.keyMappings.find(m => 
-      m.position.row === mapping.position.row && 
+    const positionConflict = this.keyMappings.find(m =>
+      m.position.row === mapping.position.row &&
       m.position.column === mapping.position.column
     );
     if (positionConflict) {
@@ -218,7 +218,7 @@ export class KeyboardLayout {
     }
 
     const updatedMappings = [...this.keyMappings, mapping];
-    
+
     return new KeyboardLayout(
       this.id,
       this.name,
@@ -242,7 +242,7 @@ export class KeyboardLayout {
     }
 
     const updatedMappings = this.keyMappings.filter(mapping => mapping.key !== key);
-    
+
     if (updatedMappings.length === this.keyMappings.length) {
       throw new Error(`Key ${key} not found in layout`);
     }
@@ -353,20 +353,20 @@ export class KeyboardLayout {
   getComplexity(): number {
     // Calculate layout complexity based on various factors
     let complexity = 0;
-    
+
     // Base complexity on number of mappings
     complexity += this.keyMappings.length * 0.1;
-    
+
     // Add complexity for modifier keys
-    const modifierCount = this.keyMappings.filter(m => 
+    const modifierCount = this.keyMappings.filter(m =>
       m.shiftCharacter || m.altCharacter || m.ctrlCharacter
     ).length;
     complexity += modifierCount * 0.2;
-    
+
     // Add complexity for unique characters
     const uniqueChars = new Set(this.getAllCharacters());
     complexity += uniqueChars.size * 0.05;
-    
+
     return Math.min(Math.round(complexity * 100) / 100, 10); // Cap at 10
   }
 
@@ -381,7 +381,7 @@ export class KeyboardLayout {
 
   getTypingDifficulty(): DifficultyLevel {
     const complexity = this.getComplexity();
-    
+
     if (complexity < 2) return DifficultyLevel.EASY;
     if (complexity < 5) return DifficultyLevel.MEDIUM;
     return DifficultyLevel.HARD;
@@ -393,17 +393,17 @@ export class KeyboardLayout {
 
   isValid(): boolean {
     return this.id.trim().length > 0 &&
-           this.name.trim().length > 0 &&
-           this.displayName.trim().length > 0 &&
-           this.keyMappings.length > 0 &&
-           this.createdAt > 0 &&
-           this.updatedAt >= this.createdAt &&
-           this.keyMappings.every(mapping => 
-             mapping.key.trim().length > 0 &&
-             mapping.character.trim().length > 0 &&
-             mapping.position.row >= 0 &&
-             mapping.position.column >= 0
-           );
+      this.name.trim().length > 0 &&
+      this.displayName.trim().length > 0 &&
+      this.keyMappings.length > 0 &&
+      this.createdAt > 0 &&
+      this.updatedAt >= this.createdAt &&
+      this.keyMappings.every(mapping =>
+        mapping.key.trim().length > 0 &&
+        mapping.character.trim().length > 0 &&
+        mapping.position.row >= 0 &&
+        mapping.position.column >= 0
+      );
   }
 
   equals(other: KeyboardLayout): boolean {

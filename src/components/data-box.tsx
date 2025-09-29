@@ -561,8 +561,8 @@ export default function DataBox() {
 
         <div
           className={cn(
-            "databox h-[120px] relative focus-visible:border-primary overflow-hidden",
-            `${lisuBosa.className}`
+            "databox h-[120px] relative focus-visible:border-primary overflow-hidden"
+            // `${lisuBosa.className}` // Temporarily disabled for offline build
           )}
         >
           {config.difficultyMode === 'chars' ? (

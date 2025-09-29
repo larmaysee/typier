@@ -10,7 +10,7 @@ export enum TypingMode {
 
 export enum DifficultyLevel {
   EASY = "easy",
-  MEDIUM = "medium", 
+  MEDIUM = "medium",
   HARD = "hard"
 }
 
