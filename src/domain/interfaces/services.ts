@@ -24,7 +24,7 @@ export interface IPerformanceAnalyzerService {
 export interface IEventBus {
   publish(event: DomainEvent): Promise<void>;
   subscribe<T extends DomainEvent>(eventType: string, handler: (event: T) => Promise<void>): void;
-  unsubscribe(eventType: string, handler: Function): void;
+  unsubscribe(eventType: string, handler: (event: any) => Promise<void>): void;
 }
 
 // Supporting types

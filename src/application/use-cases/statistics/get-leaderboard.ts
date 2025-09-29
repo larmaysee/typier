@@ -164,7 +164,7 @@ export class GetLeaderboardUseCase {
       layoutName: string;
     }>;
     totalUsers: number;
-  }> {
+  }>> {
     const languages = [LanguageCode.EN, LanguageCode.LI, LanguageCode.MY];
     const results: Array<any> = [];
 
