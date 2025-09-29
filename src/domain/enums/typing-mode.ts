@@ -1,28 +1,33 @@
 /**
- * Domain enums for typing test modes and session management
+ * Typing modes supported by the application
  */
-
 export enum TypingMode {
-  PRACTICE = "practice",  // No DB recording, enhanced feedback
-  NORMAL = "normal",      // DB recording, leaderboard integration  
-  COMPETITION = "competition" // Daily challenges, standardized layouts
+  /** No database recording, enhanced visual feedback */
+  PRACTICE = "practice",
+
+  /** Records to database and leaderboard */
+  NORMAL = "normal",
+
+  /** Daily/weekly challenges with fixed content */
+  COMPETITION = "competition"
 }
 
+/**
+ * Difficulty levels for typing tests
+ */
 export enum DifficultyLevel {
   EASY = "easy",
   MEDIUM = "medium",
   HARD = "hard"
 }
 
-export enum SessionStatus {
-  IDLE = "idle",
-  ACTIVE = "active",
-  PAUSED = "paused",
-  COMPLETED = "completed",
-  CANCELLED = "cancelled"
-}
-
+/**
+ * Text content types for generation
+ */
 export enum TextType {
-  CHARS = "chars",      // Individual character practice
-  SENTENCES = "sentences" // Full text passages
+  WORDS = "words",
+  SENTENCES = "sentences",
+  PARAGRAPHS = "paragraphs",
+  CHARS = "chars",
+  CODE = "code"
 }

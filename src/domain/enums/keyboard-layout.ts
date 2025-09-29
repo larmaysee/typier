@@ -15,20 +15,20 @@ export enum LayoutVariant {
   US = 'us',
   UK = 'uk',
   INTERNATIONAL = 'international',
-  
+
   // Lisu variants
   SIL_BASIC = 'sil_basic',
   SIL_STANDARD = 'sil_standard',
   UNICODE_STANDARD = 'unicode_standard',
   TRADITIONAL = 'traditional',
   LISU_BASIC = 'lisu_basic',
-  
+
   // Myanmar variants
   MYANMAR_3 = 'myanmar3',
   ZAWGYI = 'zawgyi',
   UNICODE = 'unicode',
   WININNWA = 'wininnwa',
-  
+
   // Generic
   STANDARD = 'standard',
   BASIC = 'basic',

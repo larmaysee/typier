@@ -1,3 +1,4 @@
+export * from "./services";
 // Main infrastructure exports
 export { container } from './di/service-container';
 export { configureServices } from './di/service-configuration';

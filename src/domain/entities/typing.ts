@@ -3,11 +3,123 @@
  * Contains the core business logic and rules for typing tests and sessions
  */
 
-import { TypingMode, DifficultyLevel, SessionStatus } from '../enums/typing-mode';
 import { LanguageCode } from '../enums/languages';
 import { CursorPosition, FocusState } from '../value-objects/cursor-position';
 import { WPM, Accuracy, Duration } from '../value-objects/typing-metrics';
-import { TextContent } from '../value-objects/text-content';
+import { TypingMode, DifficultyLevel } from "../enums";
+
+/**
+ * Individual typing mistake
+ */
+export interface TypingMistake {
+  /** Position where mistake occurred */
+  position: number;
+  /** Expected character */
+  expected: string;
+  /** Actual typed character */
+  actual: string;
+  /** Timestamp when mistake occurred */
+  timestamp: number;
+}
+
+/**
+ * Live typing statistics during a session
+ */
+export interface LiveTypingStats {
+  /** Current words per minute */
+  currentWpm: number;
+  /** Current accuracy percentage */
+  currentAccuracy: number;
+  /** Characters typed so far */
+  charactersTyped: number;
+  /** Correct characters */
+  correctCharacters: number;
+  /** Incorrect characters */
+  incorrectCharacters: number;
+  /** Total time elapsed in seconds */
+  timeElapsed: number;
+}
+
+/**
+ * Final typing test results
+ */
+export interface TypingResults {
+  /** Words per minute achieved */
+  wpm: number;
+  /** Accuracy percentage */
+  accuracy: number;
+  /** Number of correct words */
+  correctWords: number;
+  /** Number of incorrect words */
+  incorrectWords: number;
+  /** Total words in the test */
+  totalWords: number;
+  /** Test duration in seconds */
+  duration: number;
+  /** Total characters typed */
+  charactersTyped: number;
+  /** Number of errors made */
+  errors: number;
+  /** Consistency score (0-100) */
+  consistency: number;
+  /** Finger utilization analysis */
+  fingerUtilization: Record<string, number>;
+}
+
+/**
+ * Typing test entity
+ */
+export interface Typing {
+  /** Unique identifier */
+  id: string;
+  /** User ID who took the test */
+  userId: string;
+  /** Typing mode used */
+  mode: TypingMode;
+  /** Difficulty level */
+  difficulty: DifficultyLevel;
+  /** Language used */
+  language: LanguageCode;
+  /** Keyboard layout ID used */
+  keyboardLayout: string;
+  /** Text content that was typed */
+  textContent: string;
+  /** Final results */
+  results: TypingResults;
+  /** Test completion timestamp */
+  timestamp: number;
+  /** Competition ID if applicable */
+  competitionId?: string;
+}
+
+/**
+ * Active typing session entity
+ */
+export interface TypingSession {
+  /** Unique session identifier */
+  id: string;
+  /** Associated typing test */
+  test: Typing;
+  /** Current user input */
+  currentInput: string;
+  /** Session start time */
+  startTime: number | null;
+  /** Time remaining in seconds */
+  timeLeft: number;
+  /** Current session status */
+  status: SessionStatus;
+  /** Current cursor position */
+  cursorPosition: CursorPosition;
+  /** Current focus state */
+  focusState: FocusState;
+  /** All mistakes made so far */
+  mistakes: TypingMistake[];
+  /** Live statistics */
+  liveStats: LiveTypingStats;
+  /** Active keyboard layout */
+  activeLayout: string;
+}
+
 
 export interface KeyboardLayout {
   id: string;
@@ -105,7 +217,7 @@ export class TypingResults {
     fingerUtilization: Record<string, number>;
   }): TypingResults {
     const totalWords = data.correctWords + data.incorrectWords;
-    
+
     return new TypingResults(
       data.wpm,
       data.accuracy,
@@ -155,17 +267,17 @@ export class TypingResults {
 
   isValid(): boolean {
     return this.wpm >= 0 &&
-           this.accuracy >= 0 && this.accuracy <= 100 &&
-           this.duration > 0 &&
-           this.totalWords === this.correctWords + this.incorrectWords;
+      this.accuracy >= 0 && this.accuracy <= 100 &&
+      this.duration > 0 &&
+      this.totalWords === this.correctWords + this.incorrectWords;
   }
 
   equals(other: TypingResults): boolean {
     return this.wpm === other.wpm &&
-           this.accuracy === other.accuracy &&
-           this.duration === other.duration &&
-           this.totalWords === other.totalWords &&
-           this.errors === other.errors;
+      this.accuracy === other.accuracy &&
+      this.duration === other.duration &&
+      this.totalWords === other.totalWords &&
+      this.errors === other.errors;
   }
 }
 
@@ -244,17 +356,17 @@ export class TypingTest {
     const wpmScore = Math.min(this.results.wpm / 100, 1); // Normalize to 0-1
     const accuracyScore = this.results.accuracy / 100;
     const consistencyScore = this.results.consistency / 100;
-    
+
     return (wpmScore * 0.4) + (accuracyScore * 0.4) + (consistencyScore * 0.2);
   }
 
   isValid(): boolean {
     return this.id.trim().length > 0 &&
-           this.userId.trim().length > 0 &&
-           this.textContent.trim().length > 0 &&
-           this.keyboardLayout.trim().length > 0 &&
-           this.timestamp > 0 &&
-           this.results.isValid();
+      this.userId.trim().length > 0 &&
+      this.textContent.trim().length > 0 &&
+      this.keyboardLayout.trim().length > 0 &&
+      this.timestamp > 0 &&
+      this.results.isValid();
   }
 
   equals(other: TypingTest): boolean {
@@ -402,7 +514,7 @@ export class TypingSession {
 
   addMistake(mistake: TypingMistake): TypingSession {
     const updatedMistakes = [...this.mistakes, mistake];
-    
+
     return new TypingSession(
       this.id,
       this.test,
@@ -494,22 +606,22 @@ export class TypingSession {
 
   getCurrentAccuracy(): number {
     if (this.currentInput.length === 0) return 100;
-    
+
     let correctChars = 0;
     for (let i = 0; i < this.currentInput.length; i++) {
       if (i < this.test.textContent.length && this.currentInput[i] === this.test.textContent[i]) {
         correctChars++;
       }
     }
-    
+
     return (correctChars / this.currentInput.length) * 100;
   }
 
   isValid(): boolean {
     return this.id.trim().length > 0 &&
-           this.test.isValid() &&
-           this.timeLeft >= 0 &&
-           this.activeLayout.language === this.test.language;
+      this.test.isValid() &&
+      this.timeLeft >= 0 &&
+      this.activeLayout.language === this.test.language;
   }
 
   equals(other: TypingSession): boolean {
