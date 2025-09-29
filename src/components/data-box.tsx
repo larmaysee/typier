@@ -14,17 +14,18 @@ import { FocusOverlay } from "@/components/focus-overlay";
 import DataMode from "./data-mode";
 
 import { RotateCcw } from "lucide-react";
-import { Lisu_Bosa } from "next/font/google";
+// import { Lisu_Bosa } from "next/font/google";
 import KeyboardSelector from "./keyboard-selector";
 import ModeToggler from "./mode-toggler";
 import TimerOptions from "./time-options";
 import TooltipWrapper from "./tooltip-wrapper";
 
-const lisuBosa = Lisu_Bosa({
-  weight: ["400", "700"],
-  style: ["normal", "italic"],
-  subsets: ["latin"],
-});
+// Temporarily disable Google Fonts for testing
+// const lisuBosa = Lisu_Bosa({
+//   weight: ["400", "700"],
+//   style: ["normal", "italic"],
+//   subsets: ["latin"],
+// });
 
 export type DataBoxType = {
   data: string;
@@ -556,8 +557,8 @@ export default function DataBox() {
 
         <div
           className={cn(
-            "databox h-[120px] relative focus-visible:border-primary overflow-hidden",
-            `${lisuBosa.className}`
+            "databox h-[120px] relative focus-visible:border-primary overflow-hidden"
+            // `${lisuBosa.className}` // Temporarily disabled
           )}
         >
           {config.difficultyMode === 'chars' ? (
