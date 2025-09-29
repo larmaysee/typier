@@ -7,7 +7,7 @@ import { LayoutCompatibilityResponseDTO } from "../dto/keyboard-layouts.dto";
 export class ValidateLayoutCompatibilityUseCase {
   constructor(
     private layoutRepository: IKeyboardLayoutRepository
-  ) {}
+  ) { }
 
   async execute(query: GetLayoutCompatibilityQueryDTO): Promise<LayoutCompatibilityResponseDTO> {
     const { layoutId, targetLanguage, mode } = query;
@@ -58,7 +58,7 @@ export class ValidateLayoutCompatibilityUseCase {
     };
   }> {
     const issues: Array<{ type: 'error' | 'warning' | 'info'; message: string; affectedKeys?: string[] }> = [];
-    
+
     // Language compatibility check
     const languageMatch = layout.language === targetLanguage;
     if (!languageMatch) {
@@ -165,7 +165,7 @@ export class ValidateLayoutCompatibilityUseCase {
     // Get required character set for the language
     const requiredChars = this.getRequiredCharacterSet(language);
     const layoutChars = new Set(layout.keyMappings.map((mapping: any) => mapping.outputChar));
-    
+
     const missingChars = requiredChars.filter(char => !layoutChars.has(char));
     const supportedChars = requiredChars.filter(char => layoutChars.has(char));
 
@@ -288,12 +288,12 @@ export class ValidateLayoutCompatibilityUseCase {
   private getRequiredCharacterSet(language: LanguageCode): string[] {
     // Basic character sets for each language
     const characterSets = {
-      [LanguageCode.EN]: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 
-                          'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', ' '],
+      [LanguageCode.EN]: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
+        'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', ' '],
       [LanguageCode.LI]: ['ꓐ', 'ꓑ', 'ꓒ', 'ꓓ', 'ꓔ', 'ꓕ', 'ꓖ', 'ꓗ', 'ꓘ', 'ꓙ', 'ꓚ', 'ꓛ', 'ꓜ',
-                          'ꓝ', 'ꓞ', 'ꓟ', 'ꓠ', 'ꓡ', 'ꓢ', 'ꓣ', 'ꓤ', 'ꓥ', 'ꓦ', 'ꓧ', 'ꓨ', 'ꓩ', ' '],
+        'ꓝ', 'ꓞ', 'ꓟ', 'ꓠ', 'ꓡ', 'ꓢ', 'ꓣ', 'ꓤ', 'ꓥ', 'ꓦ', 'ꓧ', 'ꓨ', 'ꓩ', ' '],
       [LanguageCode.MY]: ['က', 'ခ', 'ဂ', 'ဃ', 'င', 'စ', 'ဆ', 'ဇ', 'ဈ', 'ဉ', 'ညဉ', 'ညီ', 'ညု',
-                          'တ', 'ထ', 'ဒ', 'ဓ', 'န', 'ပ', 'ဖ', 'ဗ', 'ဘ', 'မ', 'ယ', 'ရ', 'လ', ' ']
+        'တ', 'ထ', 'ဒ', 'ဓ', 'န', 'ပ', 'ဖ', 'ဗ', 'ဘ', 'မ', 'ယ', 'ရ', 'လ', ' ']
     };
 
     return characterSets[language] || [];

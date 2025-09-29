@@ -7,7 +7,7 @@ export class CompleteTypingSessionUseCase {
     private sessionRepository: ISessionRepository,
     private typingRepository: ITypingRepository,
     private userRepository: IUserRepository
-  ) {}
+  ) { }
 
   async execute(command: CompleteSessionCommandDTO): Promise<TypingSession> {
     // 1. Get the session
@@ -70,7 +70,7 @@ export class CompleteTypingSessionUseCase {
   ): TypingResults {
     const targetWords = targetText.split(/\s+/);
     const typedWords = finalInput.split(/\s+/);
-    
+
     // Character-level calculations
     const totalChars = targetText.length;
     const typedChars = finalInput.length;
@@ -146,7 +146,7 @@ export class CompleteTypingSessionUseCase {
     // Calculate variance in mistake timing
     const mistakeTimestamps = mistakes.map(m => m.timestamp);
     const intervals: number[] = [];
-    
+
     for (let i = 1; i < mistakeTimestamps.length; i++) {
       intervals.push(mistakeTimestamps[i] - mistakeTimestamps[i - 1]);
     }
@@ -169,7 +169,7 @@ export class CompleteTypingSessionUseCase {
     // In a full implementation, this would analyze typing speed in sliding windows
     const timeInMinutes = totalDuration / 60;
     const baseWPM = timeInMinutes > 0 ? (correctChars / 5) / timeInMinutes : 0;
-    
+
     // Estimate peak as 20-30% higher than average, adjusted for consistency
     const peakMultiplier = mistakes.length < 5 ? 1.3 : 1.2;
     return baseWPM * peakMultiplier;
@@ -181,7 +181,7 @@ export class CompleteTypingSessionUseCase {
 
     // Get current user statistics
     const currentStats = await this.userRepository.getStatistics(userId);
-    
+
     if (!currentStats) {
       // Create initial statistics
       await this.userRepository.updateStatistics(userId, {

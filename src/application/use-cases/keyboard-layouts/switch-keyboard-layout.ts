@@ -23,7 +23,7 @@ export class SwitchKeyboardLayoutUseCase {
     private layoutRepository: IKeyboardLayoutRepository,
     private sessionRepository: ISessionRepository,
     private eventBus: IEventBus
-  ) {}
+  ) { }
 
   async execute(command: SwitchLayoutCommandDTO): Promise<void> {
     const { sessionId, layoutId, userId, previousLayoutId } = command;
@@ -55,8 +55,8 @@ export class SwitchKeyboardLayoutUseCase {
     // 3. Save user preference if user is authenticated
     if (userId) {
       await this.layoutRepository.setUserPreferredLayout(
-        userId, 
-        newLayout.language, 
+        userId,
+        newLayout.language,
         layoutId
       );
     }
@@ -81,7 +81,7 @@ export class SwitchKeyboardLayoutUseCase {
   }
 
   async validateLayoutSwitch(
-    sessionId: string, 
+    sessionId: string,
     newLayoutId: string
   ): Promise<{
     canSwitch: boolean;

@@ -8,7 +8,7 @@ export class CalculateUserStatisticsUseCase {
   constructor(
     private typingRepository: ITypingRepository,
     private userRepository: IUserRepository
-  ) {}
+  ) { }
 
   async execute(query: GetUserStatsQueryDTO): Promise<UserStatisticsResponseDTO> {
     const { userId, language, mode, layoutId, timeRange } = query;
@@ -85,7 +85,7 @@ export class CalculateUserStatisticsUseCase {
     }>;
   }> {
     const userTests = await this.typingRepository.getUserTests(userId, { limit: 100 });
-    
+
     if (userTests.length === 0) {
       return {
         overallPerformance: {
@@ -100,7 +100,7 @@ export class CalculateUserStatisticsUseCase {
     // Calculate overall performance score
     const avgWpm = userTests.reduce((sum, test) => sum + test.results.wpm, 0) / userTests.length;
     const avgAccuracy = userTests.reduce((sum, test) => sum + test.results.accuracy, 0) / userTests.length;
-    
+
     const overallScore = Math.round((avgWpm * 0.6) + (avgAccuracy * 0.4));
     const level = this.determineSkillLevel(avgWpm, avgAccuracy);
     const { strengths, weaknesses } = this.analyzeStrengthsWeaknesses(userTests);
@@ -174,7 +174,7 @@ export class CalculateUserStatisticsUseCase {
 
     // Sort tests by timestamp
     const sortedTests = tests.sort((a, b) => a.timestamp - b.timestamp);
-    
+
     // Calculate improvement by comparing first 25% with last 25% of tests
     const quarterSize = Math.max(1, Math.floor(sortedTests.length / 4));
     const earlyTests = sortedTests.slice(0, quarterSize);

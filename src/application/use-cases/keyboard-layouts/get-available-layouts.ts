@@ -8,14 +8,14 @@ export class GetAvailableLayoutsUseCase {
   constructor(
     private layoutRepository: IKeyboardLayoutRepository,
     private userRepository: IUserRepository
-  ) {}
+  ) { }
 
   async execute(query: GetAvailableLayoutsQueryDTO): Promise<LayoutsResponseDTO> {
     const { language, userId, includeCustom = true } = query;
 
     // 1. Get all available layouts for the language
     const allLayouts = await this.layoutRepository.getAvailableLayouts(language);
-    
+
     if (allLayouts.length === 0) {
       throw new Error(`No keyboard layouts available for language: ${language}`);
     }
@@ -52,13 +52,13 @@ export class GetAvailableLayoutsUseCase {
 
     // 5. Sort layouts by preference and popularity
     const sortedLayouts = this.sortLayoutsByPreference(
-      enrichedLayouts, 
+      enrichedLayouts,
       preferredLayoutId
     );
 
     // 6. Filter out custom layouts if not requested
-    const filteredLayouts = includeCustom 
-      ? sortedLayouts 
+    const filteredLayouts = includeCustom
+      ? sortedLayouts
       : sortedLayouts.filter(layout => !layout.isCustom);
 
     // 7. Determine default layout
@@ -87,7 +87,7 @@ export class GetAvailableLayoutsUseCase {
   }
 
   private isLayoutRecommended(
-    layout: KeyboardLayout, 
+    layout: KeyboardLayout,
     userStats?: { testsCount: number; averageWpm: number; averageAccuracy: number }
   ): boolean {
     // Recommend layouts based on various criteria
@@ -102,7 +102,7 @@ export class GetAvailableLayoutsUseCase {
 
     // For new users, recommend popular, standard layouts
     const isStandardLayout = !layout.isCustom && layout.variant === 'standard';
-    
+
     return isPopular || isStandardLayout;
   }
 
@@ -145,12 +145,12 @@ export class GetAvailableLayoutsUseCase {
     // Define default layouts for each language
     const defaults = {
       [LanguageCode.EN]: 'qwerty_us',
-      [LanguageCode.LI]: 'lisu_sil_basic', 
+      [LanguageCode.LI]: 'lisu_sil_basic',
       [LanguageCode.MY]: 'myanmar3'
     };
 
     const defaultLayoutName = defaults[language];
-    const defaultLayout = layouts.find(layout => 
+    const defaultLayout = layouts.find(layout =>
       layout.id === defaultLayoutName || layout.name.toLowerCase().includes(defaultLayoutName)
     );
 

@@ -21,7 +21,7 @@ export class CustomizeLayoutUseCase {
   constructor(
     private layoutRepository: IKeyboardLayoutRepository,
     private layoutManagerService: ILayoutManagerService
-  ) {}
+  ) { }
 
   async execute(command: CreateCustomLayoutCommandDTO): Promise<CustomLayoutCreationResponseDTO> {
     try {
@@ -231,7 +231,7 @@ export class CustomizeLayoutUseCase {
       if (!mod.key || mod.key.trim().length === 0) {
         errors.push({ field: `keyboardModifications[${index}].key`, message: 'Key is required' });
       }
-      
+
       if (!mod.newOutput || mod.newOutput.trim().length === 0) {
         errors.push({ field: `keyboardModifications[${index}].newOutput`, message: 'New output is required' });
       }
@@ -253,7 +253,7 @@ export class CustomizeLayoutUseCase {
     // Apply each modification
     modifications.forEach(mod => {
       const existingIndex = modifiedMappings.findIndex(mapping => mapping.key === mod.key);
-      
+
       if (existingIndex !== -1) {
         // Update existing key mapping
         modifiedMappings[existingIndex] = {

@@ -5,7 +5,7 @@ import { PauseResumeSessionCommandDTO } from "../dto/typing-session.dto";
 export class PauseResumeSessionUseCase {
   constructor(
     private sessionRepository: ISessionRepository
-  ) {}
+  ) { }
 
   async execute(command: PauseResumeSessionCommandDTO): Promise<TypingSession> {
     // 1. Get the session
@@ -47,7 +47,7 @@ export class PauseResumeSessionUseCase {
       if (session.status === SessionStatus.PAUSED) {
         session.status = SessionStatus.ACTIVE;
         session.focusState.isFocused = true;
-        
+
         // Calculate focus lost duration
         const pauseDuration = command.timestamp - session.focusState.lastFocusTime;
         session.focusState.focusLostDuration += pauseDuration;

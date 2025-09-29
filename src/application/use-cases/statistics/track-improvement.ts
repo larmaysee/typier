@@ -9,7 +9,7 @@ export class TrackImprovementUseCase {
     private typingRepository: ITypingRepository,
     private userRepository: IUserRepository,
     private performanceAnalyzer: IPerformanceAnalyzerService
-  ) {}
+  ) { }
 
   async execute(query: TrackImprovementQueryDTO): Promise<ImprovementTrackingResponseDTO> {
     const { userId, language, analysisDepth = 'basic', timeRange } = query;
@@ -22,7 +22,7 @@ export class TrackImprovementUseCase {
     };
 
     const userTests = await this.typingRepository.getUserTests(userId, filters);
-    
+
     if (userTests.length === 0) {
       throw new Error(`No typing tests found for user: ${userId}`);
     }
@@ -33,7 +33,7 @@ export class TrackImprovementUseCase {
     // 3. Analyze performance trends
     const performanceAnalysis = await this.performanceAnalyzer.analyzeTypingPerformance(
       sortedTests,
-      { 
+      {
         includeLayoutAnalysis: analysisDepth !== 'basic',
         includePatterAnalysis: analysisDepth === 'comprehensive',
         includeTimingAnalysis: analysisDepth === 'comprehensive',
@@ -155,7 +155,7 @@ export class TrackImprovementUseCase {
     tests.forEach(test => {
       const date = new Date(test.timestamp);
       const dateKey = date.toDateString();
-      
+
       let value: number;
       switch (metric) {
         case 'wpm':
@@ -275,24 +275,24 @@ export class TrackImprovementUseCase {
     // Simple estimation based on improvement rate
     const improvementRate = this.calculateImprovementRate(tests, 'wpm');
     const currentWpm = tests.slice(-5).reduce((sum, test) => sum + test.results.wpm, 0) / 5;
-    
+
     if (improvementRate <= 0) return -1; // No improvement trend
-    
+
     const wpmToImprove = targetWpm - currentWpm;
     const estimatedDays = Math.ceil(wpmToImprove / (improvementRate / 7)); // Convert weekly rate to daily
-    
+
     return Math.max(1, estimatedDays);
   }
 
   private estimateTimeToReachAccuracy(tests: any[], targetAccuracy: number): number {
     const improvementRate = this.calculateImprovementRate(tests, 'accuracy');
     const currentAccuracy = tests.slice(-5).reduce((sum, test) => sum + test.results.accuracy, 0) / 5;
-    
+
     if (improvementRate <= 0) return -1;
-    
+
     const accuracyToImprove = targetAccuracy - currentAccuracy;
     const estimatedDays = Math.ceil(accuracyToImprove / (improvementRate / 7));
-    
+
     return Math.max(1, estimatedDays);
   }
 
@@ -304,15 +304,15 @@ export class TrackImprovementUseCase {
 
   private calculateImprovementRate(tests: any[], metric: 'wpm' | 'accuracy'): number {
     if (tests.length < 10) return 0;
-    
+
     const recent = tests.slice(-5);
     const earlier = tests.slice(-15, -10);
-    
+
     if (earlier.length === 0) return 0;
-    
+
     const recentAvg = recent.reduce((sum, test) => sum + test.results[metric], 0) / recent.length;
     const earlierAvg = earlier.reduce((sum, test) => sum + test.results[metric], 0) / earlier.length;
-    
+
     return recentAvg - earlierAvg;
   }
 
@@ -327,7 +327,7 @@ export class TrackImprovementUseCase {
     // This is a simplified version
     const avgWpm = tests.reduce((sum, test) => sum + test.results.wpm, 0) / tests.length;
     const avgAccuracy = tests.reduce((sum, test) => sum + test.results.accuracy, 0) / tests.length;
-    
+
     return {
       overallScore: Math.round((avgWpm * 0.6) + (avgAccuracy * 0.4)),
       improvementRate: this.calculateImprovementRate(tests, 'wpm'),
