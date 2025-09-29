@@ -21,3 +21,14 @@ export * from './use-cases/analytics/track-layout-switching-patterns';
 // DTOs
 export * from './dto/common.dto';
 export * from './dto/competition.dto';
+export * from './use-cases';
+
+// DTOs
+export * from './dto/typing-session.dto';
+export * from './dto/queries.dto';
+export * from './dto/statistics.dto';
+export * from './dto/keyboard-layouts.dto';
+
+// Commands and Queries
+export * from './commands/start-session.command';
+export * from './queries/get-user-stats.query';
