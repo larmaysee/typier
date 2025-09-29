@@ -2,7 +2,5 @@
 export { LanguageCode } from "@/enums/site-config";
 
 // Export new enums
-export * from "./typing-mode";
 export * from "./keyboard-layout";
-export * from './typing-mode';
-export * from './keyboard-layout';
+export * from "./typing-mode";
