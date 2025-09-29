@@ -1,51 +1,46 @@
-/**
- * Keyboard layout types and variants
- */
+import { LanguageCode } from "@/enums/site-config";
+
 export enum LayoutType {
-  STANDARD = "standard",
-  PHONETIC = "phonetic", 
-  UNICODE = "unicode",
-  LEGACY = "legacy"
+  QWERTY = 'qwerty',
+  DVORAK = 'dvorak',
+  COLEMAK = 'colemak',
+  AZERTY = 'azerty',
+  CUSTOM = 'custom',
+  PHONETIC = 'phonetic',
+  TRANSLITERATION = 'transliteration'
 }
 
-/**
- * Layout variants for different languages
- */
 export enum LayoutVariant {
-  // English layouts
-  QWERTY_US = "qwerty-us",
-  QWERTY_UK = "qwerty-uk", 
-  QWERTY_INTERNATIONAL = "qwerty-international",
-  DVORAK = "dvorak",
-  COLEMAK = "colemak",
-  
-  // Lisu layouts
-  SIL_BASIC = "sil-basic",
-  SIL_STANDARD = "sil-standard",
-  UNICODE_STANDARD = "unicode-standard",
-  TRADITIONAL = "traditional",
-  
-  // Myanmar layouts
-  MYANMAR3 = "myanmar3",
-  ZAWGYI = "zawgyi",
-  WININNWA = "wininnwa"
+  // English variants
+  US = 'us',
+  UK = 'uk',
+  INTERNATIONAL = 'international',
+
+  // Lisu variants
+  SIL_BASIC = 'sil_basic',
+  SIL_STANDARD = 'sil_standard',
+  UNICODE_STANDARD = 'unicode_standard',
+  TRADITIONAL = 'traditional',
+  LISU_BASIC = 'lisu_basic',
+
+  // Myanmar variants
+  MYANMAR_3 = 'myanmar3',
+  ZAWGYI = 'zawgyi',
+  UNICODE = 'unicode',
+  WININNWA = 'wininnwa',
+
+  // Generic
+  STANDARD = 'standard',
+  BASIC = 'basic',
+  EXTENDED = 'extended'
 }
 
-/**
- * Session status states
- */
-export enum SessionStatus {
-  IDLE = "idle",
-  ACTIVE = "active", 
-  PAUSED = "paused",
-  COMPLETED = "completed",
-  ABORTED = "aborted"
+export enum InputMethod {
+  DIRECT = 'direct',
+  COMPOSE = 'compose',
+  TRANSLITERATION = 'transliteration',
+  PHONETIC = 'phonetic'
 }
 
-/**
- * Focus states for typing session
- */
-export enum FocusState {
-  FOCUSED = "focused",
-  BLURRED = "blurred"
-}
+export type KeyboardLayoutId = string;
+export type FingerAssignment = 'pinky' | 'ring' | 'middle' | 'index' | 'thumb';

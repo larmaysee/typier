@@ -4,10 +4,10 @@
 export enum TypingMode {
   /** No database recording, enhanced visual feedback */
   PRACTICE = "practice",
-  
+
   /** Records to database and leaderboard */
   NORMAL = "normal",
-  
+
   /** Daily/weekly challenges with fixed content */
   COMPETITION = "competition"
 }
@@ -17,7 +17,7 @@ export enum TypingMode {
  */
 export enum DifficultyLevel {
   EASY = "easy",
-  MEDIUM = "medium", 
+  MEDIUM = "medium",
   HARD = "hard"
 }
 
