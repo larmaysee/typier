@@ -9,9 +9,12 @@ import { TypingWithKeyboard } from "@/presentation/components/typing/typing-with
 import StatisticsDashboard from "@/components/statistics-dashboard";
 import Leaderboard from "@/components/leaderboard";
 import SettingsPage from "@/components/settings-page";
+import { CompetitionHub } from "@/presentation/components/competitions/competition-hub";
+import { AnalyticsDashboard } from "@/presentation/components/analytics/analytics-dashboard";
+import { cn } from "@/lib/utils";
 
 export default function Home() {
-  const [currentView, setCurrentView] = useState<'typing' | 'statistics' | 'leaderboard' | 'settings'>('typing');
+  const [currentView, setCurrentView] = useState<'typing' | 'statistics' | 'leaderboard' | 'settings' | 'competitions' | 'analytics'>('typing');
   const [mounted, setMounted] = useState(false);
 
   // Ensure component only renders on client
@@ -31,7 +34,10 @@ export default function Home() {
             <div className="grid grid-rows-[auto,1fr,auto] col-span-3 gap-2 min-h-screen">
               <SiteToolbox currentView={currentView} onViewChange={setCurrentView} />
 
-              <div className="flex flex-col gap-4 w-full md:max-w-[800px] md:m-auto sm:p-4">
+              <div className={cn(
+                "flex flex-col gap-4 w-full sm:p-4",
+                currentView === 'typing' ? "max-w-full px-4" : "md:max-w-[800px] md:m-auto"
+              )}>
                 {/* <AdsBlock /> */}
                 {currentView === 'typing' ? (
                   <TypingWithKeyboard />
@@ -39,6 +45,10 @@ export default function Home() {
                   <StatisticsDashboard />
                 ) : currentView === 'leaderboard' ? (
                   <Leaderboard />
+                ) : currentView === 'competitions' ? (
+                  <CompetitionHub />
+                ) : currentView === 'analytics' ? (
+                  <AnalyticsDashboard />
                 ) : (
                   <SettingsPage />
                 )}

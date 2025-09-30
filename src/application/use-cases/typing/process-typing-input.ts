@@ -181,8 +181,18 @@ export class ProcessTypingInputUseCase {
   }
 
   private isSessionComplete(session: TypingSession): boolean {
-    // Complete if time is up or text is fully typed
-    return session.timeLeft <= 0 || session.currentInput.length >= session.test.textContent.length;
+    // Complete if time is up
+    if (session.timeLeft <= 0) {
+      return true;
+    }
+
+    // Complete if text is fully and correctly typed
+    const targetText = session.test.textContent;
+    const currentInput = session.currentInput;
+
+    // Text must be complete in length AND correct
+    return currentInput.length >= targetText.length &&
+      currentInput === targetText;
   }
 
   private mapSessionToDto(session: TypingSession): TypingSessionDto {

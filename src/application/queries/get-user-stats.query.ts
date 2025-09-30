@@ -1,5 +1,5 @@
 import { DifficultyLevel, TypingMode } from "@/domain/enums";
-import { LanguageCode } from "@/enums/site-config";
+import { LanguageCode } from "@/domain";
 
 export interface GetUserStatsQuery {
   userId: string;

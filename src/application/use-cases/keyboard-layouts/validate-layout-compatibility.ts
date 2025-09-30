@@ -1,4 +1,4 @@
-import { LanguageCode } from "@/enums/site-config";
+import { LanguageCode } from "@/domain";
 import { IKeyboardLayoutRepository } from "@/domain/interfaces/repositories";
 import { GetLayoutCompatibilityQueryDTO } from "@/application/dto/queries.dto";
 import { LayoutCompatibilityResponseDTO } from "@/application/dto/keyboard-layouts.dto";

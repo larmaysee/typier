@@ -9,6 +9,7 @@ import { DifficultySelector } from "./difficulty-selector";
 import { PracticeModeToggle } from "./practice-mode-toggle";
 import { KeyboardLayoutSelector } from "../keyboard-layouts/keyboard-layout-selector";
 import TimerOptions from "@/components/time-options";
+import DataMode from "@/components/data-mode";
 import { TypingSessionState } from "@/presentation/hooks/typing/use-typing-session";
 
 interface TypingControlPanelProps {
@@ -42,6 +43,8 @@ export const TypingControlPanel = memo(function TypingControlPanel({
           <Separator orientation="vertical" className="h-6 hidden sm:block" />
 
           <LanguageSelector disabled={testCompleted} />
+
+          <DataMode />
 
           <DifficultySelector disabled={testCompleted} />
         </div>

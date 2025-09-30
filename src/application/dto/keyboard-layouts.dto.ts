@@ -1,5 +1,5 @@
 import { KeyboardLayout } from "@/domain/entities/keyboard-layout";
-import { LanguageCode } from "@/enums/site-config";
+import { LanguageCode } from "@/domain";
 
 export interface LayoutsResponseDTO {
   layouts: Array<{

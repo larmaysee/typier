@@ -1,5 +1,5 @@
 import { LayoutType, LayoutVariant } from "@/domain/enums/keyboard-layouts";
-import { LanguageCode } from "@/enums/site-config";
+import { LanguageCode } from "@/domain";
 
 export interface KeyboardLayoutDto {
   id: string;

@@ -1,7 +1,8 @@
 import { ILayoutProvider, ValidationResult } from "@/domain/interfaces";
 import { KeyboardLayout, KeyMapping } from "@/domain/entities";
-import { LanguageCode, LayoutType, LayoutVariant, InputMethod, DifficultyLevel } from "@/domain/enums";
+import { LayoutType, LayoutVariant, InputMethod, DifficultyLevel } from "@/domain/enums";
 import { createKeyMapping, createSystemLayoutMetadata } from "./layout-helpers";
+import { LanguageCode } from "@/domain";
 
 /**
  * Lisu keyboard layouts provider (SIL Basic, Standard, Unicode, Traditional)

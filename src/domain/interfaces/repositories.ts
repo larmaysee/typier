@@ -3,7 +3,7 @@
  * These define the contracts for data access without implementation details
  */
 
-import { LanguageCode } from "@/enums/site-config";
+import { LanguageCode } from "@/domain";
 import { Competition, CompetitionEntry } from "../entities/competition";
 import { KeyboardLayout } from "../entities/keyboard-layout";
 import { LeaderboardEntry, TypingStatistics } from "../entities/statistics";

@@ -9,11 +9,11 @@ import { Badge } from './ui/badge';
 import { Palette, Monitor, Sun, Moon, Check, Cloud, HardDrive } from 'lucide-react';
 import { useSiteConfig } from './site-config';
 import { useAuth } from './auth-provider';
-import { LanguageCode } from '@/enums/site-config';
 import kbLayouts from '@/layouts/kb-layouts';
 import themesConfig from '@/config/themes.json';
 import { applyThemeColors, Theme } from '@/lib/utils';
 import { MyanmarLayoutPreferences } from '@/presentation/components/settings/myanmar-layout-preferences';
+import { LanguageCode } from '@/domain';
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();

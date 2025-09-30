@@ -3,8 +3,8 @@
  */
 
 import { ITextGenerationService, TextGenerationConfig } from "../../../domain/interfaces/services";
-import { LanguageCode } from "../../../enums/site-config";
 import { DifficultyLevel, TypingMode, TextType } from "../../../domain/enums/typing-mode";
+import { LanguageCode } from "@/domain";
 
 export class MockTextGenerationService implements ITextGenerationService {
   private wordPools: Map<string, string[]> = new Map();

@@ -8,15 +8,22 @@ import { useDependencyInjection } from "@/presentation/hooks/core/use-dependency
 import { ILayoutManagerService } from "@/domain/interfaces/keyboard-layout.interface";
 import { KeyboardLayout } from "@/domain/entities/keyboard-layout";
 import { useSiteConfig } from "@/components/site-config";
+import ModernKeyboard from "@/components/modern-keyboard";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { useTypingSession } from "@/presentation/hooks/typing/use-typing-session";
 import { useSessionControls } from "@/presentation/hooks/typing/use-session-controls";
+import { Badge } from "@/components/ui/badge";
+import { Clock, Target, Zap, TrendingUp, Menu, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export function TypingWithKeyboard() {
   const { resolve, serviceTokens } = useDependencyInjection();
   const { config } = useSiteConfig();
   const [currentLayout, setCurrentLayout] = useState<KeyboardLayout | null>(null);
   const [activeKey, setActiveKey] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarPosition, setSidebarPosition] = useState<'left' | 'right'>('right');
 
   // Get typing session state and controls
   const {
@@ -25,6 +32,7 @@ export function TypingWithKeyboard() {
     inputRef,
     getRandomData,
     processInput,
+    calculateWPM,
   } = useTypingSession();
 
   const { handleRefresh, setSelectedTime } = useSessionControls({
@@ -75,45 +83,113 @@ export function TypingWithKeyboard() {
     }
   }, [resolve, serviceTokens]);
 
-  return (
-    <div className="space-y-6">
-      {/* Unified Control Panel */}
-      <TypingControlPanel
-        session={session}
-        testCompleted={session.testCompleted}
-        onRefresh={handleRefresh}
-        onTimeChange={setSelectedTime}
-        onLayoutChange={handleLayoutChange}
-      />
+  // Calculate accuracy
+  const calculateAccuracy = () => {
+    const total = session.correctWords + session.incorrectWords;
+    if (total === 0) return 100;
+    return Math.round((session.correctWords / total) * 100);
+  };
 
-      {/* Typing Test Container */}
-      <TypingContainer />
+  // Sidebar component
+  const Sidebar = () => (
+    <div className="space-y-4">
+      {/* Status Card */}
+      <Card className="p-4">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold">Session Status</h3>
+            <Badge variant={session.testCompleted ? "default" : session.isFocused ? "default" : "secondary"}>
+              {session.testCompleted ? "Completed" : session.isFocused ? "Active" : "Paused"}
+            </Badge>
+          </div>
+
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Mode</span>
+              <span className="font-medium capitalize">{config.practiceMode ? "Practice" : "Normal"}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Language</span>
+              <span className="font-medium">{config.language.name}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Difficulty</span>
+              <span className="font-medium capitalize">{config.difficultyMode}</span>
+            </div>
+            {currentLayout && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Layout</span>
+                <span className="font-medium text-xs">{currentLayout.displayName}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </Card>
 
       {/* Keyboard Layout Preview */}
       {currentLayout && (
-        <Card className="p-6">
-          <div className="space-y-4">
-            {/* <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-semibold">
-                  {currentLayout.displayName}
-                </h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {currentLayout.language.toUpperCase()} · {currentLayout.layoutType}
-                </p>
-              </div>
-            </div> */}
+        <Card className="p-4">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold">Keyboard Layout</h3>
+              <Badge variant="outline" className="text-xs">
+                {currentLayout.layoutType}
+              </Badge>
+            </div>
 
-            <LayoutPreview
-              layout={currentLayout}
-              showFingerPositions={config.practiceMode}
-              highlightActiveKey={activeKey || undefined}
-              size="md"
-              interactive={false}
-            />
+            <div className="w-full overflow-x-auto">
+              <div className="min-w-[280px]">
+                <LayoutPreview
+                  layout={currentLayout}
+                  showFingerPositions={config.practiceMode}
+                  highlightActiveKey={activeKey || undefined}
+                  size="sm"
+                  interactive={false}
+                />
+              </div>
+            </div>
           </div>
         </Card>
       )}
+
+      {/* Tips Card */}
+      {!session.testCompleted && (
+        <Card className="p-4 bg-muted/50">
+          <div className="space-y-2">
+            <h3 className="text-sm font-semibold">💡 Tips</h3>
+            <ul className="text-xs text-muted-foreground space-y-1">
+              <li>• Keep your fingers on home row</li>
+              <li>• Focus on accuracy over speed</li>
+              <li>• Maintain steady rhythm</li>
+              {config.practiceMode && <li>• Watch finger positions</li>}
+            </ul>
+          </div>
+        </Card>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="w-full h-full">
+      {/* Main Content Area with Sidebar */}
+      <div className="relative flex gap-4">
+        {/* Main Content - Typing Area */}
+        <div className={cn(
+          "flex-1 space-y-4 min-w-0",
+          "max-w-5xl mx-auto w-full"
+        )}>
+          {/* Typing Test Container */}
+          <TypingContainer />
+          <TypingControlPanel
+            session={session}
+            testCompleted={session.testCompleted}
+            onRefresh={handleRefresh}
+            onTimeChange={setSelectedTime}
+            onLayoutChange={handleLayoutChange}
+          />
+        </div>
+
+      </div>
     </div>
   );
 }

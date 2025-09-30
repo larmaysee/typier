@@ -1,6 +1,6 @@
 import { CompetitionType } from "@/domain/enums/competition-types";
 import { LayoutVariant } from "@/domain/enums/keyboard-layouts";
-import { LanguageCode } from "@/enums/site-config";
+import { LanguageCode } from "@/domain";
 
 export interface CreateCompetitionDTO {
   name: string;

@@ -1,4 +1,4 @@
-import { LanguageCode } from "@/enums/site-config";
+import { LanguageCode } from "@/domain";
 import { IUserRepository } from "@/domain/interfaces";
 import { User, UserPreferences } from "@/domain/entities";
 import { RepositoryError, NotFoundError } from "@/shared/errors";

@@ -2,7 +2,7 @@
 import React, { createContext, ReactNode, useCallback, useContext, useEffect, useState } from "react";
 import { useAuth } from "./auth-provider";
 import { TypingDatabaseService, TypingTestDocument } from "@/lib/appwrite";
-import { LanguageCode } from "@/enums/site-config";
+import { LanguageCode } from "@/domain";
 
 export interface TypingTestResult {
   id: string;
@@ -319,7 +319,10 @@ export const TypingStatisticsProvider: React.FC<{ children: ReactNode }> = ({ ch
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
-      syncWithDatabase();
+      // Call syncWithDatabase directly without dependency
+      if (canUseDatabase() && !isSyncing) {
+        syncWithDatabase();
+      }
     };
 
     const handleOffline = () => {
@@ -333,7 +336,8 @@ export const TypingStatisticsProvider: React.FC<{ children: ReactNode }> = ({ ch
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, [syncWithDatabase]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty deps - handlers are stable
 
   const addTestResult = async (result: Omit<TypingTestResult, 'id' | 'userId' | 'timestamp'>) => {
     const newResult: TypingTestResult = {

@@ -3,7 +3,7 @@ import {
   LayoutSearchCriteria
 } from "@/domain/interfaces";
 import { KeyboardLayout } from "@/domain/entities";
-import { LanguageCode } from "@/domain/enums";
+import { LanguageCode } from "@/domain";
 
 /**
  * Dynamic keyboard layout registration service

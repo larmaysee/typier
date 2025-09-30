@@ -6,10 +6,10 @@ import {
   LayoutSearchCriteria
 } from "@/domain/interfaces";
 import { KeyboardLayout } from "@/domain/entities";
-import { LanguageCode } from "@/domain/enums";
 import { EnglishLayoutsService } from "./english-layouts.service";
 import { LisuLayoutsService } from "./lisu-layouts.service";
 import { MyanmarLayoutsService } from "./myanmar-layouts.service";
+import { LanguageCode } from "@/domain";
 
 /**
  * Central keyboard layout management service

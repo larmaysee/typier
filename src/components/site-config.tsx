@@ -1,12 +1,19 @@
 "use client";
-import { LanguageCode, ThemeMode } from "@/enums/site-config";
+
 import layouts from "@/layouts/kb-layouts";
 import React, { createContext, ReactNode, useContext, useState, useEffect, useCallback } from "react";
 import { TypingDatabaseService, languageCodeToDb, dbToLanguageCode } from "@/lib/appwrite";
 import { useAuth } from "./auth-provider";
-import { applyThemeColors, Theme } from "@/lib/utils";
+import { applyThemeColors } from "@/lib/utils";
 import { useTheme } from "next-themes";
 import themesConfig from "@/config/themes.json";
+import { LanguageCode } from "@/domain";
+
+enum ThemeMode {
+  LIGHT = 'light',
+  DARK = 'dark',
+  SYSTEM = 'system',
+}
 
 interface SiteConfig {
   theme: ThemeMode;
@@ -154,7 +161,8 @@ export const SiteConfigProvider: React.FC<SiteConfigProviderProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [user, applyColorTheme]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]); // Only depend on user, applyColorTheme is stable
 
   // Load settings when user changes or on mount
   useEffect(() => {

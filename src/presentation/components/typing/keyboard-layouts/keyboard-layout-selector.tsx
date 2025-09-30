@@ -16,7 +16,7 @@ import { useDependencyInjection } from "@/presentation/hooks/core/use-dependency
 import { GetAvailableLayoutsUseCase } from "@/application/use-cases/keyboard-layouts/get-available-layouts";
 import { SwitchKeyboardLayoutUseCase } from "@/application/use-cases/keyboard-layouts/switch-keyboard-layout";
 import { LayoutsResponseDTO } from "@/application/dto/keyboard-layouts.dto";
-import { LanguageCode } from "@/enums/site-config";
+import { LanguageCode } from "@/domain";
 import { useSiteConfig } from "@/components/site-config";
 import { cn } from "@/lib/utils";
 

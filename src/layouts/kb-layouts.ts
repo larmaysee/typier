@@ -1,6 +1,6 @@
 "use client";
 
-import { LanguageCode } from "@/enums/site-config";
+import { LanguageCode } from "@/domain";
 
 const kbLayouts = [
   {

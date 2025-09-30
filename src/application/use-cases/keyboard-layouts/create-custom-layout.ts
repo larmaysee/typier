@@ -1,7 +1,7 @@
 import { KeyboardLayout, KeyMapping, KeyPosition, LayoutMetadata } from "@/domain/entities/keyboard-layout";
 import { FingerAssignment, LayoutVariant, LayoutType, InputMethod } from "@/domain/enums/keyboard-layouts";
 import { DifficultyLevel } from "@/domain/enums/typing-mode";
-import { LanguageCode } from "@/enums/site-config";
+import { LanguageCode } from "@/domain";
 import { IKeyboardLayoutRepository } from "@/domain/interfaces/repositories";
 
 export interface CreateCustomLayoutCommand {

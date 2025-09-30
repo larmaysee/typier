@@ -4,9 +4,9 @@
 
 import { IKeyboardLayoutRepository, ValidationResult } from "../../../domain/interfaces/repositories";
 import { KeyboardLayout } from "../../../domain/entities/keyboard-layout";
-import { LanguageCode } from "../../../enums/site-config";
 import { LayoutType, LayoutVariant, InputMethod, FingerAssignment } from "../../../domain/enums/keyboard-layouts";
 import { DifficultyLevel } from "../../../domain/enums/typing-mode";
+import { LanguageCode } from "@/domain";
 
 export class MockKeyboardLayoutRepository implements IKeyboardLayoutRepository {
   private layouts: Map<string, KeyboardLayout> = new Map();

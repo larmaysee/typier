@@ -1,5 +1,5 @@
 import { Query } from "appwrite";
-import { LanguageCode } from "@/enums/site-config";
+import { LanguageCode } from "@/domain";
 import { IKeyboardLayoutRepository } from "@/domain/interfaces";
 import { KeyboardLayout } from "@/domain/entities";
 import { RepositoryError, NotFoundError } from "@/shared/errors";

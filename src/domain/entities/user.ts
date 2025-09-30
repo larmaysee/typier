@@ -3,7 +3,7 @@
  * Contains user account, profile, and preference business logic
  */
 
-import { LanguageCode } from "../../enums/site-config";
+import { LanguageCode } from "../enums/languages";
 import { DifficultyLevel, TypingMode } from "../enums/typing-mode";
 
 export interface UserPreferences {

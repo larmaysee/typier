@@ -3,7 +3,7 @@
  * Contains layout definitions, key mappings, and layout management logic
  */
 
-import { LanguageCode } from "@/enums/site-config";
+import { LanguageCode } from "@/domain";
 import {
   FingerAssignment,
   InputMethod,

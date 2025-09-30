@@ -1,5 +1,5 @@
 import { TypingDatabaseService } from "./appwrite";
-import { LanguageCode } from "@/enums/site-config";
+import { LanguageCode } from "@/domain";
 
 export interface LegacyTypingTestResult {
   id: string;

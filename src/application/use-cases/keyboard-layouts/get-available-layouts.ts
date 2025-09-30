@@ -1,4 +1,4 @@
-import { LanguageCode } from "@/enums/site-config";
+import { LanguageCode } from "@/domain";
 import { KeyboardLayout } from "@/domain/entities/keyboard-layout";
 import { IKeyboardLayoutRepository, IUserRepository } from "@/domain/interfaces/repositories";
 import { GetAvailableLayoutsQueryDTO } from "@/application/dto/queries.dto";

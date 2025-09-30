@@ -5,7 +5,7 @@
 import { TextGeneratorService } from "@/infrastructure/services/text-generation/text-generator.service";
 import { LayoutManagerService } from "@/infrastructure/services/keyboard-layouts/layout-manager.service";
 import { PerformanceTrackerService } from "@/infrastructure/services/analytics/performance-tracker.service";
-import { LanguageCode, TextType, DifficultyLevel } from "@/domain/enums";
+import { DifficultyLevel, LanguageCode, TextType } from "./domain";
 
 export async function testInfrastructureServices() {
   console.log("🧪 Testing Infrastructure Services...\n");

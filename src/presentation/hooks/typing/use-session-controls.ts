@@ -75,9 +75,56 @@ export function useSessionControls({
       return;
     }
 
-    // Keyboard events are handled - compose key tracking removed
-    // This can be re-added when practice mode is reimplemented with clean architecture
-  }, []);
+    const words = session.typedText.split(" ");
+    const activeWordIndex = getActiveWordIndex();
+    const activeWord = words[activeWordIndex] || "";
+
+    // Handle Ctrl/Cmd + Backspace (word deletion)
+    if (e.key === "Backspace" && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+
+      // Get current input value and cursor position
+      const input = e.target as HTMLInputElement;
+      if (!input) return;
+
+      const cursorPos = input.selectionStart || 0;
+      const text = input.value;
+
+      // Find the start of the current word to delete
+      let wordStart = cursorPos;
+      while (wordStart > 0 && text[wordStart - 1] !== " ") {
+        wordStart--;
+      }
+
+      // Create new text without the deleted word
+      const newText = text.slice(0, wordStart) + text.slice(cursorPos);
+
+      // Update the input value and trigger change event
+      input.value = newText;
+      input.setSelectionRange(wordStart, wordStart);
+
+      // Trigger the change event manually
+      const event = new Event("input", { bubbles: true });
+      input.dispatchEvent(event);
+
+      return;
+    }
+
+    // Prevent space if current word is empty
+    if (e.key === " " && activeWord.length === 0) {
+      e.preventDefault();
+    }
+
+    // Handle space key for word completion tracking
+    if (e.key === " " && activeWord.length > 0) {
+      const currentWords = session.currentData?.split(" ") || [];
+      if (activeWord === currentWords[activeWordIndex]) {
+        setState(prev => ({ ...prev, correctWords: prev.correctWords + 1 }));
+      } else {
+        setState(prev => ({ ...prev, incorrectWords: prev.incorrectWords + 1 }));
+      }
+    }
+  }, [session.typedText, session.currentData, getActiveWordIndex, setState]);
 
   const handleFocus = useCallback(() => {
     setState(prev => ({ ...prev, isFocused: true }));

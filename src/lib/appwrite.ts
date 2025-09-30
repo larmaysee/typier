@@ -1,5 +1,5 @@
 import { Account, Client, Databases, ID, Query } from "appwrite";
-import { LanguageCode } from "@/enums/site-config";
+import { LanguageCode } from "@/domain";
 
 const client = new Client();
 

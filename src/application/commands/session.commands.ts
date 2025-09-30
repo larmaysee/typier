@@ -3,7 +3,7 @@ import {
   TextType,
   TypingMode,
 } from "@/domain/enums/typing-mode";
-import { LanguageCode } from "@/enums/site-config";
+import { LanguageCode } from "@/domain";
 
 export interface StartSessionCommand {
   userId: string;

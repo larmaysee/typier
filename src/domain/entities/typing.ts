@@ -4,7 +4,7 @@
  */
 
 import { DifficultyLevel, TypingMode } from "../enums";
-import { LanguageCode } from "@/enums/site-config";
+import { LanguageCode } from "@/domain";
 import { KeyMapping, KeyPosition, KeyboardLayout, LayoutMetadata } from "./keyboard-layout";
 import { SessionStatus } from "../enums/session-status";
 import { CursorPosition, FocusState } from "../value-objects/cursor-position";

@@ -1,12 +1,12 @@
 "use client";
 import React from "react";
 import { Button } from "./ui/button";
-import { BarChart3, Keyboard, Trophy, Settings } from "lucide-react";
+import { BarChart3, Keyboard, Trophy, Settings, Medal, Brain } from "lucide-react";
 import TooltipWrapper from "./tooltip-wrapper";
 
 interface ViewTogglerProps {
-  currentView: 'typing' | 'statistics' | 'leaderboard' | 'settings';
-  onViewChange: (view: 'typing' | 'statistics' | 'leaderboard' | 'settings') => void;
+  currentView: "typing" | "statistics" | "leaderboard" | "settings" | "competitions" | "analytics";
+  onViewChange: (view: "typing" | "statistics" | "leaderboard" | "settings" | "competitions" | "analytics") => void;
 }
 
 export default function ViewToggler({ currentView, onViewChange }: ViewTogglerProps) {
@@ -40,6 +40,26 @@ export default function ViewToggler({ currentView, onViewChange }: ViewTogglerPr
           onClick={() => onViewChange('leaderboard')}
         >
           <Trophy className="h-4 w-4" />
+        </Button>
+      </TooltipWrapper>
+      <TooltipWrapper tooltip="Competitions">
+        <Button
+          variant={currentView === 'competitions' ? 'default' : 'ghost'}
+          size="sm"
+          className="h-8 px-3"
+          onClick={() => onViewChange('competitions')}
+        >
+          <Medal className="h-4 w-4" />
+        </Button>
+      </TooltipWrapper>
+      <TooltipWrapper tooltip="Analytics">
+        <Button
+          variant={currentView === 'analytics' ? 'default' : 'ghost'}
+          size="sm"
+          className="h-8 px-3"
+          onClick={() => onViewChange('analytics')}
+        >
+          <Brain className="h-4 w-4" />
         </Button>
       </TooltipWrapper>
       <TooltipWrapper tooltip="Settings">

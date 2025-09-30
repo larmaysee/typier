@@ -8,9 +8,9 @@ import { StartTypingSessionUseCase } from "@/application/use-cases/typing/start-
 import { ProcessTypingInputUseCase } from "@/application/use-cases/typing/process-typing-input";
 import { CompleteTypingSessionUseCase } from "@/application/use-cases/typing/complete-typing-session";
 import { StartSessionCommand, ProcessInputCommand } from "@/application/commands/session.commands";
-import { TypingSessionDto, CompleteSessionCommandDTO } from "@/application/dto/typing-session.dto";
+import { CompleteSessionCommandDTO } from "@/application/dto/typing-session.dto";
 import { TypingMode, DifficultyLevel, TextType } from "@/domain/enums/typing-mode";
-import { LanguageCode } from "@/enums/site-config";
+import { LanguageCode } from "@/domain";
 
 export interface TypingSessionState {
   sessionId: string | null;
@@ -141,15 +141,14 @@ export function useTypingSession() {
     } finally {
       setIsLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     startSessionUseCase,
     config.language.code,
     config.practiceMode,
     config.difficultyMode,
     state.selectedTime,
-    getTypingMode,
-    getDifficultyLevel,
-    getTextType
+    // getTypingMode, getDifficultyLevel, getTextType are stable functions
   ]);
 
   // Process typing input
@@ -180,12 +179,17 @@ export function useTypingSession() {
           isSpacePosition: false,
         }
       }));
+
+      // Ensure input field value is synchronized (for uncontrolled scenarios)
+      if (inputRef.current && inputRef.current.value !== sessionDto.currentInput) {
+        inputRef.current.value = sessionDto.currentInput;
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to process input';
       setError(errorMessage);
       console.error('Error processing input:', err);
     }
-  }, [state.sessionId, processInputUseCase]);
+  }, [state.sessionId, processInputUseCase, inputRef]);
 
   // Complete session
   const completeSession = useCallback(async () => {
@@ -244,6 +248,7 @@ export function useTypingSession() {
   // Initialize session on mount or when config changes
   useEffect(() => {
     startNewSession();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config.language.code, config.difficultyMode, config.practiceMode]);
 
   // Update time left

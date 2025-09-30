@@ -5,8 +5,8 @@ import { ThemeToggler } from "./theme-toggler";
 import ViewToggler from "./view-toggler";
 
 interface SiteToolboxProps {
-  currentView: 'typing' | 'statistics' | 'leaderboard' | 'settings';
-  onViewChange: (view: 'typing' | 'statistics' | 'leaderboard' | 'settings') => void;
+  currentView: 'typing' | 'statistics' | 'leaderboard' | 'settings' | 'competitions' | 'analytics';
+  onViewChange: (view: 'typing' | 'statistics' | 'leaderboard' | 'settings' | 'competitions' | 'analytics') => void;
 }
 
 export default function SiteToolbox({ currentView, onViewChange }: SiteToolboxProps) {

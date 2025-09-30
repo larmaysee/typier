@@ -1,6 +1,7 @@
 "use client";
 
 import { FocusOverlay } from "@/components/focus-overlay";
+import { ResultsModal } from "@/components/results-modal";
 import { useSessionControls } from "@/presentation/hooks/typing/use-session-controls";
 import { useTypingSession } from "@/presentation/hooks/typing/use-typing-session";
 import { ErrorBoundary } from "./error-boundary";
@@ -8,11 +9,15 @@ import { LoadingSpinner } from "./loading-spinner";
 import { TypingControls } from "./typing-controls/typing-controls";
 import TypingDisplay from "./typing-display/typing-display";
 import TypingStats from "./typing-stats/typing-stats";
+import ModernKeyboard from "@/components/modern-keyboard";
+import { PracticeModeProvider } from "@/components/pratice-mode";
 
 export function TypingContainer() {
   return (
     <ErrorBoundary>
-      <TypingContainerInner />
+      <PracticeModeProvider>
+        <TypingContainerInner />
+      </PracticeModeProvider>
     </ErrorBoundary>
   );
 }
@@ -23,6 +28,8 @@ function TypingContainerInner() {
     textContent,
     isFocused,
     testCompleted,
+    showResults,
+    lastTestResult,
     error,
     isLoading,
     inputRef,
@@ -53,6 +60,14 @@ function TypingContainerInner() {
     }
   };
 
+  const handleCloseResults = () => {
+    setState(prev => ({ ...prev, showResults: false }));
+  };
+
+  const handleStartNewTest = () => {
+    handleRefresh();
+  };
+
   if (error) {
     return (
       <div className="text-center py-12">
@@ -73,6 +88,16 @@ function TypingContainerInner() {
 
   return (
     <div className="space-y-4">
+      {/* Results Modal */}
+      {showResults && lastTestResult && (
+        <ResultsModal
+          isOpen={showResults}
+          onClose={handleCloseResults}
+          result={lastTestResult}
+          onStartNewTest={handleStartNewTest}
+        />
+      )}
+
       <div className="relative">
         <FocusOverlay
           isVisible={!isFocused && !testCompleted}
@@ -90,6 +115,11 @@ function TypingContainerInner() {
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
         />
+      </div>
+
+      {/* Modern Keyboard Component */}
+      <div className="mt-6">
+        <ModernKeyboard />
       </div>
     </div>
   );

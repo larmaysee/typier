@@ -1,4 +1,4 @@
-import { LanguageCode } from "@/enums/site-config";
+import { LanguageCode } from "@/domain";
 import { TypingTest } from "../entities";
 import { LeaderboardEntry } from "../entities/statistics";
 

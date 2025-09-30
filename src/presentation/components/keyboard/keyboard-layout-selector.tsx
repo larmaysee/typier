@@ -15,7 +15,7 @@ import { KeyboardIcon } from "lucide-react";
 import { useDependencyInjection } from "@/presentation/hooks/core/use-dependency-injection";
 import { GetAvailableLayoutsUseCase } from "@/application/use-cases/keyboard-layouts/get-available-layouts";
 import { SwitchKeyboardLayoutUseCase } from "@/application/use-cases/keyboard-layouts/switch-keyboard-layout";
-import { LanguageCode } from "@/enums/site-config";
+import { LanguageCode } from "@/domain";
 import { cn } from "@/lib/utils";
 
 interface KeyboardLayoutSelectorProps {

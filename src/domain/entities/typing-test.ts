@@ -1,4 +1,4 @@
-import { LanguageCode } from "@/enums/site-config";
+import { LanguageCode } from "@/domain";
 import { TypingMode, DifficultyLevel } from "../enums";
 
 export interface TypingTest {

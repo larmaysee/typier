@@ -1,5 +1,5 @@
 import { TypingContent, ContentType } from "@/domain/entities/typing-content";
-import { LanguageCode } from "@/enums/site-config";
+import { LanguageCode } from "@/domain";
 import { DifficultyLevel } from "@/domain/entities";
 import { LayoutVariant } from "@/domain/enums/keyboard-layouts";
 import { IContentRepository } from "@/domain/interfaces/content-repository.interface";

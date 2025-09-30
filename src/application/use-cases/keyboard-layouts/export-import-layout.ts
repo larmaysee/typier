@@ -2,7 +2,7 @@ import { KeyboardLayout } from "@/domain/entities/keyboard-layout";
 import { IKeyboardLayoutRepository } from "@/domain/interfaces/repositories";
 import { DifficultyLevel } from "@/domain/enums/typing-mode";
 import { LayoutType, LayoutVariant, InputMethod } from "@/domain/enums/keyboard-layouts";
-import { LanguageCode } from "@/enums/site-config";
+import { LanguageCode } from "@/domain";
 
 export interface ExportLayoutCommand {
   layoutId: string;

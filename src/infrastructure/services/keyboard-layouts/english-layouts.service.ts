@@ -1,8 +1,9 @@
 import { ILayoutProvider, ValidationResult } from "@/domain/interfaces";
 import { KeyboardLayout } from "@/domain/entities";
-import { LanguageCode, LayoutType, LayoutVariant, InputMethod } from "@/domain/enums";
+import { LayoutType, LayoutVariant, InputMethod } from "@/domain/enums";
 import { DifficultyLevel } from "@/domain/enums/typing-mode";
 import { createKeyMapping, createSystemLayoutMetadata } from "./layout-helpers";
+import { LanguageCode } from "@/domain";
 
 /**
  * English keyboard layouts provider (QWERTY, Dvorak, Colemak)

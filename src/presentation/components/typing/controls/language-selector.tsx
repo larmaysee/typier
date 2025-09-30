@@ -2,7 +2,7 @@
 
 import { memo } from "react";
 import { useSiteConfig } from "@/components/site-config";
-import { LanguageCode } from "@/enums/site-config";
+import { LanguageCode } from "@/domain";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,

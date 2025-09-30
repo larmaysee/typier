@@ -5,8 +5,8 @@
 import { IUserRepository } from "../../../domain/interfaces/repositories";
 import { User, UserPreferences, UserProfile } from "../../../domain/entities/user";
 import { TypingStatistics } from "../../../domain/entities/statistics";
-import { LanguageCode } from "../../../enums/site-config";
 import { TypingMode } from "../../../domain/enums/typing-mode";
+import { LanguageCode } from "@/domain";
 
 export class MockUserRepository implements IUserRepository {
   private users: Map<string, User> = new Map();

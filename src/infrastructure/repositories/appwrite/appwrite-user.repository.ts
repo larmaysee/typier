@@ -8,7 +8,7 @@ import {
   AppwriteUserPreferencesDocument
 } from "../../persistence/appwrite/collections.config";
 import type { ILogger } from "@/shared/utils/logger";
-import { LanguageCode } from "@/enums/site-config";
+import { LanguageCode } from "@/domain";
 
 export class AppwriteUserRepository implements IUserRepository {
   constructor(

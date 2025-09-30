@@ -1,5 +1,5 @@
 import { LayoutType } from "@/domain/enums/keyboard-layouts";
-import { LanguageCode } from "@/enums/site-config";
+import { LanguageCode } from "@/domain";
 
 export interface SwitchLayoutCommand {
   sessionId: string;

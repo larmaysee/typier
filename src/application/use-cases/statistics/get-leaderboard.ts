@@ -1,4 +1,4 @@
-import { LanguageCode } from "@/enums/site-config";
+import { LanguageCode } from "@/domain";
 import { ITypingRepository, LeaderboardFilters } from "@/domain/interfaces/repositories";
 import { GetLeaderboardQueryDTO } from "@/application/dto/queries.dto";
 import { LeaderboardResponseDTO } from "@/application/dto/statistics.dto";
