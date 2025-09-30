@@ -1,17 +1,17 @@
 import { Query } from "appwrite";
 import { LanguageCode } from "@/enums/site-config";
-import { 
-  ITypingRepository, 
-  TestFilters, 
-  LeaderboardFilters, 
-  LeaderboardEntry 
+import {
+  ITypingRepository,
+  TestFilters,
+  LeaderboardFilters
 } from "@/domain/interfaces";
-import { TypingTest } from "@/domain/entities";
+import { LeaderboardEntry } from "@/domain/entities/statistics";
+import { TypingTest, TypingResults } from "@/domain/entities";
 import { NotFoundError, RepositoryError } from "@/shared/errors";
 import { AppwriteDatabaseClient } from "../../persistence/appwrite/database-client";
-import { 
-  COLLECTIONS, 
-  AppwriteTypingTestDocument 
+import {
+  COLLECTIONS,
+  AppwriteTypingTestDocument
 } from "../../persistence/appwrite/collections.config";
 import type { ILogger } from "@/shared/utils/logger";
 
@@ -19,7 +19,7 @@ export class AppwriteTypingRepository implements ITypingRepository {
   constructor(
     private client: AppwriteDatabaseClient,
     private logger: ILogger
-  ) {}
+  ) { }
 
   async save(test: TypingTest): Promise<void> {
     try {
@@ -39,7 +39,7 @@ export class AppwriteTypingRepository implements ITypingRepository {
   async getUserTests(userId: string, filters?: TestFilters): Promise<TypingTest[]> {
     try {
       const queries = [Query.equal('user_id', userId)];
-      
+
       if (filters) {
         if (filters.mode) {
           queries.push(Query.equal('mode', filters.mode));
@@ -78,7 +78,7 @@ export class AppwriteTypingRepository implements ITypingRepository {
   async getLeaderboard(filters: LeaderboardFilters): Promise<LeaderboardEntry[]> {
     try {
       const queries = [];
-      
+
       if (filters.language) {
         queries.push(Query.equal('language', filters.language));
       }
@@ -90,7 +90,7 @@ export class AppwriteTypingRepository implements ITypingRepository {
       if (filters.timeFrame && filters.timeFrame !== 'all') {
         const now = new Date();
         let dateFrom: Date;
-        
+
         switch (filters.timeFrame) {
           case 'day':
             dateFrom = new Date(now.getTime() - 24 * 60 * 60 * 1000);
@@ -102,7 +102,7 @@ export class AppwriteTypingRepository implements ITypingRepository {
             dateFrom = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
             break;
         }
-        
+
         if (dateFrom!) {
           queries.push(Query.greaterThanEqual('$createdAt', dateFrom.toISOString()));
         }
@@ -122,21 +122,31 @@ export class AppwriteTypingRepository implements ITypingRepository {
 
       for (const doc of documents) {
         const existing = userBestScores.get(doc.user_id);
-        
-        if (!existing || doc.wpm > existing.wpm) {
-          userBestScores.set(doc.user_id, {
+
+        if (!existing || doc.wpm > existing.bestWPM) {
+          const username = await this.getUsernameById(doc.user_id);
+          userBestScores.set(doc.user_id, LeaderboardEntry.create({
             userId: doc.user_id,
-            username: await this.getUsernameById(doc.user_id),
-            wpm: doc.wpm,
-            accuracy: doc.accuracy,
-            testDate: new Date(doc.$createdAt).getTime()
-          });
+            username: username,
+            bestWPM: doc.wpm,
+            averageAccuracy: doc.accuracy,
+            language: doc.language as any,
+            mode: doc.mode as any,
+            rank: 1, // Will be updated when sorting
+            totalTests: 1, // This is simplified - in reality we'd count all tests
+            lastImproved: new Date(doc.$createdAt).getTime(),
+            timestamp: new Date(doc.$createdAt).getTime()
+          }));
         }
       }
 
-      return Array.from(userBestScores.values())
-        .sort((a, b) => b.wpm - a.wpm)
-        .slice(0, filters.limit || 100);
+      // Update ranks after sorting
+      const sortedEntries = Array.from(userBestScores.values())
+        .sort((a, b) => b.bestWPM - a.bestWPM)
+        .slice(0, filters.limit || 100)
+        .map((entry, index) => entry.updateRank(index + 1));
+
+      return sortedEntries;
     } catch (error) {
       this.logger.error('Failed to get leaderboard', error as Error);
       throw new RepositoryError('Failed to get leaderboard', error as Error);
@@ -196,8 +206,8 @@ export class AppwriteTypingRepository implements ITypingRepository {
       this.logger.info(`Deleted typing test: ${testId}`);
     } catch (error) {
       this.logger.error(`Failed to delete typing test: ${testId}`, error as Error);
-      throw error instanceof NotFoundError || error instanceof RepositoryError 
-        ? error 
+      throw error instanceof NotFoundError || error instanceof RepositoryError
+        ? error
         : new RepositoryError('Failed to delete typing test', error as Error);
     }
   }
@@ -208,7 +218,7 @@ export class AppwriteTypingRepository implements ITypingRepository {
       mode: test.mode,
       difficulty: test.difficulty,
       language: test.language,
-      keyboard_layout_id: test.keyboardLayoutId,
+      keyboard_layout_id: test.keyboardLayout,
       text_content: test.textContent,
       wpm: test.results.wpm,
       accuracy: test.results.accuracy,
@@ -225,29 +235,29 @@ export class AppwriteTypingRepository implements ITypingRepository {
   }
 
   private fromAppwriteDocument(doc: AppwriteTypingTestDocument): TypingTest {
-    return {
+    return TypingTest.create({
       id: doc.$id,
       userId: doc.user_id,
       mode: doc.mode as any,
       difficulty: doc.difficulty as any,
       language: doc.language as LanguageCode,
-      keyboardLayoutId: doc.keyboard_layout_id,
+      keyboardLayout: doc.keyboard_layout_id,
       textContent: doc.text_content,
-      results: {
+      results: TypingResults.create({
         wpm: doc.wpm,
         accuracy: doc.accuracy,
         correctWords: doc.correct_words,
         incorrectWords: doc.incorrect_words,
-        totalWords: doc.total_words,
         duration: doc.duration,
         charactersTyped: doc.characters_typed,
+        correctChars: doc.characters_typed - doc.errors,
         errors: doc.errors,
         consistency: doc.consistency,
-        fingerUtilization: JSON.parse(doc.finger_utilization || '{}')
-      },
+        fingerUtilization: JSON.parse(doc.finger_utilization)
+      }),
       timestamp: new Date(doc.$createdAt).getTime(),
       competitionId: doc.competition_id
-    };
+    });
   }
 
   private async getUsernameById(userId: string): Promise<string> {

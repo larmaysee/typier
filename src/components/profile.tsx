@@ -44,9 +44,8 @@ export default function Profile() {
       {user != null ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="default" size="sm" className="h-9">
+            <Button variant={user != null ? "default" : "outline"} size="sm" className="h-9">
               <User size={16} />
-              <span>{user.name}</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">

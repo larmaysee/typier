@@ -1,21 +1,25 @@
-import { KeyboardLayout, KeyMapping, KeyPosition, FingerAssignment, LayoutMetadata } from "../../../domain/entities/keyboard-layout";
-import { LanguageCode } from "../../../domain/enums/language-code";
-import { KeyboardLayoutVariant } from "../../../domain/enums/keyboard-layout-variant";
-import { IKeyboardLayoutRepository } from "../../../domain/interfaces/keyboard-layout-repository.interface";
+import { KeyboardLayout, KeyMapping, KeyPosition, LayoutMetadata } from "@/domain/entities/keyboard-layout";
+import { FingerAssignment, LayoutVariant, LayoutType, InputMethod } from "@/domain/enums/keyboard-layouts";
+import { DifficultyLevel } from "@/domain/enums/typing-mode";
+import { LanguageCode } from "@/enums/site-config";
+import { IKeyboardLayoutRepository } from "@/domain/interfaces/repositories";
 
 export interface CreateCustomLayoutCommand {
   name: string;
   displayName: string;
   language: LanguageCode;
-  basedOn?: KeyboardLayoutVariant; // Optional base layout to modify
+  basedOn?: LayoutVariant; // Optional base layout to modify
   keyMappings: CustomKeyMapping[];
-  metadata: Partial<LayoutMetadata>;
-  createdBy: string;
+  description?: string;
+  authorName?: string;
+  tags?: string[];
+  userId?: string;
   isPublic?: boolean;
 }
 
 export interface CustomKeyMapping {
   key: string;
+  character: string; // Primary character
   shiftKey?: string;
   altKey?: string;
   altGrKey?: string;
@@ -40,12 +44,12 @@ export interface ValidationWarning {
 export class CreateCustomLayoutUseCase {
   constructor(
     private keyboardLayoutRepository: IKeyboardLayoutRepository
-  ) {}
+  ) { }
 
   async execute(command: CreateCustomLayoutCommand): Promise<CreateCustomLayoutResult> {
     // Validate layout data
     const validationResult = await this.validateLayout(command);
-    
+
     if (validationResult.hasErrors) {
       throw new Error(`Layout validation failed: ${validationResult.errors.join(', ')}`);
     }
@@ -53,25 +57,40 @@ export class CreateCustomLayoutUseCase {
     // Convert custom mappings to domain mappings
     const keyMappings = this.convertToKeyMappings(command.keyMappings);
 
-    // Create layout entity
-    const layoutData = {
-      name: this.generateLayoutId(command.name, command.createdBy),
-      displayName: command.displayName,
-      language: command.language,
-      variant: KeyboardLayoutVariant.QWERTY_US, // Will be overridden for custom layouts
-      keyMappings,
-      isCustom: true,
-      createdBy: command.createdBy,
-      isPublic: command.isPublic || false,
-      metadata: {
-        version: '1.0.0',
-        description: command.metadata.description || `Custom ${command.language} layout`,
-        author: command.createdBy,
-        ...command.metadata
-      }
+    // Create metadata for the layout
+    const metadata: LayoutMetadata = {
+      description: command.description || `Custom ${command.language} layout`,
+      author: command.authorName || 'Anonymous',
+      version: '1.0.0',
+      tags: command.tags || ['custom'],
+      difficulty: DifficultyLevel.MEDIUM,
+      compatibility: ['desktop'],
+      popularity: 0,
+      dateCreated: Date.now(),
+      lastModified: Date.now()
     };
 
-    const layout = await this.keyboardLayoutRepository.create(layoutData);
+    const now = Date.now();
+    const layoutId = this.generateLayoutId(command.name, command.userId || 'anonymous');
+
+    // Create layout entity
+    const layout = KeyboardLayout.create({
+      id: layoutId,
+      name: command.name,
+      displayName: command.displayName,
+      language: command.language,
+      layoutType: LayoutType.CUSTOM,
+      variant: LayoutVariant.US, // Will be overridden for custom layouts
+      keyMappings: keyMappings,
+      metadata: metadata,
+      inputMethod: InputMethod.DIRECT,
+      isCustom: true,
+      createdBy: command.userId || 'anonymous',
+      createdAt: now,
+      updatedAt: now
+    });
+
+    await this.keyboardLayoutRepository.saveCustomLayout(layout);
 
     // Calculate compatibility score
     const compatibilityScore = await this.calculateCompatibilityScore(layout, command.language);
@@ -129,9 +148,9 @@ export class CreateCustomLayoutUseCase {
 
     // Validate name uniqueness
     const existingLayout = await this.keyboardLayoutRepository.findById(
-      this.generateLayoutId(command.name, command.createdBy)
+      this.generateLayoutId(command.name, command.userId || 'anonymous')
     );
-    
+
     if (existingLayout) {
       errors.push('Layout name already exists for this user');
     }
@@ -146,13 +165,15 @@ export class CreateCustomLayoutUseCase {
   private convertToKeyMappings(customMappings: CustomKeyMapping[]): KeyMapping[] {
     return customMappings.map(mapping => ({
       key: mapping.key,
-      shiftKey: mapping.shiftKey,
-      altKey: mapping.altKey,
-      altGrKey: mapping.altGrKey,
+      character: mapping.character,
+      shiftCharacter: mapping.shiftKey,
+      altCharacter: mapping.altKey,
+      ctrlCharacter: mapping.altGrKey,
       position: {
         row: mapping.row,
         column: mapping.column,
-        finger: mapping.finger
+        finger: mapping.finger,
+        hand: mapping.finger.toString().startsWith('left') ? 'left' as const : 'right' as const
       }
     }));
   }
@@ -196,7 +217,7 @@ export class CreateCustomLayoutUseCase {
     mappings.forEach(mapping => {
       const finger = mapping.finger;
       const frequency = keyFrequencies[mapping.key] || 0.001; // Default low frequency
-      
+
       if (!fingerCounts[finger]) {
         fingerCounts[finger] = 0;
       }
@@ -232,11 +253,11 @@ export class CreateCustomLayoutUseCase {
 
   private findDifficultReaches(mappings: CustomKeyMapping[]): string[] {
     const difficultCombinations: string[] = [];
-    
+
     // Find keys that require awkward finger movements
     mappings.forEach(mapping => {
       const { row, column, finger } = mapping;
-      
+
       // Check for excessive stretches
       if (finger === FingerAssignment.LEFT_PINKY && column > 2) {
         difficultCombinations.push(mapping.key);
@@ -244,7 +265,7 @@ export class CreateCustomLayoutUseCase {
       if (finger === FingerAssignment.RIGHT_PINKY && column < 10) {
         difficultCombinations.push(mapping.key);
       }
-      
+
       // Check for awkward row positions
       if ((finger.includes('INDEX') && row > 3) || (finger.includes('PINKY') && row > 2)) {
         difficultCombinations.push(mapping.key);
@@ -267,9 +288,10 @@ export class CreateCustomLayoutUseCase {
     const fingerLoads = this.calculateFingerLoads(
       layout.keyMappings.map(m => ({
         key: m.key,
-        shiftKey: m.shiftKey,
-        altKey: m.altKey,
-        altGrKey: m.altGrKey,
+        character: m.character,
+        shiftKey: m.shiftCharacter,
+        altKey: m.altCharacter,
+        altGrKey: m.ctrlCharacter,
         row: m.position.row,
         column: m.position.column,
         finger: m.position.finger

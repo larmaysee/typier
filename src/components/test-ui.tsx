@@ -1,5 +1,5 @@
 "use client";
-import TypingContainer from "@/presentation/components/typing/typing-container";
+import { TypingContainer } from "@/presentation/components/typing/typing-container";
 import Keyboard from "./keyboard";
 import { PracticeModeProvider } from "./pratice-mode";
 

@@ -1,5 +1,5 @@
+import { DifficultyLevel, TypingMode } from "@/domain/enums/typing-mode";
 import { LanguageCode } from "@/enums/site-config";
-import { TypingMode, DifficultyLevel } from "../entities/typing";
 
 export interface StartSessionCommand {
   userId?: string;
@@ -32,7 +32,7 @@ export interface CompleteSessionCommand {
 
 export interface PauseResumeSessionCommand {
   sessionId: string;
-  action: 'pause' | 'resume';
+  action: "pause" | "resume";
   timestamp: number;
 }
 

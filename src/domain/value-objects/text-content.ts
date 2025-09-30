@@ -3,7 +3,7 @@
  */
 
 import { DifficultyLevel, TextType } from '../enums/typing-mode';
-import { LanguageCode } from '../enums/languages';
+import { LanguageCode } from '@/domain/enums/languages';
 
 export interface TextContentData {
   readonly content: string;
@@ -52,8 +52,8 @@ export class TextContent {
   }
 
   static fromString(
-    content: string, 
-    language: LanguageCode, 
+    content: string,
+    language: LanguageCode,
     textType: TextType = TextType.SENTENCES,
     difficulty: DifficultyLevel = DifficultyLevel.MEDIUM
   ): TextContent {
@@ -97,16 +97,16 @@ export class TextContent {
   }
 
   isValid(): boolean {
-    return this.content.trim().length > 0 && 
-           this.wordCount > 0 && 
-           this.characterCount > 0;
+    return this.content.trim().length > 0 &&
+      this.wordCount > 0 &&
+      this.characterCount > 0;
   }
 
   equals(other: TextContent): boolean {
     return this.content === other.content &&
-           this.language === other.language &&
-           this.textType === other.textType &&
-           this.difficulty === other.difficulty;
+      this.language === other.language &&
+      this.textType === other.textType &&
+      this.difficulty === other.difficulty;
   }
 }
 
@@ -192,10 +192,10 @@ export class DifficultyConfig {
 
   equals(other: DifficultyConfig): boolean {
     return this.level === other.level &&
-           this.minWPM === other.minWPM &&
-           this.maxWPM === other.maxWPM &&
-           this.expectedAccuracy === other.expectedAccuracy &&
-           this.allowedMistakePercent === other.allowedMistakePercent &&
-           JSON.stringify(this.characterSet.sort()) === JSON.stringify(other.characterSet.sort());
+      this.minWPM === other.minWPM &&
+      this.maxWPM === other.maxWPM &&
+      this.expectedAccuracy === other.expectedAccuracy &&
+      this.allowedMistakePercent === other.allowedMistakePercent &&
+      JSON.stringify(this.characterSet.sort()) === JSON.stringify(other.characterSet.sort());
   }
 }

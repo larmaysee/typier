@@ -1,6 +1,6 @@
-import { TypingSession, SessionStatus, TypingResults } from "../../domain/entities/typing";
-import { ISessionRepository, ITypingRepository, IUserRepository } from "../../domain/interfaces/repositories";
-import { CompleteSessionCommandDTO } from "../dto/typing-session.dto";
+import { TypingSession, SessionStatus, TypingResults, TypingTest } from "@/domain/entities/typing";
+import { ISessionRepository, ITypingRepository, IUserRepository } from "@/domain/interfaces/repositories";
+import { CompleteSessionCommandDTO } from "@/application/dto/typing-session.dto";
 
 export class CompleteTypingSessionUseCase {
   constructor(
@@ -10,7 +10,7 @@ export class CompleteTypingSessionUseCase {
   ) { }
 
   async execute(command: CompleteSessionCommandDTO): Promise<TypingSession> {
-    // 1. Get the session
+    // 1. Validate session exists
     const session = await this.sessionRepository.findById(command.sessionId);
     if (!session) {
       throw new Error(`Session not found: ${command.sessionId}`);
@@ -21,44 +21,52 @@ export class CompleteTypingSessionUseCase {
       return session; // Already completed
     }
 
-    if (session.status === SessionStatus.CANCELLED) {
+    if (session.status === SessionStatus.ABANDONED) {
       throw new Error('Cannot complete a cancelled session');
     }
 
-    // 3. Update final input and completion time
-    session.currentInput = command.finalInput;
+    // 3. Calculate final results
     const completionTime = command.completionTime;
     const startTime = session.startTime || completionTime;
     const totalDuration = (completionTime - startTime) / 1000; // in seconds
 
-    // 4. Calculate final results
     const finalResults = this.calculateFinalResults(
       session.test.textContent,
       command.finalInput,
       session.mistakes,
       totalDuration,
-      session.liveStats.elapsedTime
+      session.liveStats.timeElapsed
     );
 
-    // 5. Update session with final results
-    session.test.results = finalResults;
-    session.status = SessionStatus.COMPLETED;
-    session.updated_at = new Date();
+    // 4. Create completed test with results
+    const completedTest = TypingTest.create({
+      id: session.test.id,
+      userId: session.test.userId,
+      mode: session.test.mode,
+      difficulty: session.test.difficulty,
+      language: session.test.language,
+      keyboardLayout: session.test.keyboardLayout,
+      textContent: session.test.textContent,
+      results: finalResults,
+      timestamp: session.test.timestamp,
+      competitionId: session.test.competitionId
+    });
 
-    // 6. Save typing test results if not in practice mode
+    // 5. Create completed session using complete() method
+    const completedSession = session.complete().updateInput(command.finalInput, session.cursorPosition);
+
+    // 6. Save completed session
+    await this.sessionRepository.save(completedSession);
+
+    // 7. Save typing test results if not in practice mode
     if (session.test.mode !== 'practice') {
-      await this.typingRepository.save(session.test);
+      await this.typingRepository.save(completedTest);
 
-      // 7. Update user statistics
-      if (session.test.userId !== 'guest') {
-        await this.updateUserStatistics(session);
-      }
+      // 8. Update user statistics
+      await this.updateUserStatistics(session.test.userId, finalResults);
     }
 
-    // 8. Save session
-    await this.sessionRepository.save(session);
-
-    return session;
+    return completedSession;
   }
 
   private calculateFinalResults(
@@ -96,20 +104,18 @@ export class CompleteTypingSessionUseCase {
     // Peak WPM calculation (highest WPM achieved during any 10-second window)
     const peakWPM = this.calculatePeakWPM(mistakes, correctChars, totalDurationSeconds);
 
-    return {
+    return TypingResults.create({
       wpm: Math.round(netWPM),
       accuracy: Math.round(accuracy * 100) / 100,
       correctWords,
       incorrectWords,
-      totalWords,
-      correctChars,
-      incorrectChars,
-      totalChars,
       duration: Math.round(totalDurationSeconds),
-      mistakes: mistakes,
+      charactersTyped: typedChars,
+      correctChars,
+      errors: mistakes.length,
       consistency: Math.round(consistency * 100) / 100,
-      peak_wpm: Math.round(peakWPM)
-    };
+      fingerUtilization: {}
+    });
   }
 
   private countCorrectChars(targetText: string, typedText: string): number {
@@ -175,47 +181,35 @@ export class CompleteTypingSessionUseCase {
     return baseWPM * peakMultiplier;
   }
 
-  private async updateUserStatistics(session: TypingSession): Promise<void> {
-    const userId = session.test.userId;
-    const results = session.test.results;
-
+  private async updateUserStatistics(userId: string, results: TypingResults): Promise<void> {
     // Get current user statistics
     const currentStats = await this.userRepository.getStatistics(userId);
 
     if (!currentStats) {
-      // Create initial statistics
+      // Create initial statistics - simplified version for mock
       await this.userRepository.updateStatistics(userId, {
-        userId,
         totalTests: 1,
-        totalTimeTyped: results.duration,
-        bestWpm: results.wpm,
-        averageWpm: results.wpm,
-        bestAccuracy: results.accuracy,
+        averageWPM: results.wpm,
+        bestWPM: results.wpm,
         averageAccuracy: results.accuracy,
-        totalWordsTyped: results.correctWords,
+        bestAccuracy: results.accuracy,
+        totalTimeTyped: results.duration,
         totalCharactersTyped: results.correctChars,
-        improvementRate: 0,
-        lastTestDate: new Date(),
-        createdAt: new Date(),
-        updatedAt: new Date()
       });
     } else {
       // Update existing statistics
       const newTestCount = currentStats.totalTests + 1;
-      const newAvgWpm = ((currentStats.averageWpm * currentStats.totalTests) + results.wpm) / newTestCount;
+      const newAvgWpm = ((currentStats.averageWPM * currentStats.totalTests) + results.wpm) / newTestCount;
       const newAvgAccuracy = ((currentStats.averageAccuracy * currentStats.totalTests) + results.accuracy) / newTestCount;
 
       await this.userRepository.updateStatistics(userId, {
         totalTests: newTestCount,
-        totalTimeTyped: currentStats.totalTimeTyped + results.duration,
-        bestWpm: Math.max(currentStats.bestWpm, results.wpm),
-        averageWpm: newAvgWpm,
-        bestAccuracy: Math.max(currentStats.bestAccuracy, results.accuracy),
+        averageWPM: newAvgWpm,
+        bestWPM: Math.max(currentStats.bestWPM, results.wpm),
         averageAccuracy: newAvgAccuracy,
-        totalWordsTyped: currentStats.totalWordsTyped + results.correctWords,
+        bestAccuracy: Math.max(currentStats.bestAccuracy, results.accuracy),
+        totalTimeTyped: currentStats.totalTimeTyped + results.duration,
         totalCharactersTyped: currentStats.totalCharactersTyped + results.correctChars,
-        lastTestDate: new Date(),
-        updatedAt: new Date()
       });
     }
   }

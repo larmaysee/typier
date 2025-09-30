@@ -1,5 +1,6 @@
-import { LanguageCode } from "../enums/language-code";
-import { DifficultyLevel } from "../enums/difficulty-level";
+import { LanguageCode } from "@/enums/site-config";
+import { DifficultyLevel } from "../enums";
+
 
 export interface TypingContent {
   id: string;
@@ -17,7 +18,7 @@ export interface TypingContent {
 
 export enum ContentType {
   SENTENCES = "sentences",
-  PARAGRAPHS = "paragraphs", 
+  PARAGRAPHS = "paragraphs",
   CHARACTERS = "characters",
   NUMBERS = "numbers",
   SYMBOLS = "symbols",

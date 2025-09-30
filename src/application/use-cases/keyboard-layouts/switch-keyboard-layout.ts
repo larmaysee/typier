@@ -1,6 +1,6 @@
-import { IKeyboardLayoutRepository, ISessionRepository } from "../../domain/interfaces/repositories";
-import { IEventBus } from "../../domain/interfaces/services";
-import { SwitchLayoutCommandDTO } from "../dto/typing-session.dto";
+import { IKeyboardLayoutRepository, ISessionRepository } from "@/domain/interfaces/repositories";
+import { IEventBus } from "@/domain/interfaces/services";
+import { SwitchLayoutCommandDTO } from "@/application/dto/typing-session.dto";
 
 // Domain event for layout switching
 export interface LayoutSwitchedEvent {
@@ -29,7 +29,7 @@ export class SwitchKeyboardLayoutUseCase {
     const { sessionId, layoutId, userId, previousLayoutId } = command;
 
     // 1. Validate that the new layout exists
-    const newLayout = await this.layoutRepository.getLayoutById(layoutId);
+    const newLayout = await this.layoutRepository.findById(layoutId);
     if (!newLayout) {
       throw new Error(`Keyboard layout not found: ${layoutId}`);
     }
@@ -43,12 +43,11 @@ export class SwitchKeyboardLayoutUseCase {
           throw new Error('Cannot change layout for completed session');
         }
 
-        // Update the session's active layout
-        session.activeLayout = newLayout;
-        session.test.keyboardLayoutId = layoutId;
-        session.updated_at = new Date();
+        // Update the session's active layout using the entity method
+        const updatedSession = session.switchLayout(newLayout);
 
-        await this.sessionRepository.save(session);
+        // Save the updated session
+        await this.sessionRepository.update(updatedSession);
       }
     }
 
@@ -61,20 +60,26 @@ export class SwitchKeyboardLayoutUseCase {
       );
     }
 
-    // 4. Publish layout changed event
-    const event: LayoutSwitchedEvent = {
+    // Publish layout switched event
+    const event = {
       id: this.generateEventId(),
       type: 'LayoutSwitched',
-      aggregateId: sessionId || userId || 'anonymous',
+      aggregateId: userId || 'anonymous',
       data: {
-        sessionId,
         userId,
-        previousLayoutId,
         newLayoutId: layoutId,
-        timestamp: Date.now()
+        previousLayoutId,
+        language: newLayout.language,
+        sessionId
       },
-      timestamp: new Date(),
-      userId
+      timestamp: Date.now(),
+      version: 1,
+      userId,
+      improvementAreas: [],
+      consistencyScore: 0,
+      speedProgression: [],
+      accuracyTrend: [],
+      fingerEfficiency: {}
     };
 
     await this.eventBus.publish(event);
@@ -89,7 +94,7 @@ export class SwitchKeyboardLayoutUseCase {
     requiresConfirmation: boolean;
   }> {
     const session = await this.sessionRepository.findById(sessionId);
-    const newLayout = await this.layoutRepository.getLayoutById(newLayoutId);
+    const newLayout = await this.layoutRepository.findById(newLayoutId);
 
     const warnings: string[] = [];
     let canSwitch = true;
@@ -153,7 +158,7 @@ export class SwitchKeyboardLayoutUseCase {
   private async isAllowedInCompetition(layoutId: string): Promise<boolean> {
     // In a real implementation, this would check against competition rules
     // For now, allow standard layouts only
-    const layout = await this.layoutRepository.getLayoutById(layoutId);
+    const layout = await this.layoutRepository.findById(layoutId);
     return layout ? !layout.isCustom : false;
   }
 

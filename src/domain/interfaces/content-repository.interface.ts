@@ -1,6 +1,6 @@
 import { TypingContent, ContentType } from "../entities/typing-content";
-import { LanguageCode } from "../enums/language-code";
-import { DifficultyLevel } from "../enums/difficulty-level";
+import { DifficultyLevel, LanguageCode } from "../enums";
+
 
 export interface IContentRepository {
   create(content: Omit<TypingContent, 'id' | 'createdAt' | 'updatedAt'>): Promise<TypingContent>;
@@ -9,8 +9,8 @@ export interface IContentRepository {
   findByType(contentType: ContentType): Promise<TypingContent[]>;
   findByTags(tags: string[]): Promise<TypingContent[]>;
   getRandomContent(
-    language: LanguageCode, 
-    difficulty: DifficultyLevel, 
+    language: LanguageCode,
+    difficulty: DifficultyLevel,
     contentType?: ContentType
   ): Promise<TypingContent | null>;
   update(id: string, data: Partial<TypingContent>): Promise<TypingContent>;

@@ -1,12 +1,14 @@
 import { ILayoutProvider, ValidationResult } from "@/domain/interfaces";
-import { KeyboardLayout, KeyMapping } from "@/domain/entities";
-import { LanguageCode, LayoutType, LayoutVariant } from "@/domain/enums";
+import { KeyboardLayout } from "@/domain/entities";
+import { LanguageCode, LayoutType, LayoutVariant, InputMethod } from "@/domain/enums";
+import { DifficultyLevel } from "@/domain/enums/typing-mode";
+import { createKeyMapping, createSystemLayoutMetadata } from "./layout-helpers";
 
 /**
  * English keyboard layouts provider (QWERTY, Dvorak, Colemak)
  */
 export class EnglishLayoutsService implements ILayoutProvider {
-  
+
   async getAvailableLayouts(): Promise<KeyboardLayout[]> {
     return [
       this.createQwertyUSLayout(),
@@ -32,7 +34,7 @@ export class EnglishLayoutsService implements ILayoutProvider {
     // Check for English-specific requirements
     const requiredKeys = ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'];
     const mappedKeys = new Set(layout.keyMappings.map(m => m.key.toLowerCase()));
-    
+
     for (const key of requiredKeys) {
       if (!mappedKeys.has(key)) {
         warnings.push(`Missing common key: ${key}`);
@@ -41,7 +43,7 @@ export class EnglishLayoutsService implements ILayoutProvider {
 
     // Validate English character set
     const allChars = layout.keyMappings.flatMap(m => [
-      m.normal, m.shift || '', m.alt || '', m.ctrl || ''
+      m.character, m.shiftCharacter || '', m.altCharacter || '', m.ctrlCharacter || ''
     ]).join('');
 
     const englishPattern = /^[a-zA-Z0-9\s\.,;:!?\-'"()\[\]{}\/\\@#$%^&*+=_~`<>|]*$/;
@@ -65,272 +67,280 @@ export class EnglishLayoutsService implements ILayoutProvider {
   }
 
   private createQwertyUSLayout(): KeyboardLayout {
-    const keyMappings: KeyMapping[] = [
+    const keyMappings = [
       // Number row
-      { key: '1', normal: '1', shift: '!' },
-      { key: '2', normal: '2', shift: '@' },
-      { key: '3', normal: '3', shift: '#' },
-      { key: '4', normal: '4', shift: '$' },
-      { key: '5', normal: '5', shift: '%' },
-      { key: '6', normal: '6', shift: '^' },
-      { key: '7', normal: '7', shift: '&' },
-      { key: '8', normal: '8', shift: '*' },
-      { key: '9', normal: '9', shift: '(' },
-      { key: '0', normal: '0', shift: ')' },
-      { key: '-', normal: '-', shift: '_' },
-      { key: '=', normal: '=', shift: '+' },
+      createKeyMapping('1', '1', '!'),
+      createKeyMapping('2', '2', '@'),
+      createKeyMapping('3', '3', '#'),
+      createKeyMapping('4', '4', '$'),
+      createKeyMapping('5', '5', '%'),
+      createKeyMapping('6', '6', '^'),
+      createKeyMapping('7', '7', '&'),
+      createKeyMapping('8', '8', '*'),
+      createKeyMapping('9', '9', '('),
+      createKeyMapping('0', '0', ')'),
+      createKeyMapping('-', '-', '_'),
+      createKeyMapping('=', '=', '+'),
 
       // Top row
-      { key: 'q', normal: 'q', shift: 'Q' },
-      { key: 'w', normal: 'w', shift: 'W' },
-      { key: 'e', normal: 'e', shift: 'E' },
-      { key: 'r', normal: 'r', shift: 'R' },
-      { key: 't', normal: 't', shift: 'T' },
-      { key: 'y', normal: 'y', shift: 'Y' },
-      { key: 'u', normal: 'u', shift: 'U' },
-      { key: 'i', normal: 'i', shift: 'I' },
-      { key: 'o', normal: 'o', shift: 'O' },
-      { key: 'p', normal: 'p', shift: 'P' },
-      { key: '[', normal: '[', shift: '{' },
-      { key: ']', normal: ']', shift: '}' },
-      { key: '\\', normal: '\\', shift: '|' },
+      createKeyMapping('q', 'q', 'Q'),
+      createKeyMapping('w', 'w', 'W'),
+      createKeyMapping('e', 'e', 'E'),
+      createKeyMapping('r', 'r', 'R'),
+      createKeyMapping('t', 't', 'T'),
+      createKeyMapping('y', 'y', 'Y'),
+      createKeyMapping('u', 'u', 'U'),
+      createKeyMapping('i', 'i', 'I'),
+      createKeyMapping('o', 'o', 'O'),
+      createKeyMapping('p', 'p', 'P'),
+      createKeyMapping('[', '[', '{'),
+      createKeyMapping(']', ']', '}'),
+      createKeyMapping('\\', '\\', '|'),
 
       // Home row
-      { key: 'a', normal: 'a', shift: 'A' },
-      { key: 's', normal: 's', shift: 'S' },
-      { key: 'd', normal: 'd', shift: 'D' },
-      { key: 'f', normal: 'f', shift: 'F' },
-      { key: 'g', normal: 'g', shift: 'G' },
-      { key: 'h', normal: 'h', shift: 'H' },
-      { key: 'j', normal: 'j', shift: 'J' },
-      { key: 'k', normal: 'k', shift: 'K' },
-      { key: 'l', normal: 'l', shift: 'L' },
-      { key: ';', normal: ';', shift: ':' },
-      { key: "'", normal: "'", shift: '"' },
+      createKeyMapping('a', 'a', 'A'),
+      createKeyMapping('s', 's', 'S'),
+      createKeyMapping('d', 'd', 'D'),
+      createKeyMapping('f', 'f', 'F'),
+      createKeyMapping('g', 'g', 'G'),
+      createKeyMapping('h', 'h', 'H'),
+      createKeyMapping('j', 'j', 'J'),
+      createKeyMapping('k', 'k', 'K'),
+      createKeyMapping('l', 'l', 'L'),
+      createKeyMapping(';', ';', ':'),
+      createKeyMapping("'", "'", '"'),
 
       // Bottom row
-      { key: 'z', normal: 'z', shift: 'Z' },
-      { key: 'x', normal: 'x', shift: 'X' },
-      { key: 'c', normal: 'c', shift: 'C' },
-      { key: 'v', normal: 'v', shift: 'V' },
-      { key: 'b', normal: 'b', shift: 'B' },
-      { key: 'n', normal: 'n', shift: 'N' },
-      { key: 'm', normal: 'm', shift: 'M' },
-      { key: ',', normal: ',', shift: '<' },
-      { key: '.', normal: '.', shift: '>' },
-      { key: '/', normal: '/', shift: '?' },
+      createKeyMapping('z', 'z', 'Z'),
+      createKeyMapping('x', 'x', 'X'),
+      createKeyMapping('c', 'c', 'C'),
+      createKeyMapping('v', 'v', 'V'),
+      createKeyMapping('b', 'b', 'B'),
+      createKeyMapping('n', 'n', 'N'),
+      createKeyMapping('m', 'm', 'M'),
+      createKeyMapping(',', ',', '<'),
+      createKeyMapping('.', '.', '>'),
+      createKeyMapping('/', '/', '?'),
 
       // Space
-      { key: ' ', normal: ' ', shift: ' ' }
+      createKeyMapping(' ', ' ', ' '),
     ];
 
-    return {
+    return KeyboardLayout.create({
       id: 'en-qwerty-us',
       name: 'QWERTY US',
       displayName: 'English (QWERTY US)',
       language: LanguageCode.EN,
-      layoutType: LayoutType.STANDARD,
-      variant: LayoutVariant.QWERTY_US,
+      layoutType: LayoutType.QWERTY,
+      variant: LayoutVariant.US,
+      inputMethod: InputMethod.DIRECT,
       keyMappings,
-      metadata: {
-        description: 'Standard US QWERTY keyboard layout',
-        author: 'System',
-        version: '1.0.0',
-        createdDate: '2024-01-01',
-        lastModified: '2024-01-01',
-        isDefault: true,
-        inputMethods: ['keyboard']
-      },
-      isCustom: false
-    };
+      metadata: createSystemLayoutMetadata(
+        'Standard US QWERTY keyboard layout',
+        'System',
+        DifficultyLevel.EASY
+      ),
+      isCustom: false,
+      isPublic: true,
+      createdBy: 'system',
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    });
   }
 
   private createQwertyUKLayout(): KeyboardLayout {
-    // UK layout has some differences (£, @, ", etc.)
-    const layout = this.createQwertyUSLayout();
-    layout.id = 'en-qwerty-uk';
-    layout.name = 'QWERTY UK';
-    layout.displayName = 'English (QWERTY UK)';
-    layout.variant = LayoutVariant.QWERTY_UK;
-    layout.metadata.description = 'UK QWERTY keyboard layout';
-    layout.metadata.isDefault = false;
+    const usLayout = this.createQwertyUSLayout();
 
-    // Modify specific keys for UK layout
-    const keyMappings = [...layout.keyMappings];
-    const modifyKey = (key: string, normal: string, shift: string) => {
-      const mapping = keyMappings.find(m => m.key === key);
-      if (mapping) {
-        mapping.normal = normal;
-        mapping.shift = shift;
-      }
-    };
+    // UK-specific key differences
+    const ukMappings = usLayout.keyMappings.map(m => {
+      if (m.key === '2') return createKeyMapping('2', '2', '"');
+      if (m.key === '3') return createKeyMapping('3', '3', '£');
+      if (m.key === "'") return createKeyMapping("'", "'", '@');
+      return m;
+    });
 
-    modifyKey('2', '2', '"');
-    modifyKey('3', '3', '£');
-    modifyKey("'", "'", '@');
-    
-    layout.keyMappings = keyMappings;
-    return layout;
+    return KeyboardLayout.create({
+      id: 'en-qwerty-uk',
+      name: 'QWERTY UK',
+      displayName: 'English (QWERTY UK)',
+      language: LanguageCode.EN,
+      layoutType: LayoutType.QWERTY,
+      variant: LayoutVariant.UK,
+      inputMethod: InputMethod.DIRECT,
+      keyMappings: ukMappings,
+      metadata: createSystemLayoutMetadata(
+        'UK QWERTY keyboard layout',
+        'System',
+        DifficultyLevel.EASY
+      ),
+      isCustom: false,
+      isPublic: true,
+      createdBy: 'system',
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    });
   }
 
   private createDvorakLayout(): KeyboardLayout {
-    const keyMappings: KeyMapping[] = [
+    const keyMappings = [
       // Number row (same as QWERTY)
-      { key: '1', normal: '1', shift: '!' },
-      { key: '2', normal: '2', shift: '@' },
-      { key: '3', normal: '3', shift: '#' },
-      { key: '4', normal: '4', shift: '$' },
-      { key: '5', normal: '5', shift: '%' },
-      { key: '6', normal: '6', shift: '^' },
-      { key: '7', normal: '7', shift: '&' },
-      { key: '8', normal: '8', shift: '*' },
-      { key: '9', normal: '9', shift: '(' },
-      { key: '0', normal: '0', shift: ')' },
-      { key: '[', normal: '[', shift: '{' },
-      { key: ']', normal: ']', shift: '}' },
+      createKeyMapping('1', '1', '!'),
+      createKeyMapping('2', '2', '@'),
+      createKeyMapping('3', '3', '#'),
+      createKeyMapping('4', '4', '$'),
+      createKeyMapping('5', '5', '%'),
+      createKeyMapping('6', '6', '^'),
+      createKeyMapping('7', '7', '&'),
+      createKeyMapping('8', '8', '*'),
+      createKeyMapping('9', '9', '('),
+      createKeyMapping('0', '0', ')'),
+      createKeyMapping('[', '[', '{'),
+      createKeyMapping(']', ']', '}'),
 
-      // Top row (Dvorak layout)
-      { key: "'", normal: "'", shift: '"' },
-      { key: ',', normal: ',', shift: '<' },
-      { key: '.', normal: '.', shift: '>' },
-      { key: 'p', normal: 'p', shift: 'P' },
-      { key: 'y', normal: 'y', shift: 'Y' },
-      { key: 'f', normal: 'f', shift: 'F' },
-      { key: 'g', normal: 'g', shift: 'G' },
-      { key: 'c', normal: 'c', shift: 'C' },
-      { key: 'r', normal: 'r', shift: 'R' },
-      { key: 'l', normal: 'l', shift: 'L' },
-      { key: '/', normal: '/', shift: '?' },
-      { key: '=', normal: '=', shift: '+' },
+      // Top row - Dvorak layout
+      createKeyMapping("'", "'", '"'),
+      createKeyMapping(',', ',', '<'),
+      createKeyMapping('.', '.', '>'),
+      createKeyMapping('p', 'p', 'P'),
+      createKeyMapping('y', 'y', 'Y'),
+      createKeyMapping('f', 'f', 'F'),
+      createKeyMapping('g', 'g', 'G'),
+      createKeyMapping('c', 'c', 'C'),
+      createKeyMapping('r', 'r', 'R'),
+      createKeyMapping('l', 'l', 'L'),
+      createKeyMapping('/', '/', '?'),
+      createKeyMapping('=', '=', '+'),
 
       // Home row
-      { key: 'a', normal: 'a', shift: 'A' },
-      { key: 'o', normal: 'o', shift: 'O' },
-      { key: 'e', normal: 'e', shift: 'E' },
-      { key: 'u', normal: 'u', shift: 'U' },
-      { key: 'i', normal: 'i', shift: 'I' },
-      { key: 'd', normal: 'd', shift: 'D' },
-      { key: 'h', normal: 'h', shift: 'H' },
-      { key: 't', normal: 't', shift: 'T' },
-      { key: 'n', normal: 'n', shift: 'N' },
-      { key: 's', normal: 's', shift: 'S' },
-      { key: '-', normal: '-', shift: '_' },
+      createKeyMapping('a', 'a', 'A'),
+      createKeyMapping('o', 'o', 'O'),
+      createKeyMapping('e', 'e', 'E'),
+      createKeyMapping('u', 'u', 'U'),
+      createKeyMapping('i', 'i', 'I'),
+      createKeyMapping('d', 'd', 'D'),
+      createKeyMapping('h', 'h', 'H'),
+      createKeyMapping('t', 't', 'T'),
+      createKeyMapping('n', 'n', 'N'),
+      createKeyMapping('s', 's', 'S'),
+      createKeyMapping('-', '-', '_'),
 
       // Bottom row
-      { key: ';', normal: ';', shift: ':' },
-      { key: 'q', normal: 'q', shift: 'Q' },
-      { key: 'j', normal: 'j', shift: 'J' },
-      { key: 'k', normal: 'k', shift: 'K' },
-      { key: 'x', normal: 'x', shift: 'X' },
-      { key: 'b', normal: 'b', shift: 'B' },
-      { key: 'm', normal: 'm', shift: 'M' },
-      { key: 'w', normal: 'w', shift: 'W' },
-      { key: 'v', normal: 'v', shift: 'V' },
-      { key: 'z', normal: 'z', shift: 'Z' },
+      createKeyMapping(';', ';', ':'),
+      createKeyMapping('q', 'q', 'Q'),
+      createKeyMapping('j', 'j', 'J'),
+      createKeyMapping('k', 'k', 'K'),
+      createKeyMapping('x', 'x', 'X'),
+      createKeyMapping('b', 'b', 'B'),
+      createKeyMapping('m', 'm', 'M'),
+      createKeyMapping('w', 'w', 'W'),
+      createKeyMapping('v', 'v', 'V'),
+      createKeyMapping('z', 'z', 'Z'),
 
       // Space
-      { key: ' ', normal: ' ', shift: ' ' }
+      createKeyMapping(' ', ' ', ' '),
     ];
 
-    return {
+    return KeyboardLayout.create({
       id: 'en-dvorak',
       name: 'Dvorak',
       displayName: 'English (Dvorak)',
       language: LanguageCode.EN,
-      layoutType: LayoutType.STANDARD,
-      variant: LayoutVariant.DVORAK,
+      layoutType: LayoutType.DVORAK,
+      variant: LayoutVariant.INTERNATIONAL,
+      inputMethod: InputMethod.DIRECT,
       keyMappings,
-      metadata: {
-        description: 'Dvorak Simplified Keyboard layout optimized for efficiency',
-        author: 'August Dvorak',
-        version: '1.0.0',
-        createdDate: '2024-01-01',
-        lastModified: '2024-01-01',
-        isDefault: false,
-        inputMethods: ['keyboard']
-      },
-      isCustom: false
-    };
+      metadata: createSystemLayoutMetadata(
+        'Dvorak keyboard layout - optimized for English typing efficiency',
+        'System',
+        DifficultyLevel.MEDIUM
+      ),
+      isCustom: false,
+      isPublic: true,
+      createdBy: 'system',
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    });
   }
 
   private createColemakLayout(): KeyboardLayout {
-    const keyMappings: KeyMapping[] = [
+    const keyMappings = [
       // Number row (same as QWERTY)
-      { key: '1', normal: '1', shift: '!' },
-      { key: '2', normal: '2', shift: '@' },
-      { key: '3', normal: '3', shift: '#' },
-      { key: '4', normal: '4', shift: '$' },
-      { key: '5', normal: '5', shift: '%' },
-      { key: '6', normal: '6', shift: '^' },
-      { key: '7', normal: '7', shift: '&' },
-      { key: '8', normal: '8', shift: '*' },
-      { key: '9', normal: '9', shift: '(' },
-      { key: '0', normal: '0', shift: ')' },
-      { key: '-', normal: '-', shift: '_' },
-      { key: '=', normal: '=', shift: '+' },
+      createKeyMapping('1', '1', '!'),
+      createKeyMapping('2', '2', '@'),
+      createKeyMapping('3', '3', '#'),
+      createKeyMapping('4', '4', '$'),
+      createKeyMapping('5', '5', '%'),
+      createKeyMapping('6', '6', '^'),
+      createKeyMapping('7', '7', '&'),
+      createKeyMapping('8', '8', '*'),
+      createKeyMapping('9', '9', '('),
+      createKeyMapping('0', '0', ')'),
+      createKeyMapping('-', '-', '_'),
+      createKeyMapping('=', '=', '+'),
 
-      // Top row (Colemak layout)
-      { key: 'q', normal: 'q', shift: 'Q' },
-      { key: 'w', normal: 'w', shift: 'W' },
-      { key: 'f', normal: 'f', shift: 'F' },
-      { key: 'p', normal: 'p', shift: 'P' },
-      { key: 'g', normal: 'g', shift: 'G' },
-      { key: 'j', normal: 'j', shift: 'J' },
-      { key: 'l', normal: 'l', shift: 'L' },
-      { key: 'u', normal: 'u', shift: 'U' },
-      { key: 'y', normal: 'y', shift: 'Y' },
-      { key: ';', normal: ';', shift: ':' },
-      { key: '[', normal: '[', shift: '{' },
-      { key: ']', normal: ']', shift: '}' },
-      { key: '\\', normal: '\\', shift: '|' },
+      // Top row - Colemak layout
+      createKeyMapping('q', 'q', 'Q'),
+      createKeyMapping('w', 'w', 'W'),
+      createKeyMapping('f', 'f', 'F'),
+      createKeyMapping('p', 'p', 'P'),
+      createKeyMapping('g', 'g', 'G'),
+      createKeyMapping('j', 'j', 'J'),
+      createKeyMapping('l', 'l', 'L'),
+      createKeyMapping('u', 'u', 'U'),
+      createKeyMapping('y', 'y', 'Y'),
+      createKeyMapping(';', ';', ':'),
+      createKeyMapping('[', '[', '{'),
+      createKeyMapping(']', ']', '}'),
+      createKeyMapping('\\', '\\', '|'),
 
       // Home row
-      { key: 'a', normal: 'a', shift: 'A' },
-      { key: 'r', normal: 'r', shift: 'R' },
-      { key: 's', normal: 's', shift: 'S' },
-      { key: 't', normal: 't', shift: 'T' },
-      { key: 'd', normal: 'd', shift: 'D' },
-      { key: 'h', normal: 'h', shift: 'H' },
-      { key: 'n', normal: 'n', shift: 'N' },
-      { key: 'e', normal: 'e', shift: 'E' },
-      { key: 'i', normal: 'i', shift: 'I' },
-      { key: 'o', normal: 'o', shift: 'O' },
-      { key: "'", normal: "'", shift: '"' },
+      createKeyMapping('a', 'a', 'A'),
+      createKeyMapping('r', 'r', 'R'),
+      createKeyMapping('s', 's', 'S'),
+      createKeyMapping('t', 't', 'T'),
+      createKeyMapping('d', 'd', 'D'),
+      createKeyMapping('h', 'h', 'H'),
+      createKeyMapping('n', 'n', 'N'),
+      createKeyMapping('e', 'e', 'E'),
+      createKeyMapping('i', 'i', 'I'),
+      createKeyMapping('o', 'o', 'O'),
+      createKeyMapping("'", "'", '"'),
 
       // Bottom row
-      { key: 'z', normal: 'z', shift: 'Z' },
-      { key: 'x', normal: 'x', shift: 'X' },
-      { key: 'c', normal: 'c', shift: 'C' },
-      { key: 'v', normal: 'v', shift: 'V' },
-      { key: 'b', normal: 'b', shift: 'B' },
-      { key: 'k', normal: 'k', shift: 'K' },
-      { key: 'm', normal: 'm', shift: 'M' },
-      { key: ',', normal: ',', shift: '<' },
-      { key: '.', normal: '.', shift: '>' },
-      { key: '/', normal: '/', shift: '?' },
+      createKeyMapping('z', 'z', 'Z'),
+      createKeyMapping('x', 'x', 'X'),
+      createKeyMapping('c', 'c', 'C'),
+      createKeyMapping('v', 'v', 'V'),
+      createKeyMapping('b', 'b', 'B'),
+      createKeyMapping('k', 'k', 'K'),
+      createKeyMapping('m', 'm', 'M'),
+      createKeyMapping(',', ',', '<'),
+      createKeyMapping('.', '.', '>'),
+      createKeyMapping('/', '/', '?'),
 
       // Space
-      { key: ' ', normal: ' ', shift: ' ' }
+      createKeyMapping(' ', ' ', ' '),
     ];
 
-    return {
+    return KeyboardLayout.create({
       id: 'en-colemak',
       name: 'Colemak',
       displayName: 'English (Colemak)',
       language: LanguageCode.EN,
-      layoutType: LayoutType.STANDARD,
-      variant: LayoutVariant.COLEMAK,
+      layoutType: LayoutType.COLEMAK,
+      variant: LayoutVariant.INTERNATIONAL,
+      inputMethod: InputMethod.DIRECT,
       keyMappings,
-      metadata: {
-        description: 'Colemak keyboard layout designed for efficient and comfortable touch typing',
-        author: 'Shai Coleman',
-        version: '1.0.0',
-        createdDate: '2024-01-01',
-        lastModified: '2024-01-01',
-        isDefault: false,
-        inputMethods: ['keyboard']
-      },
-      isCustom: false
-    };
+      metadata: createSystemLayoutMetadata(
+        'Colemak keyboard layout - designed for efficient and comfortable typing',
+        'System',
+        DifficultyLevel.MEDIUM
+      ),
+      isCustom: false,
+      isPublic: true,
+      createdBy: 'system',
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    });
   }
 }

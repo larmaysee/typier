@@ -113,9 +113,9 @@ export class ImprovementAnalyzerService implements IImprovementAnalyzerService {
     // Note: userId parameter used for future data fetching implementation
     // In a real implementation, this would fetch historical data for the user
     // For now, return a mock progress info
-    
+
     const currentLevel = this.determineSkillLevel(0, 0); // Would use actual metrics
-    
+
     return {
       currentLevel,
       trend: 'improving', // Would be calculated from historical data
@@ -144,7 +144,7 @@ export class ImprovementAnalyzerService implements IImprovementAnalyzerService {
       const minLength = Math.min(targetText.length, typedText.length);
       for (let i = 0; i < minLength; i++) {
         const char = targetText[i];
-        
+
         if (!characterStats.has(char)) {
           characterStats.set(char, { correct: 0, total: 0, totalTime: 0 });
         }
@@ -161,7 +161,7 @@ export class ImprovementAnalyzerService implements IImprovementAnalyzerService {
       // Also track mistakes explicitly
       for (const mistake of session.mistakes) {
         const char = mistake.expected;
-        
+
         if (!characterStats.has(char)) {
           characterStats.set(char, { correct: 0, total: 0, totalTime: 0 });
         }
@@ -174,12 +174,12 @@ export class ImprovementAnalyzerService implements IImprovementAnalyzerService {
 
     // Convert to weak points (characters with low accuracy)
     const weakPoints: Array<{ character: string; accuracy: number; avgSpeed: number }> = [];
-    
+
     for (const [character, stats] of characterStats) {
       if (stats.total >= 3) { // Only consider characters typed at least 3 times
         const accuracy = (stats.correct / stats.total) * 100;
         const avgSpeed = stats.totalTime > 0 ? 60 / (stats.totalTime / stats.total) : 0; // Characters per minute
-        
+
         if (accuracy < 85 || character === ' ') { // Include space and low-accuracy characters
           weakPoints.push({
             character: character === ' ' ? '[space]' : character,
@@ -255,13 +255,13 @@ export class ImprovementAnalyzerService implements IImprovementAnalyzerService {
   }> {
     // In a real implementation, this would query actual user data
     // For now, return mock comparison data
-    
+
     const averageWpm = 40; // Global average
     const averageAccuracy = 90; // Global average
 
     // Calculate approximate percentile based on WPM
     let percentile = 50; // Default to median
-    
+
     if (metrics.wpm >= 80) percentile = 95;
     else if (metrics.wpm >= 70) percentile = 90;
     else if (metrics.wpm >= 60) percentile = 80;
@@ -324,12 +324,12 @@ export class ImprovementAnalyzerService implements IImprovementAnalyzerService {
       };
     }
 
-    const totalWpm = sessions.reduce((sum, session) => sum + session.liveStats.currentWpm, 0);
+    const totalWpm = sessions.reduce((sum, session) => sum + session.liveStats.currentWPM, 0);
     const totalAccuracy = sessions.reduce((sum, session) => sum + session.liveStats.currentAccuracy, 0);
-    
+
     // Calculate average consistency (simplified)
     const consistencySum = sessions.reduce((sum, session) => {
-      const wpmVariation = Math.abs(session.liveStats.currentWpm - (totalWpm / sessions.length));
+      const wpmVariation = Math.abs(session.liveStats.currentWPM - (totalWpm / sessions.length));
       return sum + Math.max(0, 100 - wpmVariation);
     }, 0);
 

@@ -9,7 +9,10 @@ export enum LayoutType {
   AZERTY = 'azerty',
   CUSTOM = 'custom',
   PHONETIC = 'phonetic',
-  TRANSLITERATION = 'transliteration'
+  TRANSLITERATION = 'transliteration',
+  STANDARD = 'standard',      // Standard layouts for a language
+  UNICODE = 'unicode',        // Unicode-order layouts
+  LEGACY = 'legacy'          // Legacy/historical layouts
 }
 
 export enum LayoutVariant {
@@ -17,13 +20,13 @@ export enum LayoutVariant {
   US = 'us',
   UK = 'uk',
   INTERNATIONAL = 'international',
-  
+
   // Lisu variants
   SIL_BASIC = 'sil_basic',
   SIL_STANDARD = 'sil_standard',
   UNICODE_STANDARD = 'unicode_standard',
   TRADITIONAL = 'traditional',
-  
+
   // Myanmar variants
   MYANMAR3 = 'myanmar3',
   ZAWGYI = 'zawgyi',
@@ -40,7 +43,7 @@ export enum InputMethod {
 
 export enum FingerAssignment {
   LEFT_PINKY = 'left_pinky',
-  LEFT_RING = 'left_ring', 
+  LEFT_RING = 'left_ring',
   LEFT_MIDDLE = 'left_middle',
   LEFT_INDEX = 'left_index',
   LEFT_THUMB = 'left_thumb',

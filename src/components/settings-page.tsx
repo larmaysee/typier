@@ -13,6 +13,7 @@ import { LanguageCode } from '@/enums/site-config';
 import kbLayouts from '@/layouts/kb-layouts';
 import themesConfig from '@/config/themes.json';
 import { applyThemeColors, Theme } from '@/lib/utils';
+import { MyanmarLayoutPreferences } from '@/presentation/components/settings/myanmar-layout-preferences';
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
@@ -79,6 +80,22 @@ export default function SettingsPage() {
         }
       });
     }
+  };
+
+  const handleMyanmarLayoutSelect = (layoutId: string) => {
+    // Update preferred layout for Myanmar
+    setConfig({
+      ...config,
+      preferredLayouts: {
+        ...config.preferredLayouts,
+        [LanguageCode.MY]: layoutId
+      }
+    });
+  };
+
+  const handleSaveMyanmarLayout = async () => {
+    // Save is automatic with setConfig, but we can add a toast notification here
+    console.log('Myanmar layout preference saved:', config.preferredLayouts?.[LanguageCode.MY]);
   };
 
   if (!mounted) {
@@ -225,12 +242,12 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Monitor className="h-5 w-5" />
-            Language Settings
+            Language & Keyboard Settings
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6">
           <div className="space-y-4">
-            <h3 className="text-lg font-medium">Keyboard Layout</h3>
+            <h3 className="text-lg font-medium">Language</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {kbLayouts.map((layout) => (
                 <Button
@@ -247,13 +264,42 @@ export default function SettingsPage() {
               ))}
             </div>
           </div>
+
+          <Separator />
+
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Keyboard Layout Preferences</h3>
+            <p className="text-sm text-muted-foreground">
+              Select your preferred keyboard layout for each language. You can change the layout
+              anytime during typing sessions using the keyboard selector.
+            </p>
+            <div className="rounded-lg border p-4 bg-muted/20">
+              <p className="text-sm">
+                💡 <strong>Tip:</strong> The keyboard layout selector appears above the visual keyboard
+                during typing sessions. Each language supports multiple keyboard layouts to match
+                your typing style and preferences.
+              </p>
+            </div>
+          </div>
+
+          {/* Myanmar-specific layout preferences */}
+          {config.language.code === LanguageCode.MY && (
+            <>
+              <Separator />
+              <MyanmarLayoutPreferences
+                selectedLayout={config.preferredLayouts?.[LanguageCode.MY]}
+                onLayoutSelect={handleMyanmarLayoutSelect}
+                onSave={handleSaveMyanmarLayout}
+              />
+            </>
+          )}
         </CardContent>
       </Card>
 
       {/* Additional Settings */}
       <Card>
         <CardHeader>
-          <CardTitle>Additional Settings</CardTitle>
+          <CardTitle>Keyboard & Display Settings</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -279,7 +325,7 @@ export default function SettingsPage() {
               <div>
                 <h4 className="font-medium">Practice Mode</h4>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Enable practice mode for focused typing sessions
+                  Enable practice mode with finger position guides and key highlighting
                 </p>
               </div>
               <Button
@@ -289,6 +335,16 @@ export default function SettingsPage() {
               >
                 {config.practiceMode ? 'On' : 'Off'}
               </Button>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-2">
+              <h4 className="font-medium">Keyboard Visual Display</h4>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                The visual keyboard shows your current keyboard layout with real-time key highlighting.
+                In practice mode, it also displays finger position guides using color-coded keys.
+              </p>
             </div>
           </div>
         </CardContent>

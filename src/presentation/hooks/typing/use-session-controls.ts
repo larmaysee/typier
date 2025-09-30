@@ -1,8 +1,6 @@
 "use client";
 
 import { useCallback } from "react";
-import { useSiteConfig } from "@/components/site-config";
-import { usePracticeMode } from "@/components/pratice-mode";
 import { TypingSessionState } from "./use-typing-session";
 
 interface UseSessionControlsProps {
@@ -10,17 +8,16 @@ interface UseSessionControlsProps {
   setState: React.Dispatch<React.SetStateAction<TypingSessionState>>;
   inputRef: React.RefObject<HTMLInputElement | null>;
   getRandomData: () => void;
+  processInput: (input: string) => Promise<void>; // Required - no fallback
 }
 
 export function useSessionControls({
   session,
   setState,
   inputRef,
-  getRandomData
+  getRandomData,
+  processInput
 }: UseSessionControlsProps) {
-  const { config } = useSiteConfig();
-  const { setActiveChar, setComposeKey } = usePracticeMode();
-
   const getActiveWordIndex = useCallback(() => {
     const words = session.typedText.split(" ");
     return words.length - 1;
@@ -59,93 +56,18 @@ export function useSessionControls({
     const words = session.typedText.split(" ");
     const currentWords = session.currentData?.split(" ") || [];
     const typedWord = words[wordIndex] || "";
-    
+
     if (typedWord === currentWords[wordIndex] && wordIndex < words.length - 1) {
       return "text-green-500";
     }
     return "";
   }, [session.typedText, session.currentData]);
 
-  const handleInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInput = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    
-    setState(prev => ({
-      ...prev,
-      typedText: value,
-      startTime: prev.startTime ?? Date.now()
-    }));
-
-    // Update word statistics
-    if (session.currentData) {
-      const words = value.split(" ");
-      const currentWords = session.currentData.split(" ");
-      
-      let correct = 0;
-      let incorrect = 0;
-
-      words.forEach((word, index) => {
-        if (currentWords[index]) {
-          if (word === currentWords[index]) {
-            correct++;
-          } else if (word.length > 0) {
-            incorrect++;
-          }
-        }
-      });
-
-      setState(prev => ({
-        ...prev,
-        correctWords: correct,
-        incorrectWords: incorrect
-      }));
-
-      // Check if test is completed
-      const totalTypedWords = correct + incorrect;
-      if (!config.practiceMode && !session.testCompleted && totalTypedWords >= currentWords.length) {
-        setState(prev => ({ ...prev, testCompleted: true }));
-        return;
-      }
-
-      // Update cursor position and active character
-      const activeWordIndex = getActiveWordIndex();
-      const activeCharIndex = words[activeWordIndex]?.length || 0;
-      let activeChar = currentWords[activeWordIndex]?.[activeCharIndex] || null;
-
-      const isSpacePosition = activeCharIndex === currentWords[activeWordIndex]?.length && !session.isStartNextWord;
-
-      let cursorWordIndex = activeWordIndex;
-      let cursorCharIndex = activeCharIndex;
-      let cursorIsSpacePosition = isSpacePosition;
-
-      if (isSpacePosition) {
-        activeChar = "spacebar";
-        setState(prev => ({ ...prev, isStartNextWord: false }));
-      }
-
-      if (session.isStartNextWord && currentWords[activeWordIndex + 1]) {
-        cursorWordIndex = activeWordIndex + 1;
-        cursorCharIndex = 0;
-        cursorIsSpacePosition = false;
-        activeChar = currentWords[activeWordIndex + 1]?.[0] || null;
-      }
-
-      setState(prev => ({
-        ...prev,
-        cursorPosition: {
-          wordIndex: cursorWordIndex,
-          charIndex: cursorCharIndex,
-          isSpacePosition: cursorIsSpacePosition
-        },
-        isStartNextWord: false
-      }));
-
-      setActiveChar(activeChar);
-
-      if (config.practiceMode && activeCharIndex === 0) {
-        setActiveChar(currentWords[activeWordIndex]?.[0] || null);
-      }
-    }
-  }, [session, setState, config.practiceMode, getActiveWordIndex, setActiveChar]);
+    // Delegate all input processing to the use case
+    await processInput(value);
+  }, [processInput]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.repeat || e.nativeEvent.isComposing || !e.nativeEvent.isTrusted) {
@@ -153,21 +75,9 @@ export function useSessionControls({
       return;
     }
 
-    // Handle compose key events
-    if (e.nativeEvent.composed) {
-      const words = session.typedText.split(" ");
-      const activeWordIndex = getActiveWordIndex();
-      const activeCharIndex = words[activeWordIndex]?.length || 0;
-      const currentWords = session.currentData?.split(" ") || [];
-      const composeKey = currentWords[activeWordIndex]?.[activeCharIndex - 1];
-      
-      if (session.isComposing) {
-        setState(prev => ({ ...prev, isComposing: false }));
-      } else {
-        setComposeKey(composeKey);
-      }
-    }
-  }, [session, getActiveWordIndex, setComposeKey, setState]);
+    // Keyboard events are handled - compose key tracking removed
+    // This can be re-added when practice mode is reimplemented with clean architecture
+  }, []);
 
   const handleFocus = useCallback(() => {
     setState(prev => ({ ...prev, isFocused: true }));

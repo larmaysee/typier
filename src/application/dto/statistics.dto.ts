@@ -1,5 +1,5 @@
+import { DifficultyLevel, TypingMode } from "@/domain/enums/typing-mode";
 import { LanguageCode } from "@/enums/site-config";
-import { TypingMode, DifficultyLevel } from "../entities/typing";
 
 export interface UserStatisticsResponseDTO {
   userId: string;
@@ -54,7 +54,7 @@ export interface LeaderboardResponseDTO {
 
 export interface ImprovementTrackingResponseDTO {
   userId: string;
-  overallTrend: 'improving' | 'stable' | 'declining';
+  overallTrend: "improving" | "stable" | "declining";
   wpmProgress: Array<{
     date: Date;
     value: number;
@@ -71,11 +71,11 @@ export interface ImprovementTrackingResponseDTO {
     type: string;
     title: string;
     description: string;
-    priority: 'high' | 'medium' | 'low';
+    priority: "high" | "medium" | "low";
     estimatedImpact: number;
   }>;
   nextMilestones: Array<{
-    metric: 'wpm' | 'accuracy' | 'consistency';
+    metric: "wpm" | "accuracy" | "consistency";
     currentValue: number;
     targetValue: number;
     estimatedTimeToReach: number;

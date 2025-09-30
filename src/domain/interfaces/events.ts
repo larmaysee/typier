@@ -4,7 +4,8 @@
  */
 
 import { LanguageCode } from '../enums/languages';
-import { TypingMode, SessionStatus } from '../enums/typing-mode';
+import { TypingMode } from '../enums/typing-mode';
+import { SessionStatus } from '../enums/session-status';
 import { CompetitionType } from '../enums/competition-types';
 
 // Base domain event interface

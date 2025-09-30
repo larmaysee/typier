@@ -3,165 +3,19 @@
  * Contains the core business logic and rules for typing tests and sessions
  */
 
-import { LanguageCode } from '../enums/languages';
-import { CursorPosition, FocusState } from '../value-objects/cursor-position';
-import { WPM, Accuracy, Duration } from '../value-objects/typing-metrics';
-import { TypingMode, DifficultyLevel } from "../enums";
+import { DifficultyLevel, TypingMode } from "../enums";
+import { LanguageCode } from "@/enums/site-config";
+import { KeyMapping, KeyPosition, KeyboardLayout, LayoutMetadata } from "./keyboard-layout";
+import { SessionStatus } from "../enums/session-status";
+import { CursorPosition, FocusState } from "../value-objects/cursor-position";
+import { Accuracy, Duration, WPM } from "../value-objects/typing-metrics";
+
+// Re-export SessionStatus for use cases
+export { SessionStatus };
 
 /**
  * Individual typing mistake
  */
-export interface TypingMistake {
-  /** Position where mistake occurred */
-  position: number;
-  /** Expected character */
-  expected: string;
-  /** Actual typed character */
-  actual: string;
-  /** Timestamp when mistake occurred */
-  timestamp: number;
-}
-
-/**
- * Live typing statistics during a session
- */
-export interface LiveTypingStats {
-  /** Current words per minute */
-  currentWpm: number;
-  /** Current accuracy percentage */
-  currentAccuracy: number;
-  /** Characters typed so far */
-  charactersTyped: number;
-  /** Correct characters */
-  correctCharacters: number;
-  /** Incorrect characters */
-  incorrectCharacters: number;
-  /** Total time elapsed in seconds */
-  timeElapsed: number;
-}
-
-/**
- * Final typing test results
- */
-export interface TypingResults {
-  /** Words per minute achieved */
-  wpm: number;
-  /** Accuracy percentage */
-  accuracy: number;
-  /** Number of correct words */
-  correctWords: number;
-  /** Number of incorrect words */
-  incorrectWords: number;
-  /** Total words in the test */
-  totalWords: number;
-  /** Test duration in seconds */
-  duration: number;
-  /** Total characters typed */
-  charactersTyped: number;
-  /** Number of errors made */
-  errors: number;
-  /** Consistency score (0-100) */
-  consistency: number;
-  /** Finger utilization analysis */
-  fingerUtilization: Record<string, number>;
-}
-
-/**
- * Typing test entity
- */
-export interface Typing {
-  /** Unique identifier */
-  id: string;
-  /** User ID who took the test */
-  userId: string;
-  /** Typing mode used */
-  mode: TypingMode;
-  /** Difficulty level */
-  difficulty: DifficultyLevel;
-  /** Language used */
-  language: LanguageCode;
-  /** Keyboard layout ID used */
-  keyboardLayout: string;
-  /** Text content that was typed */
-  textContent: string;
-  /** Final results */
-  results: TypingResults;
-  /** Test completion timestamp */
-  timestamp: number;
-  /** Competition ID if applicable */
-  competitionId?: string;
-}
-
-/**
- * Active typing session entity
- */
-export interface TypingSession {
-  /** Unique session identifier */
-  id: string;
-  /** Associated typing test */
-  test: Typing;
-  /** Current user input */
-  currentInput: string;
-  /** Session start time */
-  startTime: number | null;
-  /** Time remaining in seconds */
-  timeLeft: number;
-  /** Current session status */
-  status: SessionStatus;
-  /** Current cursor position */
-  cursorPosition: CursorPosition;
-  /** Current focus state */
-  focusState: FocusState;
-  /** All mistakes made so far */
-  mistakes: TypingMistake[];
-  /** Live statistics */
-  liveStats: LiveTypingStats;
-  /** Active keyboard layout */
-  activeLayout: string;
-}
-
-
-export interface KeyboardLayout {
-  id: string;
-  name: string;
-  displayName: string;
-  language: LanguageCode;
-  layoutType: string;
-  variant: string;
-  keyMappings: KeyMapping[];
-  metadata: LayoutMetadata;
-  isCustom: boolean;
-  createdBy?: string;
-  createdAt: number;
-  updatedAt: number;
-}
-
-export interface KeyMapping {
-  key: string;
-  character: string;
-  shiftCharacter?: string;
-  altCharacter?: string;
-  ctrlCharacter?: string;
-  position: KeyPosition;
-}
-
-export interface KeyPosition {
-  row: number;
-  column: number;
-  finger: string;
-  hand: 'left' | 'right';
-}
-
-export interface LayoutMetadata {
-  description: string;
-  author: string;
-  version: string;
-  compatibility: string[];
-  tags: string[];
-  difficulty: DifficultyLevel;
-  popularity: number;
-}
-
 export interface TypingMistake {
   readonly position: number;
   readonly expected: string;
@@ -170,12 +24,16 @@ export interface TypingMistake {
   readonly corrected: boolean;
 }
 
+/**
+ * Live typing statistics during a session
+ */
 export interface LiveTypingStats {
   readonly currentWPM: number;
   readonly currentAccuracy: number;
   readonly charactersPerSecond: number;
   readonly errorRate: number;
   readonly timeElapsed: number;
+  readonly elapsedTime: number; // Alias for timeElapsed for compatibility
   readonly progress: number; // 0-100 percentage
 }
 
@@ -188,21 +46,26 @@ export class TypingResults {
     public readonly totalWords: number,
     public readonly duration: number,
     public readonly charactersTyped: number,
+    public readonly correctChars: number, // Add missing property
     public readonly errors: number,
     public readonly consistency: number,
     public readonly fingerUtilization: Record<string, number>
   ) {
-    if (wpm < 0) throw new Error('WPM cannot be negative');
-    if (accuracy < 0 || accuracy > 100) throw new Error('Accuracy must be between 0 and 100');
-    if (correctWords < 0) throw new Error('Correct words cannot be negative');
-    if (incorrectWords < 0) throw new Error('Incorrect words cannot be negative');
+    if (wpm < 0) throw new Error("WPM cannot be negative");
+    if (accuracy < 0 || accuracy > 100)
+      throw new Error("Accuracy must be between 0 and 100");
+    if (correctWords < 0) throw new Error("Correct words cannot be negative");
+    if (incorrectWords < 0)
+      throw new Error("Incorrect words cannot be negative");
     if (totalWords !== correctWords + incorrectWords) {
-      throw new Error('Total words must equal correct + incorrect words');
+      throw new Error("Total words must equal correct + incorrect words");
     }
-    if (duration <= 0) throw new Error('Duration must be positive');
-    if (charactersTyped < 0) throw new Error('Characters typed cannot be negative');
-    if (errors < 0) throw new Error('Errors cannot be negative');
-    if (consistency < 0 || consistency > 100) throw new Error('Consistency must be between 0 and 100');
+    if (duration <= 0) throw new Error("Duration must be positive");
+    if (charactersTyped < 0)
+      throw new Error("Characters typed cannot be negative");
+    if (errors < 0) throw new Error("Errors cannot be negative");
+    if (consistency < 0 || consistency > 100)
+      throw new Error("Consistency must be between 0 and 100");
   }
 
   static create(data: {
@@ -212,11 +75,13 @@ export class TypingResults {
     incorrectWords: number;
     duration: number;
     charactersTyped: number;
+    correctChars?: number;
     errors: number;
     consistency: number;
     fingerUtilization: Record<string, number>;
   }): TypingResults {
     const totalWords = data.correctWords + data.incorrectWords;
+    const correctChars = data.correctChars ?? data.charactersTyped - data.errors;
 
     return new TypingResults(
       data.wpm,
@@ -226,6 +91,7 @@ export class TypingResults {
       totalWords,
       data.duration,
       data.charactersTyped,
+      correctChars,
       data.errors,
       data.consistency,
       { ...data.fingerUtilization }
@@ -241,6 +107,7 @@ export class TypingResults {
     consistency: number = 0,
     fingerUtilization: Record<string, number> = {}
   ): TypingResults {
+    const correctChars = wpm.charactersTyped - wpm.errorCount;
     return new TypingResults(
       wpm.value,
       accuracy.percentage,
@@ -249,6 +116,7 @@ export class TypingResults {
       correctWords + incorrectWords,
       duration.totalSeconds,
       wpm.charactersTyped,
+      correctChars,
       wpm.errorCount,
       consistency,
       fingerUtilization
@@ -266,18 +134,23 @@ export class TypingResults {
   }
 
   isValid(): boolean {
-    return this.wpm >= 0 &&
-      this.accuracy >= 0 && this.accuracy <= 100 &&
+    return (
+      this.wpm >= 0 &&
+      this.accuracy >= 0 &&
+      this.accuracy <= 100 &&
       this.duration > 0 &&
-      this.totalWords === this.correctWords + this.incorrectWords;
+      this.totalWords === this.correctWords + this.incorrectWords
+    );
   }
 
   equals(other: TypingResults): boolean {
-    return this.wpm === other.wpm &&
+    return (
+      this.wpm === other.wpm &&
       this.accuracy === other.accuracy &&
       this.duration === other.duration &&
       this.totalWords === other.totalWords &&
-      this.errors === other.errors;
+      this.errors === other.errors
+    );
   }
 }
 
@@ -294,11 +167,12 @@ export class TypingTest {
     public readonly timestamp: number,
     public readonly competitionId?: string
   ) {
-    if (!id.trim()) throw new Error('Test ID cannot be empty');
-    if (!userId.trim()) throw new Error('User ID cannot be empty');
-    if (!textContent.trim()) throw new Error('Text content cannot be empty');
-    if (!keyboardLayout.trim()) throw new Error('Keyboard layout cannot be empty');
-    if (timestamp <= 0) throw new Error('Timestamp must be positive');
+    if (!id.trim()) throw new Error("Test ID cannot be empty");
+    if (!userId.trim()) throw new Error("User ID cannot be empty");
+    if (!textContent.trim()) throw new Error("Text content cannot be empty");
+    if (!keyboardLayout.trim())
+      throw new Error("Keyboard layout cannot be empty");
+    if (timestamp <= 0) throw new Error("Timestamp must be positive");
   }
 
   static create(data: {
@@ -357,16 +231,18 @@ export class TypingTest {
     const accuracyScore = this.results.accuracy / 100;
     const consistencyScore = this.results.consistency / 100;
 
-    return (wpmScore * 0.4) + (accuracyScore * 0.4) + (consistencyScore * 0.2);
+    return wpmScore * 0.4 + accuracyScore * 0.4 + consistencyScore * 0.2;
   }
 
   isValid(): boolean {
-    return this.id.trim().length > 0 &&
+    return (
+      this.id.trim().length > 0 &&
       this.userId.trim().length > 0 &&
       this.textContent.trim().length > 0 &&
       this.keyboardLayout.trim().length > 0 &&
       this.timestamp > 0 &&
-      this.results.isValid();
+      this.results.isValid()
+    );
   }
 
   equals(other: TypingTest): boolean {
@@ -388,9 +264,10 @@ export class TypingSession {
     public readonly liveStats: LiveTypingStats,
     public readonly activeLayout: KeyboardLayout
   ) {
-    if (!id.trim()) throw new Error('Session ID cannot be empty');
-    if (timeLeft < 0) throw new Error('Time left cannot be negative');
-    if (mistakes.some(m => m.position < 0)) throw new Error('Mistake positions cannot be negative');
+    if (!id.trim()) throw new Error("Session ID cannot be empty");
+    if (timeLeft < 0) throw new Error("Time left cannot be negative");
+    if (mistakes.some((m) => m.position < 0))
+      throw new Error("Mistake positions cannot be negative");
   }
 
   static create(data: {
@@ -409,12 +286,21 @@ export class TypingSession {
     return new TypingSession(
       data.id,
       data.test,
-      data.currentInput || '',
+      data.currentInput || "",
       data.startTime || null,
       data.timeLeft,
       data.status || SessionStatus.IDLE,
-      data.cursorPosition || { characterIndex: 0, wordIndex: 0, lineNumber: 0, columnNumber: 0 },
-      data.focusState || { isFocused: false, hasSelection: false, lastFocusTime: Date.now() },
+      data.cursorPosition || {
+        characterIndex: 0,
+        wordIndex: 0,
+        lineNumber: 0,
+        columnNumber: 0,
+      },
+      data.focusState || {
+        isFocused: false,
+        hasSelection: false,
+        lastFocusTime: Date.now(),
+      },
       data.mistakes || [],
       data.liveStats || {
         currentWPM: 0,
@@ -422,7 +308,8 @@ export class TypingSession {
         charactersPerSecond: 0,
         errorRate: 0,
         timeElapsed: 0,
-        progress: 0
+        elapsedTime: 0,
+        progress: 0,
       },
       data.activeLayout
     );
@@ -434,7 +321,7 @@ export class TypingSession {
 
   start(): TypingSession {
     if (this.status !== SessionStatus.IDLE) {
-      throw new Error('Session can only be started from idle state');
+      throw new Error("Session can only be started from idle state");
     }
 
     return new TypingSession(
@@ -454,7 +341,7 @@ export class TypingSession {
 
   pause(): TypingSession {
     if (this.status !== SessionStatus.ACTIVE) {
-      throw new Error('Can only pause active sessions');
+      throw new Error("Can only pause active sessions");
     }
 
     return new TypingSession(
@@ -474,7 +361,7 @@ export class TypingSession {
 
   resume(): TypingSession {
     if (this.status !== SessionStatus.PAUSED) {
-      throw new Error('Can only resume paused sessions');
+      throw new Error("Can only resume paused sessions");
     }
 
     return new TypingSession(
@@ -494,7 +381,7 @@ export class TypingSession {
 
   complete(): TypingSession {
     if (this.status !== SessionStatus.ACTIVE) {
-      throw new Error('Can only complete active sessions');
+      throw new Error("Can only complete active sessions");
     }
 
     return new TypingSession(
@@ -564,7 +451,7 @@ export class TypingSession {
 
   switchLayout(newLayout: KeyboardLayout): TypingSession {
     if (newLayout.language !== this.test.language) {
-      throw new Error('Layout language must match test language');
+      throw new Error("Layout language must match test language");
     }
 
     return new TypingSession(
@@ -596,7 +483,10 @@ export class TypingSession {
 
   getProgress(): number {
     if (!this.test.textContent) return 0;
-    return Math.min((this.currentInput.length / this.test.textContent.length) * 100, 100);
+    return Math.min(
+      (this.currentInput.length / this.test.textContent.length) * 100,
+      100
+    );
   }
 
   getElapsedTime(): number {
@@ -609,7 +499,10 @@ export class TypingSession {
 
     let correctChars = 0;
     for (let i = 0; i < this.currentInput.length; i++) {
-      if (i < this.test.textContent.length && this.currentInput[i] === this.test.textContent[i]) {
+      if (
+        i < this.test.textContent.length &&
+        this.currentInput[i] === this.test.textContent[i]
+      ) {
         correctChars++;
       }
     }
@@ -618,10 +511,12 @@ export class TypingSession {
   }
 
   isValid(): boolean {
-    return this.id.trim().length > 0 &&
+    return (
+      this.id.trim().length > 0 &&
       this.test.isValid() &&
       this.timeLeft >= 0 &&
-      this.activeLayout.language === this.test.language;
+      this.activeLayout.language === this.test.language
+    );
   }
 
   equals(other: TypingSession): boolean {

@@ -1,13 +1,13 @@
-import { 
-  ITypingRepository, 
-  TestFilters, 
-  LeaderboardFilters, 
-  LeaderboardEntry 
+import {
+  ITypingRepository,
+  TestFilters,
+  LeaderboardFilters,
 } from "@/domain/interfaces";
 import { TypingTest } from "@/domain/entities";
 import { RepositoryError, NotFoundError } from "@/shared/errors";
 import { LocalStorageClient } from "../../persistence/local-storage/storage-client";
 import type { ILogger } from "@/shared/utils/logger";
+import { LeaderboardEntry } from "@/domain/entities/statistics";
 
 // Using TypingTest directly for localStorage implementation
 
@@ -19,16 +19,16 @@ export class LocalTypingRepository implements ITypingRepository {
   constructor(
     private storage: LocalStorageClient,
     private logger: ILogger
-  ) {}
+  ) { }
 
   async save(test: TypingTest): Promise<void> {
     try {
       // Save individual test
       await this.storage.setItem(`${this.TESTS_KEY_PREFIX}:${test.id}`, test);
-      
+
       // Update user's test list
       await this.addToUserTestList(test.userId, test.id);
-      
+
       // Update leaderboard cache if not practice mode
       if (test.mode !== 'practice') {
         await this.updateLeaderboardCache(test);
@@ -87,7 +87,7 @@ export class LocalTypingRepository implements ITypingRepository {
     try {
       // Get all test IDs from cache or scan all tests
       const leaderboardCache = await this.storage.getItem<Record<string, LeaderboardEntry>>(this.LEADERBOARD_KEY) || {};
-      
+
       let entries = Object.values(leaderboardCache);
 
       // Apply filters
@@ -116,11 +116,11 @@ export class LocalTypingRepository implements ITypingRepository {
             cutoffTime = 0;
         }
 
-        entries = entries.filter(entry => entry.testDate >= cutoffTime);
+        entries = entries.filter(entry => (entry.timestamp || entry.lastImproved) >= cutoffTime);
       }
 
       // Sort by WPM descending
-      entries.sort((a, b) => b.wpm - a.wpm);
+      entries.sort((a, b) => b.bestWPM - a.bestWPM);
 
       // Apply limit
       const limit = filters.limit || 100;
@@ -170,7 +170,7 @@ export class LocalTypingRepository implements ITypingRepository {
     try {
       // Verify the test exists and belongs to the user
       const test = await this.storage.getItem<TypingTest>(`${this.TESTS_KEY_PREFIX}:${testId}`);
-      
+
       if (!test) {
         throw new NotFoundError(`Typing test not found: ${testId}`);
       }
@@ -181,10 +181,10 @@ export class LocalTypingRepository implements ITypingRepository {
 
       // Remove from storage
       await this.storage.removeItem(`${this.TESTS_KEY_PREFIX}:${testId}`);
-      
+
       // Remove from user's test list
       await this.removeFromUserTestList(userId, testId);
-      
+
       // Update leaderboard cache
       await this.removeFromLeaderboardCache(userId, testId);
 
@@ -219,14 +219,19 @@ export class LocalTypingRepository implements ITypingRepository {
 
   private async updateLeaderboardCache(test: TypingTest): Promise<void> {
     const cache = await this.storage.getItem<Record<string, LeaderboardEntry>>(this.LEADERBOARD_KEY) || {};
-    
-    const entry: LeaderboardEntry = {
+
+    const entry = LeaderboardEntry.create({
       userId: test.userId,
       username: await this.getUsernameById(test.userId),
-      wpm: test.results.wpm,
-      accuracy: test.results.accuracy,
-      testDate: test.timestamp
-    };
+      bestWPM: test.results.wpm,
+      averageAccuracy: test.results.accuracy,
+      language: test.language,
+      mode: test.mode,
+      rank: 1, // Will be updated when sorting
+      totalTests: 1, // Simplified
+      lastImproved: test.timestamp,
+      timestamp: test.timestamp
+    });
 
     // Only update if this is better than the user's current best
     const existing = cache[test.userId];
@@ -238,28 +243,33 @@ export class LocalTypingRepository implements ITypingRepository {
 
   private async removeFromLeaderboardCache(userId: string, _testId: string): Promise<void> {
     const cache = await this.storage.getItem<Record<string, LeaderboardEntry>>(this.LEADERBOARD_KEY) || {};
-    
+
     if (cache[userId]) {
       // We need to recalculate the user's best score
       const userTests = await this.getUserTests(userId);
       const nonPracticeTests = userTests.filter(test => test.mode !== 'practice');
-      
+
       if (nonPracticeTests.length > 0) {
-        const bestTest = nonPracticeTests.reduce((best, test) => 
+        const bestTest = nonPracticeTests.reduce((best, test) =>
           test.results.wpm > best.results.wpm ? test : best
         );
-        
-        cache[userId] = {
+
+        cache[userId] = LeaderboardEntry.create({
           userId,
           username: await this.getUsernameById(userId),
-          wpm: bestTest.results.wpm,
-          accuracy: bestTest.results.accuracy,
-          testDate: bestTest.timestamp
-        };
+          bestWPM: bestTest.results.wpm,
+          averageAccuracy: bestTest.results.accuracy,
+          language: bestTest.language,
+          mode: bestTest.mode,
+          rank: 1,
+          totalTests: 1,
+          lastImproved: bestTest.timestamp,
+          timestamp: bestTest.timestamp
+        });
       } else {
         delete cache[userId];
       }
-      
+
       await this.storage.setItem(this.LEADERBOARD_KEY, cache);
     }
   }
@@ -279,13 +289,18 @@ export class LocalTypingRepository implements ITypingRepository {
 
       const existing = userBestScores.get(test.userId);
       if (!existing || test.results.wpm > existing.wpm) {
-        userBestScores.set(test.userId, {
+        userBestScores.set(test.userId, LeaderboardEntry.create({
           userId: test.userId,
           username: await this.getUsernameById(test.userId),
-          wpm: test.results.wpm,
-          accuracy: test.results.accuracy,
-          testDate: test.timestamp
-        });
+          bestWPM: test.results.wpm,
+          averageAccuracy: test.results.accuracy,
+          language: test.language,
+          mode: test.mode,
+          rank: 1,
+          totalTests: 1,
+          lastImproved: test.timestamp,
+          timestamp: test.timestamp
+        }));
       }
     }
 

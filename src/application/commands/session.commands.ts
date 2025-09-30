@@ -1,5 +1,9 @@
-import { TypingMode, DifficultyLevel, TextType } from '@/domain/entities/typing';
-import { LanguageCode } from '@/enums/site-config';
+import {
+  DifficultyLevel,
+  TextType,
+  TypingMode,
+} from "@/domain/enums/typing-mode";
+import { LanguageCode } from "@/enums/site-config";
 
 export interface StartSessionCommand {
   userId: string;

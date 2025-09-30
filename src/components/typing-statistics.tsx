@@ -27,6 +27,7 @@ export interface TypingStatistics {
   bestAccuracy: number;
   totalTimeTyped: number; // in seconds
   totalCharactersTyped: number;
+  totalWordsTyped: number; // total words typed across all tests
   totalErrors: number;
   recentTests: TypingTestResult[];
   improvementTrend: number; // percentage improvement over last 10 tests
@@ -125,9 +126,10 @@ const calculateStatistics = (tests: TypingTestResult[]): TypingStatistics => {
       bestAccuracy: 0,
       totalTimeTyped: 0,
       totalCharactersTyped: 0,
+      totalWordsTyped: 0,
       totalErrors: 0,
       recentTests: [],
-      improvementTrend: 0,
+      improvementTrend: 0
     };
   }
 
@@ -161,6 +163,7 @@ const calculateStatistics = (tests: TypingTestResult[]): TypingStatistics => {
     bestAccuracy,
     totalTimeTyped,
     totalCharactersTyped,
+    totalWordsTyped: tests.reduce((sum, test) => sum + test.totalWords, 0),
     totalErrors,
     recentTests: tests.slice(-10).reverse(), // Last 10 tests, most recent first
     improvementTrend,
@@ -177,9 +180,10 @@ export const TypingStatisticsProvider: React.FC<{ children: ReactNode }> = ({ ch
     bestAccuracy: 0,
     totalTimeTyped: 0,
     totalCharactersTyped: 0,
+    totalWordsTyped: 0,
     totalErrors: 0,
     recentTests: [],
-    improvementTrend: 0,
+    improvementTrend: 0
   });
 
   const [isOnline, setIsOnline] = useState(true);
@@ -206,6 +210,7 @@ export const TypingStatisticsProvider: React.FC<{ children: ReactNode }> = ({ ch
 
         setStatistics({
           ...dbStats,
+          totalWordsTyped: 0, // Default value for new property
           recentTests: dbTests.map(dbDocumentToTypingTestResult)
         });
       } else {

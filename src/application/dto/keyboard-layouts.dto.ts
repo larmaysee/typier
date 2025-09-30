@@ -1,5 +1,5 @@
+import { KeyboardLayout } from "@/domain/entities/keyboard-layout";
 import { LanguageCode } from "@/enums/site-config";
-import { KeyboardLayout } from "../entities/keyboard-layout";
 
 export interface LayoutsResponseDTO {
   layouts: Array<{
@@ -25,14 +25,14 @@ export interface LayoutCompatibilityResponseDTO {
   isCompatible: boolean;
   compatibilityScore: number;
   issues: Array<{
-    type: 'error' | 'warning' | 'info';
+    type: "error" | "warning" | "info";
     message: string;
     affectedKeys?: string[];
   }>;
   recommendations: Array<{
     title: string;
     description: string;
-    priority: 'high' | 'medium' | 'low';
+    priority: "high" | "medium" | "low";
   }>;
 }
 

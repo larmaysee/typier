@@ -4,9 +4,9 @@ import { IKeyboardLayoutRepository } from "@/domain/interfaces";
 import { KeyboardLayout } from "@/domain/entities";
 import { RepositoryError, NotFoundError } from "@/shared/errors";
 import { AppwriteDatabaseClient } from "../../persistence/appwrite/database-client";
-import { 
-  COLLECTIONS, 
-  AppwriteKeyboardLayoutDocument 
+import {
+  COLLECTIONS,
+  AppwriteKeyboardLayoutDocument
 } from "../../persistence/appwrite/collections.config";
 import type { ILogger } from "@/shared/utils/logger";
 
@@ -14,7 +14,7 @@ export class AppwriteKeyboardLayoutRepository implements IKeyboardLayoutReposito
   constructor(
     private client: AppwriteDatabaseClient,
     private logger: ILogger
-  ) {}
+  ) { }
 
   async getAvailableLayouts(language: LanguageCode): Promise<KeyboardLayout[]> {
     try {
@@ -52,7 +52,7 @@ export class AppwriteKeyboardLayoutRepository implements IKeyboardLayoutReposito
   async saveCustomLayout(layout: KeyboardLayout): Promise<void> {
     try {
       const document = this.toAppwriteDocument(layout);
-      
+
       await this.client.createDocument<AppwriteKeyboardLayoutDocument>(
         COLLECTIONS.KEYBOARD_LAYOUTS,
         document,
@@ -104,12 +104,12 @@ export class AppwriteKeyboardLayoutRepository implements IKeyboardLayoutReposito
       // In a full implementation, this would update user preferences
       // For now, we'll just log this operation
       this.logger.info(`Set preferred layout for user ${userId}, language ${language}: ${layoutId}`);
-      
+
       // TODO: Integrate with user preferences system
     } catch (error) {
       this.logger.error(`Failed to set user preferred layout`, error as Error);
-      throw error instanceof NotFoundError || error instanceof RepositoryError 
-        ? error 
+      throw error instanceof NotFoundError || error instanceof RepositoryError
+        ? error
         : new RepositoryError('Failed to set user preferred layout', error as Error);
     }
   }
@@ -118,7 +118,7 @@ export class AppwriteKeyboardLayoutRepository implements IKeyboardLayoutReposito
     try {
       // First verify the layout exists and belongs to the user
       const layout = await this.getLayoutById(layoutId);
-      
+
       if (!layout) {
         throw new NotFoundError(`Layout not found: ${layoutId}`);
       }
@@ -177,19 +177,23 @@ export class AppwriteKeyboardLayoutRepository implements IKeyboardLayoutReposito
   }
 
   private fromAppwriteDocument(doc: AppwriteKeyboardLayoutDocument): KeyboardLayout {
-    return {
+    const layoutData = {
       id: doc.$id,
       name: doc.name,
       displayName: doc.display_name,
       language: doc.language as LanguageCode,
       layoutType: doc.layout_type as any,
       variant: doc.variant as any,
+      inputMethod: 'keyboard' as any, // Default input method
       keyMappings: JSON.parse(doc.key_mappings),
       metadata: JSON.parse(doc.metadata),
       isCustom: doc.is_custom,
-      createdBy: doc.created_by,
+      isPublic: false, // Default value since not in document
+      createdBy: doc.created_by || 'system',
       createdAt: new Date(doc.$createdAt).getTime(),
       updatedAt: new Date(doc.$updatedAt).getTime()
     };
+
+    return KeyboardLayout.create(layoutData);
   }
 }

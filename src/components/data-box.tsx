@@ -1,11 +1,24 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import engdatasets from "@/datas/english-data";
+import lidatasets from "@/datas/lisu-data";
+import mydatasets from "@/datas/myanmar-data";
+import { cn } from "@/lib/utils";
 import { RotateCcw } from "lucide-react";
-// import { Lisu_Bosa } from "next/font/google";
+import { useCallback, useEffect, useRef, useState } from "react";
+import DataMode from "./data-mode";
+import { FocusOverlay } from "./focus-overlay";
 import KeyboardSelector from "./keyboard-selector";
 import ModeToggler from "./mode-toggler";
+import { usePracticeMode } from "./pratice-mode";
+import { ResultsModal } from "./results-modal";
+import { useSiteConfig } from "./site-config";
 import TimerOptions from "./time-options";
 import TooltipWrapper from "./tooltip-wrapper";
+import { useTypingStatistics } from "./typing-statistics";
+// import { Lisu_Bosa } from "next/font/google";
 
 // Temporarily disable Google Fonts for testing
 // const lisuBosa = Lisu_Bosa({
@@ -79,20 +92,21 @@ export default function DataBox() {
   }, [startTime, selectedTime, timeLeft, correctWords]);
 
   const getRandomData = useCallback(() => {
-    const datasets: { [key: string]: { syntaxs: string[]; chars?: string[] } } = {
-      en: engdatasets,
-      my: mydatasets,
-      li: lidatasets,
-    };
+    const datasets: { [key: string]: { syntaxs: string[]; chars?: string[] } } =
+      {
+        en: engdatasets,
+        my: mydatasets,
+        li: lidatasets,
+      };
 
     const dataset = datasets[language];
     if (!dataset) return;
 
-    if (config.difficultyMode === 'chars' && dataset.chars) {
+    if (config.difficultyMode === "chars" && dataset.chars) {
       // Generate random character sequence
       const chars = dataset.chars;
       const sequenceLength = Math.floor(Math.random() * 20) + 10; // 10-30 characters
-      let sequence = '';
+      let sequence = "";
 
       for (let i = 0; i < sequenceLength; i++) {
         const randomChar = chars[Math.floor(Math.random() * chars.length)];
@@ -100,7 +114,7 @@ export default function DataBox() {
 
         // Add spaces occasionally for word separation
         if (i > 0 && i % 5 === 0 && Math.random() > 0.7) {
-          sequence += ' ';
+          sequence += " ";
         }
       }
 
@@ -150,9 +164,15 @@ export default function DataBox() {
 
   // Separate effect to handle test completion and result saving
   useEffect(() => {
-    if (testCompleted && !config.practiceMode && startTime !== null && !showResults) {
+    if (
+      testCompleted &&
+      !config.practiceMode &&
+      startTime !== null &&
+      !showResults
+    ) {
       const totalWords = correctWords + incorrectWords;
-      const accuracy = totalWords > 0 ? Math.round((correctWords / totalWords) * 100) : 0;
+      const accuracy =
+        totalWords > 0 ? Math.round((correctWords / totalWords) * 100) : 0;
       const testDuration = selectedTime - timeLeft;
       const charactersTyped = typedText.length;
       const errors = incorrectWords;
@@ -173,7 +193,20 @@ export default function DataBox() {
       setLastTestResult(testResult);
       setShowResults(true);
     }
-  }, [testCompleted, config.practiceMode, startTime, showResults, correctWords, incorrectWords, selectedTime, timeLeft, typedText.length, calculateWPM, config.language.code, addTestResult]);
+  }, [
+    testCompleted,
+    config.practiceMode,
+    startTime,
+    showResults,
+    correctWords,
+    incorrectWords,
+    selectedTime,
+    timeLeft,
+    typedText.length,
+    calculateWPM,
+    config.language.code,
+    addTestResult,
+  ]);
 
   useEffect(() => {
     setLanguage(config.language.code);
@@ -193,7 +226,11 @@ export default function DataBox() {
 
       // Don't interfere with other inputs or interactive elements
       const target = e.target as HTMLElement;
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.contentEditable === 'true') {
+      if (
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.contentEditable === "true"
+      ) {
         return;
       }
 
@@ -203,8 +240,8 @@ export default function DataBox() {
       }
     };
 
-    document.addEventListener('keydown', handleGlobalKeyDown);
-    return () => document.removeEventListener('keydown', handleGlobalKeyDown);
+    document.addEventListener("keydown", handleGlobalKeyDown);
+    return () => document.removeEventListener("keydown", handleGlobalKeyDown);
   }, [isFocused, testCompleted]);
 
   useEffect(() => {
@@ -218,21 +255,22 @@ export default function DataBox() {
   }, [config.practiceMode, currentData, setActiveChar]);
 
   useEffect(() => {
-    const datasets: { [key: string]: { syntaxs: string[]; chars?: string[] } } = {
-      en: engdatasets,
-      my: mydatasets,
-      li: lidatasets,
-    };
+    const datasets: { [key: string]: { syntaxs: string[]; chars?: string[] } } =
+      {
+        en: engdatasets,
+        my: mydatasets,
+        li: lidatasets,
+      };
 
     if (language) {
       const dataset = datasets[language];
 
-      if (config.difficultyMode === 'chars' && dataset.chars) {
+      if (config.difficultyMode === "chars" && dataset.chars) {
         // Generate random character sequences for character mode
         const generateCharSequence = () => {
           const chars = dataset.chars!;
           const sequenceLength = Math.floor(Math.random() * 20) + 10; // 10-30 characters
-          let sequence = '';
+          let sequence = "";
 
           for (let i = 0; i < sequenceLength; i++) {
             const randomChar = chars[Math.floor(Math.random() * chars.length)];
@@ -240,7 +278,7 @@ export default function DataBox() {
 
             // Add spaces occasionally for word separation
             if (i > 0 && i % 5 === 0 && Math.random() > 0.7) {
-              sequence += ' ';
+              sequence += " ";
             }
           }
 
@@ -299,7 +337,7 @@ export default function DataBox() {
 
       // Find the start of the current word to delete
       let wordStart = cursorPos;
-      while (wordStart > 0 && text[wordStart - 1] !== ' ') {
+      while (wordStart > 0 && text[wordStart - 1] !== " ") {
         wordStart--;
       }
 
@@ -311,7 +349,7 @@ export default function DataBox() {
       input.setSelectionRange(wordStart, wordStart);
 
       // Trigger the change event manually
-      const event = new Event('input', { bubbles: true });
+      const event = new Event("input", { bubbles: true });
       input.dispatchEvent(event);
 
       return;
@@ -343,7 +381,7 @@ export default function DataBox() {
       setStartTime(Date.now());
     }
 
-    if (config.difficultyMode === 'chars') {
+    if (config.difficultyMode === "chars") {
       // Character mode logic
       const currentChars = currentData?.split("") || [];
       let correct = 0;
@@ -361,7 +399,11 @@ export default function DataBox() {
       setIncorrectWords(incorrect);
 
       // Check if all characters are completed
-      if (!config.practiceMode && !testCompleted && inputText.length >= currentChars.length) {
+      if (
+        !config.practiceMode &&
+        !testCompleted &&
+        inputText.length >= currentChars.length
+      ) {
         setTestCompleted(true);
         return;
       }
@@ -391,7 +433,11 @@ export default function DataBox() {
 
       // Check if all words are completed
       const totalTypedWords = correct + incorrect;
-      if (!config.practiceMode && !testCompleted && totalTypedWords >= currentWords.length) {
+      if (
+        !config.practiceMode &&
+        !testCompleted &&
+        totalTypedWords >= currentWords.length
+      ) {
         setTestCompleted(true);
         return;
       }
@@ -403,7 +449,9 @@ export default function DataBox() {
         ? currentWords[activeWordIndex + 1]?.[0]
         : currentWords[activeWordIndex]?.[activeCharIndex] || null;
 
-      const isSpacePosition = activeCharIndex === currentWords[activeWordIndex]?.length && !isStartNextWord;
+      const isSpacePosition =
+        activeCharIndex === currentWords[activeWordIndex]?.length &&
+        !isStartNextWord;
 
       let cursorWordIndex = activeWordIndex;
       let cursorCharIndex = activeCharIndex;
@@ -426,7 +474,7 @@ export default function DataBox() {
       setCursorPosition({
         wordIndex: cursorWordIndex,
         charIndex: cursorCharIndex,
-        isSpacePosition: cursorIsSpacePosition
+        isSpacePosition: cursorIsSpacePosition,
       });
 
       setActiveChar(activeChar);
@@ -544,11 +592,10 @@ export default function DataBox() {
 
         <div
           className={cn(
-            "databox h-[120px] relative focus-visible:border-primary overflow-hidden",
-
+            "databox h-[120px] relative focus-visible:border-primary overflow-hidden"
           )}
         >
-          {config.difficultyMode === 'chars' ? (
+          {config.difficultyMode === "chars" ? (
             // Character mode with special styling
             <div className="flex flex-wrap gap-2 p-2">
               {currentData?.split("").map((char, charIndex) => {
@@ -576,7 +623,9 @@ export default function DataBox() {
                       "relative flex items-center justify-center min-w-[40px] h-[40px] rounded-md border text-xl font-medium transition-colors",
                       bgColor,
                       textColor,
-                      char === " " ? "min-w-[20px] bg-transparent border-dashed" : ""
+                      char === " "
+                        ? "min-w-[20px] bg-transparent border-dashed"
+                        : ""
                     )}
                   >
                     {char === " " ? "⎵" : char}
@@ -621,7 +670,8 @@ export default function DataBox() {
                   {/* Space cursor */}
                   {cursorPosition.wordIndex === wordIndex &&
                     cursorPosition.isSpacePosition &&
-                    isFocused && !testCompleted && (
+                    isFocused &&
+                    !testCompleted && (
                       <span className="relative">
                         <span className="absolute right-0 top-0 w-0.5 h-full bg-primary animate-pulse" />
                       </span>

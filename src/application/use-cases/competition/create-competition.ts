@@ -1,15 +1,22 @@
-import { Competition } from "../../../domain/entities/competition";
-import { CompetitionType } from "../../../domain/enums/competition-type";
-import { LanguageCode } from "../../../domain/enums/language-code";
-import { KeyboardLayoutVariant } from "../../../domain/enums/keyboard-layout-variant";
-import { ICompetitionRepository } from "../../../domain/interfaces/competition-repository.interface";
+import {
+  CompetitionCategory,
+  CompetitionType,
+  DifficultyLevel,
+  LanguageCode,
+  LayoutVariant,
+} from "@/domain/enums";
+import {
+  Competition,
+  CompetitionMetadata,
+} from "@/domain/entities/competition";
+import { ICompetitionRepository } from "@/domain/interfaces/competition-repository.interface";
 
 export interface CreateCompetitionCommand {
   name: string;
   description: string;
   type: CompetitionType;
   language: LanguageCode;
-  allowedLayouts: KeyboardLayoutVariant[];
+  allowedLayouts: LayoutVariant[];
   textContent: string;
   duration: number;
   startDate: Date;
@@ -18,9 +25,7 @@ export interface CreateCompetitionCommand {
 }
 
 export class CreateCompetitionUseCase {
-  constructor(
-    private competitionRepository: ICompetitionRepository
-  ) {}
+  constructor(private competitionRepository: ICompetitionRepository) { }
 
   async execute(command: CreateCompetitionCommand): Promise<Competition> {
     // Validate competition dates
@@ -40,42 +45,83 @@ export class CreateCompetitionUseCase {
     // Validate allowed layouts for language
     const validLayouts = this.getValidLayoutsForLanguage(command.language);
     const invalidLayouts = command.allowedLayouts.filter(
-      layout => !validLayouts.includes(layout)
+      (layout) => !validLayouts.includes(layout)
     );
 
     if (invalidLayouts.length > 0) {
-      throw new Error(`Invalid layouts for ${command.language}: ${invalidLayouts.join(", ")}`);
+      throw new Error(
+        `Invalid layouts for ${command.language}: ${invalidLayouts.join(", ")}`
+      );
     }
 
-    const competitionData = {
-      ...command,
-      isActive: true
+    // Generate competition ID
+    const competitionId = Competition.generateId();
+
+    // Calculate timestamps
+    const startTimestamp = command.startDate.getTime();
+    const endTimestamp = command.endDate.getTime();
+    const registrationDeadline = startTimestamp - 24 * 60 * 60 * 1000; // 24 hours before start
+
+    // Create metadata
+    const metadata: CompetitionMetadata = {
+      description: command.description,
+      rules: {
+        timeLimit: command.duration,
+        attemptsAllowed: 3,
+        layoutLocked: command.type === CompetitionType.TOURNAMENT,
+        retakeAllowed: false,
+        minAccuracy: 85,
+        minWPM: 20,
+        penaltyPerError: 5,
+      },
+      prizeTiers: [],
+      tags: [],
+      difficulty: DifficultyLevel.MEDIUM,
+      estimatedDuration: Math.ceil(command.duration / 60),
+      maxParticipants: command.maxParticipants,
     };
 
-    return await this.competitionRepository.create(competitionData);
+    // Create competition data for the entity
+    const competitionData = {
+      id: competitionId,
+      name: command.name,
+      type: command.type,
+      category: CompetitionCategory.SPEED,
+      startDate: startTimestamp,
+      endDate: endTimestamp,
+      registrationDeadline,
+      language: command.language,
+      textContent: command.textContent,
+      metadata,
+      createdBy: "system",
+    };
+
+    // Create the competition entity
+    const competition = Competition.create(competitionData);
+
+    // Save through repository
+    return await this.competitionRepository.create(competition);
   }
 
-  private getValidLayoutsForLanguage(language: LanguageCode): KeyboardLayoutVariant[] {
+  private getValidLayoutsForLanguage(language: LanguageCode): LayoutVariant[] {
     const layoutMap = {
       [LanguageCode.EN]: [
-        KeyboardLayoutVariant.QWERTY_US,
-        KeyboardLayoutVariant.QWERTY_UK,
-        KeyboardLayoutVariant.QWERTY_INTL,
-        KeyboardLayoutVariant.DVORAK,
-        KeyboardLayoutVariant.COLEMAK
+        LayoutVariant.US,
+        LayoutVariant.UK,
+        LayoutVariant.INTERNATIONAL,
       ],
       [LanguageCode.LI]: [
-        KeyboardLayoutVariant.SIL_BASIC,
-        KeyboardLayoutVariant.SIL_STANDARD,
-        KeyboardLayoutVariant.UNICODE_STANDARD,
-        KeyboardLayoutVariant.TRADITIONAL
+        LayoutVariant.SIL_BASIC,
+        LayoutVariant.SIL_STANDARD,
+        LayoutVariant.UNICODE_STANDARD,
+        LayoutVariant.TRADITIONAL,
       ],
       [LanguageCode.MY]: [
-        KeyboardLayoutVariant.MYANMAR3,
-        KeyboardLayoutVariant.ZAWGYI,
-        KeyboardLayoutVariant.UNICODE_STANDARD_MY,
-        KeyboardLayoutVariant.WININNWA
-      ]
+        LayoutVariant.MYANMAR3,
+        LayoutVariant.ZAWGYI,
+        LayoutVariant.UNICODE_MYANMAR,
+        LayoutVariant.WININNWA,
+      ],
     };
 
     return layoutMap[language] || [];

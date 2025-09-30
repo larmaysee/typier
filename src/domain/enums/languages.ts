@@ -1,16 +1,21 @@
-/**
- * Domain enums for language support and text types
- */
-
 export enum LanguageCode {
-  EN = "en", // English
-  MY = "my", // Myanmar  
-  LI = "li"  // Lisu
+  EN = "en",
+  MY = "my",
+  LI = "li",
 }
 
-export enum TextType {
-  CHARS = "chars",      // Individual character practice
-  SENTENCES = "sentences", // Full text passages
-  WORDS = "words",      // Word-based practice
-  PARAGRAPHS = "paragraphs" // Paragraph-based practice
+export enum SupportedLanguage {
+  ENGLISH = "English",
+  MYANMAR = "Myanmar",
+  LISU = "Lisu",
 }
+
+export type LanguageDisplayName = {
+  [key in LanguageCode]: string;
+};
+
+export const LANGUAGE_DISPLAY_NAMES: LanguageDisplayName = {
+  [LanguageCode.EN]: "English",
+  [LanguageCode.MY]: "Myanmar",
+  [LanguageCode.LI]: "Lisu",
+};

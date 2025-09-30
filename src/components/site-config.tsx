@@ -17,6 +17,12 @@ interface SiteConfig {
   showShiftLabel?: boolean;
   practiceMode?: boolean;
   difficultyMode: 'chars' | 'syntaxs'; // New property for difficulty mode
+  // Keyboard layout preferences per language
+  preferredLayouts?: {
+    [LanguageCode.EN]?: string;
+    [LanguageCode.LI]?: string;
+    [LanguageCode.MY]?: string;
+  };
 }
 
 interface SiteConfigContextType {
@@ -39,6 +45,11 @@ const defaultConfig: SiteConfig = {
   showShiftLabel: false,
   practiceMode: false,
   difficultyMode: 'syntaxs', // Default to syntax mode
+  preferredLayouts: {
+    [LanguageCode.EN]: 'en-qwerty-us',
+    [LanguageCode.LI]: 'li-sil-basic',
+    [LanguageCode.MY]: 'my-myanmar3', // Default to Myanmar3 (recommended)
+  },
 };
 
 const SiteConfigContext = createContext<SiteConfigContextType>({

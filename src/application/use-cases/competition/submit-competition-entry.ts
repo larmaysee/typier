@@ -1,5 +1,5 @@
-import { CompetitionEntry } from "../../../domain/entities/competition-entry";
-import { ICompetitionRepository } from "../../../domain/interfaces/competition-repository.interface";
+import { CompetitionEntry } from "@/domain/entities/competition-entry";
+import { ICompetitionRepository } from "@/domain/interfaces/competition-repository.interface";
 
 export interface SubmitCompetitionEntryCommand {
   competitionId: string;
@@ -24,14 +24,16 @@ export interface SubmitCompetitionEntryResult {
 }
 
 export class SubmitCompetitionEntryUseCase {
-  constructor(
-    private competitionRepository: ICompetitionRepository
-  ) {}
+  constructor(private competitionRepository: ICompetitionRepository) { }
 
-  async execute(command: SubmitCompetitionEntryCommand): Promise<SubmitCompetitionEntryResult> {
+  async execute(
+    command: SubmitCompetitionEntryCommand
+  ): Promise<SubmitCompetitionEntryResult> {
     // Validate competition exists and is active
-    const competition = await this.competitionRepository.findById(command.competitionId);
-    
+    const competition = await this.competitionRepository.findById(
+      command.competitionId
+    );
+
     if (!competition) {
       throw new Error("Competition not found");
     }
@@ -41,14 +43,19 @@ export class SubmitCompetitionEntryUseCase {
     }
 
     // Check if competition is still running
-    const now = new Date();
+    const now = Date.now();
     if (now < competition.startDate || now > competition.endDate) {
       throw new Error("Competition is not currently running");
     }
 
-    // Validate layout is allowed in competition
-    if (!competition.allowedLayouts.includes(command.layoutUsed as any)) {
-      throw new Error(`Layout ${command.layoutUsed} is not allowed in this competition`);
+    // Validate layout is allowed in competition (if required layout is specified)
+    if (
+      competition.requiredLayout &&
+      command.layoutUsed !== competition.requiredLayout
+    ) {
+      throw new Error(
+        `Competition requires ${competition.requiredLayout} layout, but ${command.layoutUsed} was used`
+      );
     }
 
     // Validate typing metrics
@@ -56,8 +63,8 @@ export class SubmitCompetitionEntryUseCase {
       throw new Error("Invalid typing metrics");
     }
 
-    if (command.completionTime > competition.duration) {
-      throw new Error("Completion time exceeds competition duration");
+    if (command.completionTime > competition.metadata.rules.timeLimit) {
+      throw new Error("Completion time exceeds competition time limit");
     }
 
     // Check for existing entry (for updates)
@@ -82,22 +89,26 @@ export class SubmitCompetitionEntryUseCase {
       totalWords: command.totalWords,
       mistakes: command.mistakes,
       completionTime: command.completionTime,
-      layoutUsed: command.layoutUsed
+      layoutUsed: command.layoutUsed,
     };
 
     const entry = await this.competitionRepository.addEntry(entryData);
 
     // Calculate new ranking
-    const leaderboard = await this.competitionRepository.getLeaderboard(command.competitionId);
-    const currentRank = leaderboard.findIndex(e => e.id === entry.id) + 1;
+    const leaderboard = await this.competitionRepository.getLeaderboard(
+      command.competitionId
+    );
+    const currentRank = leaderboard.findIndex((e) => e.id === entry.id) + 1;
 
     return {
       entry: { ...entry, rank: currentRank },
       rank: currentRank,
-      improvement: previousRank ? {
-        previousRank,
-        rankChange: previousRank - currentRank
-      } : undefined
+      improvement: previousRank
+        ? {
+          previousRank,
+          rankChange: previousRank - currentRank,
+        }
+        : undefined,
     };
   }
 }

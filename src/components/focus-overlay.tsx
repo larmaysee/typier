@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { Keyboard } from "lucide-react";
 
 interface FocusOverlayProps {
@@ -8,6 +9,21 @@ interface FocusOverlayProps {
 }
 
 export function FocusOverlay({ isVisible, onClick }: FocusOverlayProps) {
+  useEffect(() => {
+    if (!isVisible) return;
+
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // Ignore modifier keys
+      if (e.key === "Shift" || e.key === "Control" || e.key === "Alt" || e.key === "Meta") {
+        return;
+      }
+      onClick();
+    };
+
+    window.addEventListener("keydown", handleKeyPress);
+    return () => window.removeEventListener("keydown", handleKeyPress);
+  }, [isVisible, onClick]);
+
   if (!isVisible) return null;
 
   return (

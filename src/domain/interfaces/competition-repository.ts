@@ -1,4 +1,5 @@
-import { Competition, CompetitionEntry } from "../entities";
+import { Competition, CompetitionEntry } from "../entities/competition";
+
 
 export interface ICompetitionRepository {
   findActive(): Promise<Competition[]>;

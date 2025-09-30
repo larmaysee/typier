@@ -1,8 +1,9 @@
 import { LanguageCode } from "@/enums/site-config";
-import { KeyboardLayout } from "../../domain/entities/keyboard-layout";
-import { IKeyboardLayoutRepository, IUserRepository } from "../../domain/interfaces/repositories";
-import { GetAvailableLayoutsQueryDTO } from "../dto/queries.dto";
-import { LayoutsResponseDTO } from "../dto/keyboard-layouts.dto";
+import { KeyboardLayout } from "@/domain/entities/keyboard-layout";
+import { IKeyboardLayoutRepository, IUserRepository } from "@/domain/interfaces/repositories";
+import { GetAvailableLayoutsQueryDTO } from "@/application/dto/queries.dto";
+import { LayoutsResponseDTO } from "@/application/dto/keyboard-layouts.dto";
+import { LayoutVariant } from "@/domain";
 
 export class GetAvailableLayoutsUseCase {
   constructor(
@@ -101,7 +102,7 @@ export class GetAvailableLayoutsUseCase {
     }
 
     // For new users, recommend popular, standard layouts
-    const isStandardLayout = !layout.isCustom && layout.variant === 'standard';
+    const isStandardLayout = !layout.isCustom && layout.variant === LayoutVariant.US;
 
     return isPopular || isStandardLayout;
   }

@@ -4,8 +4,8 @@ import { useCallback, useRef } from "react";
 
 interface SessionControlsState {
   isFocused: boolean;
-  inputRef: React.RefObject<HTMLInputElement>;
-  textContainerRef: React.RefObject<HTMLDivElement>;
+  inputRef: React.RefObject<HTMLInputElement | null>;
+  textContainerRef: React.RefObject<HTMLDivElement | null>;
 }
 
 interface SessionControlsActions {
@@ -32,7 +32,7 @@ export function useSessionControls(
     isFocused,
     inputRef,
     textContainerRef,
-    
+
     // Actions
     setIsFocused,
     focusInput

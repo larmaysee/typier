@@ -2,23 +2,25 @@
 
 import { useCallback, useEffect, useState, useRef } from "react";
 import { useSiteConfig } from "@/components/site-config";
-import { usePracticeMode } from "@/components/pratice-mode";
 import { useTypingStatistics } from "@/components/typing-statistics";
-import engdatasets from "@/datas/english-data";
-import lidatasets from "@/datas/lisu-data";
-import mydatasets from "@/datas/myanmar-data";
+import { useDependencyInjection } from "@/presentation/hooks/core/use-dependency-injection";
+import { StartTypingSessionUseCase } from "@/application/use-cases/typing/start-typing-session";
+import { ProcessTypingInputUseCase } from "@/application/use-cases/typing/process-typing-input";
+import { CompleteTypingSessionUseCase } from "@/application/use-cases/typing/complete-typing-session";
+import { StartSessionCommand, ProcessInputCommand } from "@/application/commands/session.commands";
+import { TypingSessionDto, CompleteSessionCommandDTO } from "@/application/dto/typing-session.dto";
+import { TypingMode, DifficultyLevel, TextType } from "@/domain/enums/typing-mode";
+import { LanguageCode } from "@/enums/site-config";
 
 export interface TypingSessionState {
+  sessionId: string | null;
   currentData: string | null;
   language: string;
-  syntaxs: string[];
   typedText: string;
   correctWords: number;
   incorrectWords: number;
   startTime: number | null;
   isFocused: boolean;
-  isStartNextWord: boolean;
-  isComposing: boolean;
   selectedTime: number;
   timeLeft: number;
   cursorPosition: {
@@ -39,137 +41,237 @@ export interface TypingSessionState {
     charactersTyped: number;
     errors: number;
   } | null;
+  currentWPM: number;
+  currentAccuracy: number;
+  progress: number;
 }
 
 const initialState: TypingSessionState = {
+  sessionId: null,
   currentData: null,
   language: "en",
-  syntaxs: [],
   typedText: "",
   correctWords: 0,
   incorrectWords: 0,
   startTime: null,
   isFocused: false,
-  isStartNextWord: false,
-  isComposing: false,
   selectedTime: 30,
   timeLeft: 30,
   cursorPosition: { wordIndex: 0, charIndex: 0, isSpacePosition: false },
   testCompleted: false,
   showResults: false,
   lastTestResult: null,
+  currentWPM: 0,
+  currentAccuracy: 100,
+  progress: 0,
 };
 
 export function useTypingSession() {
   const { config } = useSiteConfig();
-  const { setActiveChar, setComposeKey } = usePracticeMode();
   const { addTestResult } = useTypingStatistics();
-  
-  const [state, setState] = useState<TypingSessionState>(initialState);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const textContainerRef = useRef<HTMLDivElement>(null);
+  const { resolve, serviceTokens } = useDependencyInjection();
 
-  // Update language when config changes
-  useEffect(() => {
-    setState(prev => ({ ...prev, language: config.language.code }));
-  }, [config.language.code]);
+  const [state, setState] = useState<TypingSessionState>(initialState);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  const inputRef = useRef<HTMLInputElement>(null!);
+  const textContainerRef = useRef<HTMLDivElement>(null!);
+
+  // Resolve use cases from DI container
+  const startSessionUseCase = resolve<StartTypingSessionUseCase>(serviceTokens.START_TYPING_SESSION_USE_CASE);
+  const processInputUseCase = resolve<ProcessTypingInputUseCase>(serviceTokens.PROCESS_TYPING_INPUT_USE_CASE);
+  const completeSessionUseCase = resolve<CompleteTypingSessionUseCase>(serviceTokens.COMPLETE_TYPING_SESSION_USE_CASE);
+
+  // Map config difficulty mode to domain difficulty level
+  const getDifficultyLevel = useCallback((): DifficultyLevel => {
+    if (config.difficultyMode === 'chars') return DifficultyLevel.EASY;
+    return DifficultyLevel.MEDIUM; // Default for sentence mode
+  }, [config.difficultyMode]);
+
+  // Map config to typing mode
+  const getTypingMode = useCallback((): TypingMode => {
+    if (config.practiceMode) return TypingMode.PRACTICE;
+    return TypingMode.NORMAL; // Default mode
+  }, [config.practiceMode]);
+
+  // Map config difficulty mode to text type
+  const getTextType = useCallback((): TextType => {
+    return config.difficultyMode === 'chars' ? TextType.CHARS : TextType.SENTENCES;
+  }, [config.difficultyMode]);
+
+  // Start new session
+  const startNewSession = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const command: StartSessionCommand = {
+        userId: 'anonymous', // TODO: Get from auth context when available
+        mode: getTypingMode(),
+        difficulty: getDifficultyLevel(),
+        language: config.language.code as LanguageCode,
+        duration: state.selectedTime,
+        textType: getTextType(),
+      };
+
+      const response = await startSessionUseCase.execute(command);
+
+      setState(prev => ({
+        ...prev,
+        sessionId: response.session.id,
+        currentData: response.textContent,
+        language: config.language.code,
+        timeLeft: state.selectedTime,
+        typedText: "",
+        correctWords: 0,
+        incorrectWords: 0,
+        startTime: null,
+        testCompleted: false,
+        showResults: false,
+        currentWPM: 0,
+        currentAccuracy: 100,
+        progress: 0,
+        cursorPosition: { wordIndex: 0, charIndex: 0, isSpacePosition: false },
+      }));
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to start typing session';
+      setError(errorMessage);
+      console.error('Error starting session:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [
+    startSessionUseCase,
+    config.language.code,
+    config.practiceMode,
+    config.difficultyMode,
+    state.selectedTime,
+    getTypingMode,
+    getDifficultyLevel,
+    getTextType
+  ]);
+
+  // Process typing input
+  const processInput = useCallback(async (input: string) => {
+    if (!state.sessionId) return;
+
+    try {
+      const command: ProcessInputCommand = {
+        sessionId: state.sessionId,
+        input,
+        timestamp: Date.now(),
+      };
+
+      const sessionDto = await processInputUseCase.execute(command);
+
+      setState(prev => ({
+        ...prev,
+        typedText: sessionDto.currentInput,
+        startTime: sessionDto.startTime,
+        timeLeft: sessionDto.timeLeft,
+        currentWPM: sessionDto.currentWPM,
+        currentAccuracy: sessionDto.currentAccuracy,
+        progress: sessionDto.progress,
+        testCompleted: sessionDto.status === 'completed',
+        cursorPosition: {
+          wordIndex: 0, // TODO: Map from sessionDto
+          charIndex: sessionDto.currentInput.length,
+          isSpacePosition: false,
+        }
+      }));
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to process input';
+      setError(errorMessage);
+      console.error('Error processing input:', err);
+    }
+  }, [state.sessionId, processInputUseCase]);
+
+  // Complete session
+  const completeSession = useCallback(async () => {
+    if (!state.sessionId) return;
+
+    try {
+      const command: CompleteSessionCommandDTO = {
+        sessionId: state.sessionId,
+        finalInput: state.typedText,
+        completionTime: Date.now(),
+        isManualCompletion: false,
+      };
+
+      const completedSession = await completeSessionUseCase.execute(command);
+      const results = completedSession.test.results;
+
+      // Calculate legacy format for existing components
+      const totalWords = results.correctWords + results.incorrectWords;
+      const testResult = {
+        wpm: results.wpm,
+        accuracy: results.accuracy,
+        correctWords: results.correctWords,
+        incorrectWords: results.incorrectWords,
+        totalWords,
+        testDuration: results.duration,
+        language: config.language.code,
+        charactersTyped: results.charactersTyped,
+        errors: results.errors,
+      };
+
+      addTestResult(testResult);
+
+      setState(prev => ({
+        ...prev,
+        lastTestResult: testResult,
+        showResults: true,
+        correctWords: results.correctWords,
+        incorrectWords: results.incorrectWords,
+      }));
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to complete session';
+      setError(errorMessage);
+      console.error('Error completing session:', err);
+    }
+  }, [state.sessionId, state.typedText, completeSessionUseCase, addTestResult, config.language.code]);
 
   const calculateWPM = useCallback(() => {
-    if (state.startTime === null) return 0;
-    const elapsedTime = (state.selectedTime - state.timeLeft) / 60;
-    return elapsedTime > 0 ? Math.round(state.correctWords / elapsedTime) : 0;
-  }, [state.startTime, state.selectedTime, state.timeLeft, state.correctWords]);
+    return state.currentWPM;
+  }, [state.currentWPM]);
 
   const getRandomData = useCallback(() => {
-    const datasets: { [key: string]: { syntaxs: string[]; chars?: string[] } } = {
-      en: engdatasets,
-      my: mydatasets,
-      li: lidatasets,
-    };
+    // This now triggers a new session via the use case
+    startNewSession();
+  }, [startNewSession]);
 
-    const dataset = datasets[state.language];
-    if (!dataset) return;
+  // Initialize session on mount or when config changes
+  useEffect(() => {
+    startNewSession();
+  }, [config.language.code, config.difficultyMode, config.practiceMode]);
 
-    if (config.difficultyMode === 'chars' && dataset.chars) {
-      const chars = dataset.chars;
-      const sequenceLength = Math.floor(Math.random() * 20) + 10;
-      let sequence = '';
+  // Update time left
+  useEffect(() => {
+    setState(prev => ({ ...prev, timeLeft: state.selectedTime }));
+  }, [state.selectedTime]);
 
-      for (let i = 0; i < sequenceLength; i++) {
-        const randomChar = chars[Math.floor(Math.random() * chars.length)];
-        sequence += randomChar;
-
-        if (i > 0 && i % 5 === 0 && Math.random() > 0.7) {
-          sequence += ' ';
-        }
-      }
-
-      setState(prev => ({ ...prev, currentData: sequence.trim() }));
-    } else if (state.syntaxs.length) {
-      const randomIndex = Math.floor(Math.random() * state.syntaxs.length);
-      setState(prev => ({ ...prev, currentData: state.syntaxs[randomIndex] }));
-    }
-  }, [state.syntaxs, state.language, config.difficultyMode]);
-
-  // Focus input on component mount
+  // Focus input on mount
   useEffect(() => {
     if (inputRef.current) {
       inputRef.current.focus();
     }
   }, []);
+
+  // Practice mode character highlighting
+  // TODO: Re-implement with clean architecture practice mode
   useEffect(() => {
-    const datasets: { [key: string]: { syntaxs: string[]; chars?: string[] } } = {
-      en: engdatasets,
-      my: mydatasets,
-      li: lidatasets,
-    };
+    // Practice mode character highlighting removed temporarily
+    // Will be re-added when practice mode is refactored to clean architecture
+  }, [config.practiceMode, state.currentData]);
 
-    if (state.language) {
-      const dataset = datasets[state.language];
-
-      if (config.difficultyMode === 'chars' && dataset.chars) {
-        const generateCharSequence = () => {
-          const chars = dataset.chars!;
-          const sequenceLength = Math.floor(Math.random() * 20) + 10;
-          let sequence = '';
-
-          for (let i = 0; i < sequenceLength; i++) {
-            const randomChar = chars[Math.floor(Math.random() * chars.length)];
-            sequence += randomChar;
-
-            if (i > 0 && i % 5 === 0 && Math.random() > 0.7) {
-              sequence += ' ';
-            }
-          }
-
-          return sequence.trim();
-        };
-
-        const charSequences = Array.from({ length: 10 }, generateCharSequence);
-        setState(prev => ({ 
-          ...prev, 
-          syntaxs: charSequences, 
-          currentData: charSequences[0] 
-        }));
-      } else {
-        const randomIndex = Math.floor(Math.random() * dataset.syntaxs.length);
-        setState(prev => ({ 
-          ...prev, 
-          syntaxs: dataset.syntaxs, 
-          currentData: dataset.syntaxs[randomIndex] 
-        }));
-      }
-    }
-  }, [state.language, config.difficultyMode]);
-
-  // Timer management
+  // Timer countdown
   useEffect(() => {
     if (state.startTime !== null && state.timeLeft > 0 && !state.testCompleted) {
       const timer = setInterval(() => {
         setState(prev => ({
           ...prev,
-          timeLeft: prev.timeLeft <= 1 ? 0 : prev.timeLeft - 1,
-          testCompleted: prev.timeLeft <= 1 ? true : prev.testCompleted
+          timeLeft: Math.max(0, prev.timeLeft - 1),
         }));
       }, 1000);
 
@@ -177,35 +279,12 @@ export function useTypingSession() {
     }
   }, [state.startTime, state.testCompleted, state.timeLeft]);
 
-  // Test completion handling
+  // Auto-complete when time runs out
   useEffect(() => {
-    if (state.testCompleted && !config.practiceMode && state.startTime !== null && !state.showResults) {
-      const totalWords = state.correctWords + state.incorrectWords;
-      const accuracy = totalWords > 0 ? Math.round((state.correctWords / totalWords) * 100) : 0;
-      const testDuration = state.selectedTime - state.timeLeft;
-      const charactersTyped = state.typedText.length;
-      const errors = state.incorrectWords;
-
-      const testResult = {
-        wpm: calculateWPM(),
-        accuracy,
-        correctWords: state.correctWords,
-        incorrectWords: state.incorrectWords,
-        totalWords,
-        testDuration,
-        language: config.language.code,
-        charactersTyped,
-        errors,
-      };
-
-      addTestResult(testResult);
-      setState(prev => ({ 
-        ...prev, 
-        lastTestResult: testResult, 
-        showResults: true 
-      }));
+    if (state.timeLeft === 0 && !state.testCompleted && state.sessionId) {
+      completeSession();
     }
-  }, [state.testCompleted, config.practiceMode, state.startTime, state.showResults, state.correctWords, state.incorrectWords, state.selectedTime, state.timeLeft, state.typedText.length, calculateWPM, config.language.code, addTestResult]);
+  }, [state.timeLeft, state.testCompleted, state.sessionId, completeSession]);
 
   return {
     session: state,
@@ -219,7 +298,10 @@ export function useTypingSession() {
     calculateWPM,
     getRandomData,
     setState,
-    error: null, // TODO: Add error handling
-    isLoading: false, // TODO: Add loading state
+    processInput,
+    startNewSession,
+    completeSession,
+    error,
+    isLoading,
   };
 }

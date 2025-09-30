@@ -24,8 +24,8 @@ export class LayoutRegistryService implements ILayoutRegistryService {
     // Validate the layout before registration
     this.validateLayoutForRegistration(layout);
 
-    // Register the layout
-    this.registeredLayouts.set(layout.id, { ...layout });
+    // Register the layout (store the actual KeyboardLayout instance)
+    this.registeredLayouts.set(layout.id, layout);
 
     // Index by language
     if (!this.layoutsByLanguage.has(layout.language)) {
@@ -71,7 +71,7 @@ export class LayoutRegistryService implements ILayoutRegistryService {
     for (const layoutId of layoutIds) {
       const layout = this.registeredLayouts.get(layoutId);
       if (layout) {
-        layouts.push({ ...layout }); // Return copy
+        layouts.push(layout); // Return the layout instance directly
       }
     }
 
@@ -88,7 +88,7 @@ export class LayoutRegistryService implements ILayoutRegistryService {
 
     if (criteria.namePattern) {
       const pattern = criteria.namePattern.toLowerCase();
-      layouts = layouts.filter(layout => 
+      layouts = layouts.filter(layout =>
         layout.name.toLowerCase().includes(pattern) ||
         layout.displayName.toLowerCase().includes(pattern)
       );
@@ -108,7 +108,7 @@ export class LayoutRegistryService implements ILayoutRegistryService {
       console.warn("Tag filtering not yet implemented");
     }
 
-    return layouts.map(layout => ({ ...layout })); // Return copies
+    return layouts; // Return the layout instances directly
   }
 
   async isLayoutRegistered(layoutId: string): Promise<boolean> {
@@ -119,7 +119,7 @@ export class LayoutRegistryService implements ILayoutRegistryService {
    * Get all registered layouts
    */
   getAllRegisteredLayouts(): KeyboardLayout[] {
-    return Array.from(this.registeredLayouts.values()).map(layout => ({ ...layout }));
+    return Array.from(this.registeredLayouts.values()); // Return the layout instances
   }
 
   /**
@@ -131,7 +131,7 @@ export class LayoutRegistryService implements ILayoutRegistryService {
     customLayouts: number;
   } {
     const layouts = Array.from(this.registeredLayouts.values());
-    
+
     const layoutsByLanguage: Record<string, number> = {};
     let customLayouts = 0;
 
@@ -196,7 +196,7 @@ export class LayoutRegistryService implements ILayoutRegistryService {
       layouts = layouts.filter(layout => layout.language === language);
     }
 
-    return layouts.map(layout => ({ ...layout }));
+    return layouts; // Return the layout instances directly
   }
 
   private validateLayoutForRegistration(layout: KeyboardLayout): void {
@@ -223,8 +223,8 @@ export class LayoutRegistryService implements ILayoutRegistryService {
         throw new Error("All key mappings must have a key");
       }
 
-      if (!mapping.normal) {
-        throw new Error("All key mappings must have a normal character");
+      if (!mapping.character) {
+        throw new Error("All key mappings must have a character");
       }
 
       if (keySet.has(mapping.key)) {
@@ -238,28 +238,25 @@ export class LayoutRegistryService implements ILayoutRegistryService {
       throw new Error("Layout must have metadata");
     }
 
-    // Set default values for missing metadata
+    // Validate required metadata fields (don't set defaults - metadata is readonly)
     if (!layout.metadata.description) {
-      layout.metadata.description = `Custom ${layout.name} layout`;
+      throw new Error("Layout metadata must have a description");
     }
 
     if (!layout.metadata.author) {
-      layout.metadata.author = 'User';
+      throw new Error("Layout metadata must have an author");
     }
 
     if (!layout.metadata.version) {
-      layout.metadata.version = '1.0.0';
+      throw new Error("Layout metadata must have a version");
     }
 
-    const now = new Date().toISOString().split('T')[0];
-    if (!layout.metadata.createdDate) {
-      layout.metadata.createdDate = now;
+    if (!layout.metadata.dateCreated) {
+      throw new Error("Layout metadata must have dateCreated");
     }
 
-    layout.metadata.lastModified = now;
-
-    if (layout.metadata.inputMethods === undefined || layout.metadata.inputMethods.length === 0) {
-      layout.metadata.inputMethods = ['keyboard'];
+    if (!layout.metadata.lastModified) {
+      throw new Error("Layout metadata must have lastModified");
     }
   }
 }

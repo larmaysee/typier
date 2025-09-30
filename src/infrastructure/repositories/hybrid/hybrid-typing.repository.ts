@@ -1,13 +1,13 @@
-import { 
-  ITypingRepository, 
-  TestFilters, 
-  LeaderboardFilters, 
-  LeaderboardEntry 
+import {
+  ITypingRepository,
+  TestFilters,
+  LeaderboardFilters,
 } from "@/domain/interfaces";
 import { TypingTest } from "@/domain/entities";
 import { AppwriteTypingRepository } from "../appwrite/appwrite-typing.repository";
 import { LocalTypingRepository } from "../local-storage/local-typing.repository";
 import type { ILogger } from "@/shared/utils/logger";
+import { LeaderboardEntry } from "@/domain";
 
 interface QueuedOperation {
   id: string;
@@ -44,7 +44,7 @@ export class HybridTypingRepository implements ITypingRepository {
       }
     } catch (error) {
       this.logger.warn('Failed to save to Appwrite, queuing for sync', error as Error);
-      
+
       // Queue for retry when online (but only for non-practice modes)
       if (test.mode !== 'practice') {
         await this.queueForSync({
@@ -62,18 +62,18 @@ export class HybridTypingRepository implements ITypingRepository {
     try {
       // Try Appwrite first for most recent data
       const appwriteTests = await this.appwriteRepository.getUserTests(userId, filters);
-      
+
       // Also get local tests to ensure we have everything (including practice tests and offline tests)
       const localTests = await this.localRepository.getUserTests(userId, filters);
-      
+
       // Merge results, preferring Appwrite data for overlapping tests
       const mergedTests = this.mergeTestResults(appwriteTests, localTests);
-      
+
       this.logger.info(`Retrieved ${mergedTests.length} tests for user ${userId} from hybrid storage`);
       return mergedTests;
     } catch (error) {
       this.logger.warn('Appwrite unavailable, using local storage only', error as Error);
-      
+
       // Fallback to localStorage only
       return await this.localRepository.getUserTests(userId, filters);
     }
@@ -85,7 +85,7 @@ export class HybridTypingRepository implements ITypingRepository {
       return await this.appwriteRepository.getLeaderboard(filters);
     } catch (error) {
       this.logger.warn('Appwrite unavailable, using local leaderboard', error as Error);
-      
+
       // Fallback to local leaderboard (will be limited to this device's data)
       return await this.localRepository.getLeaderboard(filters);
     }
@@ -97,7 +97,7 @@ export class HybridTypingRepository implements ITypingRepository {
       return await this.appwriteRepository.getCompetitionEntries(competitionId);
     } catch (error) {
       this.logger.warn('Appwrite unavailable, using local competition entries', error as Error);
-      
+
       // Fallback to local storage
       return await this.localRepository.getCompetitionEntries(competitionId);
     }
@@ -109,14 +109,14 @@ export class HybridTypingRepository implements ITypingRepository {
 
     // Try to save to Appwrite
     const nonPracticeTests = tests.filter(test => test.mode !== 'practice');
-    
+
     if (nonPracticeTests.length > 0) {
       try {
         await this.appwriteRepository.bulkSave(nonPracticeTests);
         this.logger.info(`Bulk saved ${tests.length} tests to hybrid storage`);
       } catch (error) {
         this.logger.warn('Failed to bulk save to Appwrite, queuing for sync', error as Error);
-        
+
         // Queue each test for individual sync
         for (const test of nonPracticeTests) {
           await this.queueForSync({
@@ -141,7 +141,7 @@ export class HybridTypingRepository implements ITypingRepository {
       this.logger.info(`Deleted test ${testId} from hybrid storage`);
     } catch (error) {
       this.logger.warn('Failed to delete from Appwrite, queuing for sync', error as Error);
-      
+
       // Queue for sync
       await this.queueForSync({
         id: `delete_${testId}`,
@@ -169,18 +169,18 @@ export class HybridTypingRepository implements ITypingRepository {
     // Convert back to array and sort by timestamp
     const mergedTests = Array.from(testMap.values());
     mergedTests.sort((a, b) => b.timestamp - a.timestamp);
-    
+
     return mergedTests;
   }
 
   private async queueForSync(operation: QueuedOperation): Promise<void> {
     try {
       const queue = await this.getSyncQueue();
-      
+
       // Remove existing operation with same ID to avoid duplicates
       const filteredQueue = queue.filter(op => op.id !== operation.id);
       filteredQueue.push(operation);
-      
+
       await this.storage.setItem(this.SYNC_QUEUE_KEY, filteredQueue);
       this.logger.debug(`Queued operation for sync: ${operation.id}`);
     } catch (error) {
@@ -225,10 +225,10 @@ export class HybridTypingRepository implements ITypingRepository {
           this.logger.debug(`Successfully synced operation: ${operation.id}`);
         } catch (error) {
           this.logger.warn(`Failed to sync operation: ${operation.id}`, error as Error);
-          
+
           // Increment retry count
           operation.retryCount++;
-          
+
           if (operation.retryCount < this.MAX_RETRY_COUNT) {
             // Add delay for retries
             operation.timestamp = Date.now() + this.RETRY_DELAY_MS;

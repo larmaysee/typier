@@ -1,5 +1,8 @@
-import { KeyboardLayout } from "../../../domain/entities/keyboard-layout";
-import { IKeyboardLayoutRepository } from "../../../domain/interfaces/keyboard-layout-repository.interface";
+import { KeyboardLayout } from "@/domain/entities/keyboard-layout";
+import { IKeyboardLayoutRepository } from "@/domain/interfaces/repositories";
+import { DifficultyLevel } from "@/domain/enums/typing-mode";
+import { LayoutType, LayoutVariant, InputMethod } from "@/domain/enums/keyboard-layouts";
+import { LanguageCode } from "@/enums/site-config";
 
 export interface ExportLayoutCommand {
   layoutId: string;
@@ -32,11 +35,11 @@ export interface ImportLayoutResult {
 export class ExportImportLayoutUseCase {
   constructor(
     private keyboardLayoutRepository: IKeyboardLayoutRepository
-  ) {}
+  ) { }
 
   async exportLayout(command: ExportLayoutCommand): Promise<ExportLayoutResult> {
     const layout = await this.keyboardLayoutRepository.findById(command.layoutId);
-    
+
     if (!layout) {
       throw new Error("Layout not found");
     }
@@ -61,38 +64,51 @@ export class ExportImportLayoutUseCase {
   async importLayout(command: ImportLayoutCommand): Promise<ImportLayoutResult> {
     const format = command.format || 'json';
     const warnings: string[] = [];
-    
+
     // Parse the layout data
     const parsedLayout = await this.parseLayoutData(command.layoutData, format);
-    
+
     // Validate the parsed layout
     const validationResult = this.validateImportedLayout(parsedLayout);
     warnings.push(...validationResult.warnings);
-    
+
     if (validationResult.hasErrors) {
       throw new Error(`Import validation failed: ${validationResult.errors.join(', ')}`);
     }
 
     // Create new layout from imported data
-    const layoutData = {
-      name: this.generateImportedLayoutName(parsedLayout, command.newName, command.userId),
-      displayName: command.newName || parsedLayout.displayName || parsedLayout.name,
-      language: parsedLayout.language,
-      variant: parsedLayout.variant,
-      keyMappings: parsedLayout.keyMappings,
-      isCustom: true,
-      createdBy: command.userId,
-      isPublic: command.makePublic || false,
-      metadata: {
-        ...parsedLayout.metadata,
-        version: '1.0.0',
-        author: command.userId,
-        originalAuthor: parsedLayout.metadata?.author,
-        importedAt: new Date().toISOString()
-      }
-    };
+    const now = Date.now();
+    const layoutName = command.newName || parsedLayout.name || 'Imported Layout';
 
-    const layout = await this.keyboardLayoutRepository.create(layoutData);
+    const layout = KeyboardLayout.create({
+      id: `imported_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      name: layoutName,
+      displayName: layoutName,
+      language: parsedLayout.language || LanguageCode.EN,
+      layoutType: parsedLayout.layoutType || LayoutType.CUSTOM,
+      variant: parsedLayout.variant || LayoutVariant.US,
+      inputMethod: parsedLayout.inputMethod || InputMethod.DIRECT,
+      keyMappings: parsedLayout.keyMappings || [],
+      metadata: {
+        description: `Imported layout: ${layoutName}`,
+        author: command.userId,
+        version: '1.0.0',
+        compatibility: parsedLayout.metadata?.compatibility || ['desktop'],
+        tags: [...(parsedLayout.metadata?.tags || []), 'imported'],
+        difficulty: parsedLayout.metadata?.difficulty || DifficultyLevel.MEDIUM,
+        popularity: 0,
+        dateCreated: now,
+        lastModified: now
+      },
+      isCustom: true,
+      isPublic: command.makePublic || false,
+      createdBy: command.userId,
+      createdAt: now,
+      updatedAt: now
+    });
+
+    // Save the layout - use proper repository method
+    await this.keyboardLayoutRepository.saveCustomLayout(layout);
 
     return {
       layout,
@@ -102,8 +118,8 @@ export class ExportImportLayoutUseCase {
   }
 
   private async serializeLayout(
-    layout: KeyboardLayout, 
-    format: string, 
+    layout: KeyboardLayout,
+    format: string,
     includeMetadata = true
   ): Promise<string> {
     const exportObject: any = {
@@ -124,13 +140,13 @@ export class ExportImportLayoutUseCase {
     switch (format.toLowerCase()) {
       case 'json':
         return JSON.stringify(exportObject, null, 2);
-      
+
       case 'xml':
         return this.convertToXML(exportObject);
-      
+
       case 'yaml':
         return this.convertToYAML(exportObject);
-      
+
       default:
         throw new Error(`Unsupported export format: ${format}`);
     }
@@ -141,13 +157,13 @@ export class ExportImportLayoutUseCase {
       switch (format.toLowerCase()) {
         case 'json':
           return JSON.parse(layoutData);
-        
+
         case 'xml':
           return this.parseXML(layoutData);
-        
+
         case 'yaml':
           return this.parseYAML(layoutData);
-        
+
         default:
           throw new Error(`Unsupported import format: ${format}`);
       }
@@ -201,8 +217,8 @@ export class ExportImportLayoutUseCase {
   }
 
   private generateImportedLayoutName(
-    parsedLayout: Partial<KeyboardLayout>, 
-    customName: string | undefined, 
+    parsedLayout: Partial<KeyboardLayout>,
+    customName: string | undefined,
     userId: string
   ): string {
     const baseName = customName || parsedLayout.displayName || parsedLayout.name || 'imported-layout';
@@ -214,7 +230,7 @@ export class ExportImportLayoutUseCase {
   private convertToXML(obj: any): string {
     // Simple XML conversion - in production, use a proper XML library
     let xml = '<?xml version="1.0" encoding="UTF-8"?>\n<layout>\n';
-    
+
     Object.entries(obj).forEach(([key, value]) => {
       if (Array.isArray(value)) {
         xml += `  <${key}>\n`;
@@ -230,7 +246,7 @@ export class ExportImportLayoutUseCase {
           xml += `    </item>\n`;
         });
         xml += `  </${key}>\n`;
-      } else if (typeof value === 'object') {
+      } else if (typeof value === 'object' && value !== null) {
         xml += `  <${key}>\n`;
         Object.entries(value).forEach(([subKey, subValue]) => {
           xml += `    <${subKey}>${this.escapeXML(String(subValue))}</${subKey}>\n`;
@@ -240,7 +256,7 @@ export class ExportImportLayoutUseCase {
         xml += `  <${key}>${this.escapeXML(String(value))}</${key}>\n`;
       }
     });
-    
+
     xml += '</layout>';
     return xml;
   }
@@ -248,14 +264,14 @@ export class ExportImportLayoutUseCase {
   private convertToYAML(obj: any): string {
     // Simple YAML conversion - in production, use a proper YAML library
     const yamlLines: string[] = [];
-    
+
     const convertValue = (value: any, indent = 0): string => {
       const indentStr = '  '.repeat(indent);
-      
+
       if (Array.isArray(value)) {
         return value.map(item => {
           if (typeof item === 'object') {
-            const itemLines = Object.entries(item).map(([k, v]) => 
+            const itemLines = Object.entries(item).map(([k, v]) =>
               `${indentStr}  ${k}: ${typeof v === 'object' ? '\n' + convertValue(v, indent + 2) : String(v)}`
             );
             return `${indentStr}- \n${itemLines.join('\n')}`;
@@ -263,11 +279,11 @@ export class ExportImportLayoutUseCase {
           return `${indentStr}- ${item}`;
         }).join('\n');
       } else if (typeof value === 'object') {
-        return Object.entries(value).map(([k, v]) => 
+        return Object.entries(value).map(([k, v]) =>
           `${indentStr}${k}: ${typeof v === 'object' ? '\n' + convertValue(v, indent + 1) : String(v)}`
         ).join('\n');
       }
-      
+
       return String(value);
     };
 

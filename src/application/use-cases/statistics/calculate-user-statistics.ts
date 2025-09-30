@@ -1,8 +1,6 @@
-import { LanguageCode } from "@/enums/site-config";
-import { TypingMode } from "../../domain/entities/typing";
-import { ITypingRepository, IUserRepository, TestFilters } from "../../domain/interfaces/repositories";
-import { GetUserStatsQueryDTO } from "../dto/queries.dto";
-import { UserStatisticsResponseDTO } from "../dto/statistics.dto";
+import { ITypingRepository, IUserRepository, TestFilters } from "@/domain/interfaces/repositories";
+import { GetUserStatsQueryDTO } from "@/application/dto/queries.dto";
+import { UserStatisticsResponseDTO } from "@/application/dto/statistics.dto";
 
 export class CalculateUserStatisticsUseCase {
   constructor(
@@ -52,14 +50,14 @@ export class CalculateUserStatisticsUseCase {
       userId,
       totalTests: userStats.totalTests,
       totalTimeTyped: userStats.totalTimeTyped,
-      bestWpm: userStats.bestWpm,
-      averageWpm: userStats.averageWpm,
+      bestWpm: userStats.bestWPM,
+      averageWpm: userStats.averageWPM,
       bestAccuracy: userStats.bestAccuracy,
       averageAccuracy: userStats.averageAccuracy,
       totalWordsTyped: userStats.totalWordsTyped,
       totalCharactersTyped: userStats.totalCharactersTyped,
       improvementRate,
-      lastTestDate: userStats.lastTestDate,
+      lastTestDate: new Date(userStats.lastUpdated),
       layoutStats,
       recentTests
     };

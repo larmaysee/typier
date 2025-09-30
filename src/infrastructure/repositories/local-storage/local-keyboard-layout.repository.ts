@@ -22,10 +22,10 @@ export class LocalKeyboardLayoutRepository implements IKeyboardLayoutRepository 
     try {
       const builtInLayouts = await this.getBuiltInLayouts(language);
       const customLayouts = await this.getCustomLayouts(language);
-      
+
       const allLayouts = [...builtInLayouts, ...customLayouts];
       allLayouts.sort((a, b) => a.name.localeCompare(b.name));
-      
+
       return allLayouts;
     } catch (error) {
       this.logger.error(`Failed to get available layouts for language: ${language}`, error as Error);
@@ -60,8 +60,8 @@ export class LocalKeyboardLayoutRepository implements IKeyboardLayoutRepository 
       this.logger.info(`Saved custom layout: ${layout.id}`);
     } catch (error) {
       this.logger.error('Failed to save custom layout', error as Error);
-      throw error instanceof RepositoryError 
-        ? error 
+      throw error instanceof RepositoryError
+        ? error
         : new RepositoryError('Failed to save custom layout', error as Error);
     }
   }
@@ -96,8 +96,8 @@ export class LocalKeyboardLayoutRepository implements IKeyboardLayoutRepository 
       this.logger.info(`Set preferred layout for user ${userId}, language ${language}: ${layoutId}`);
     } catch (error) {
       this.logger.error('Failed to set user preferred layout', error as Error);
-      throw error instanceof NotFoundError || error instanceof RepositoryError 
-        ? error 
+      throw error instanceof NotFoundError || error instanceof RepositoryError
+        ? error
         : new RepositoryError('Failed to set user preferred layout', error as Error);
     }
   }
@@ -106,7 +106,7 @@ export class LocalKeyboardLayoutRepository implements IKeyboardLayoutRepository 
     try {
       // Verify the layout exists and belongs to the user
       const layout = await this.storage.getItem<KeyboardLayout>(`${this.LAYOUTS_KEY_PREFIX}:${layoutId}`);
-      
+
       if (!layout) {
         throw new NotFoundError(`Layout not found: ${layoutId}`);
       }
@@ -198,49 +198,59 @@ export class LocalKeyboardLayoutRepository implements IKeyboardLayoutRepository 
     // In a real implementation, these would be more comprehensive
     return [
       // English layouts
-      {
+      KeyboardLayout.create({
         id: 'en_qwerty_us',
         name: 'QWERTY US',
         displayName: 'QWERTY (US)',
         language: LanguageCode.EN,
         layoutType: 'qwerty' as any,
         variant: 'us' as any,
+        inputMethod: 'keyboard' as any,
         keyMappings: this.createQwertyUSMappings(),
         metadata: {
           description: 'Standard US QWERTY keyboard layout',
           author: 'System',
           version: '1.0',
+          dateCreated: Date.now(),
+          lastModified: Date.now(),
           compatibility: ['Windows', 'macOS', 'Linux', 'Web'],
           tags: ['standard', 'qwerty', 'english'],
           difficulty: 'easy' as any,
           popularity: 100
         },
         isCustom: false,
+        isPublic: true,
+        createdBy: 'system',
         createdAt: Date.now(),
         updatedAt: Date.now()
-      },
+      }),
       // Lisu layouts  
-      {
+      KeyboardLayout.create({
         id: 'li_sil_basic',
         name: 'SIL Basic',
         displayName: 'SIL Basic',
         language: LanguageCode.LI,
         layoutType: 'custom' as any,
         variant: 'sil_basic' as any,
+        inputMethod: 'keyboard' as any,
         keyMappings: this.createSILBasicMappings(),
         metadata: {
           description: 'SIL Basic keyboard layout for Lisu',
           author: 'SIL International',
           version: '1.0',
+          dateCreated: Date.now(),
+          lastModified: Date.now(),
           compatibility: ['Windows', 'macOS', 'Linux', 'Web'],
           tags: ['sil', 'basic', 'lisu'],
           difficulty: 'medium' as any,
           popularity: 80
         },
         isCustom: false,
+        isPublic: true,
+        createdBy: 'system',
         createdAt: Date.now(),
         updatedAt: Date.now()
-      }
+      })
     ];
   }
 

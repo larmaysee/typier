@@ -31,7 +31,7 @@ export class LayoutManagerService implements ILayoutManagerService {
 
   async getLayoutsForLanguage(language: LanguageCode): Promise<KeyboardLayout[]> {
     const cacheKey = `layouts_${language}`;
-    
+
     if (this.layoutCache.has(cacheKey)) {
       return this.layoutCache.get(cacheKey)!;
     }
@@ -102,9 +102,9 @@ export class LayoutManagerService implements ILayoutManagerService {
         if (!mapping.key) {
           errors.push("Key mapping must have a key");
         }
-        
-        if (!mapping.normal) {
-          errors.push(`Key mapping for '${mapping.key}' must have a normal character`);
+
+        if (!mapping.character) {
+          errors.push(`Key mapping for '${mapping.key}' must have a character`);
         }
 
         if (keySet.has(mapping.key)) {
@@ -142,15 +142,33 @@ export class LayoutManagerService implements ILayoutManagerService {
       throw new Error(`Cannot register invalid layout: ${validation.errors.join(', ')}`);
     }
 
-    // Mark as custom
-    layout.isCustom = true;
+    // If not already marked as custom, create new layout with isCustom = true
+    let layoutToRegister = layout;
+    if (!layout.isCustom) {
+      layoutToRegister = KeyboardLayout.create({
+        id: layout.id,
+        name: layout.name,
+        displayName: layout.displayName,
+        language: layout.language,
+        layoutType: layout.layoutType,
+        variant: layout.variant,
+        inputMethod: layout.inputMethod,
+        keyMappings: layout.keyMappings,
+        metadata: layout.metadata,
+        isCustom: true,
+        isPublic: layout.isPublic,
+        createdBy: layout.createdBy,
+        createdAt: layout.createdAt,
+        updatedAt: Date.now()
+      });
+    }
 
     // Clear cache for the language to include the new layout
-    const cacheKey = `layouts_${layout.language}`;
+    const cacheKey = `layouts_${layoutToRegister.language}`;
     this.layoutCache.delete(cacheKey);
 
     // In a real implementation, this would persist to a repository
-    console.log(`Custom layout registered: ${layout.id}`);
+    console.log(`Custom layout registered: ${layoutToRegister.id}`);
   }
 
   async getLayoutCompatibility(layoutId: string): Promise<CompatibilityInfo> {
@@ -163,7 +181,7 @@ export class LayoutManagerService implements ILayoutManagerService {
     return {
       platforms: ['Windows', 'macOS', 'Linux', 'Web'],
       browsers: ['Chrome', 'Firefox', 'Safari', 'Edge'],
-      inputMethods: layout.metadata.inputMethods || ['keyboard'],
+      inputMethods: [layout.inputMethod],
       unicodeVersion: this.getRequiredUnicodeVersion(layout)
     };
   }
@@ -242,17 +260,17 @@ export class LayoutManagerService implements ILayoutManagerService {
   private getRequiredUnicodeVersion(layout: KeyboardLayout): string {
     // Determine Unicode version based on characters used
     const allChars = layout.keyMappings.flatMap(mapping => [
-      mapping.normal,
-      mapping.shift || '',
-      mapping.alt || '',
-      mapping.ctrl || ''
+      mapping.character,
+      mapping.shiftCharacter || '',
+      mapping.altCharacter || '',
+      mapping.ctrlCharacter || ''
     ]).join('');
 
     // Simple heuristics - in reality this would be more comprehensive
     if (/[\u{A4D0}-\u{A4FF}]/u.test(allChars)) {
       return '5.1'; // Lisu block
     }
-    
+
     if (/[\u{1000}-\u{109F}]/u.test(allChars)) {
       return '3.0'; // Myanmar block
     }

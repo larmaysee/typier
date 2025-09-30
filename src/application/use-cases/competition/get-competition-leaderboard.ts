@@ -1,6 +1,6 @@
-import { CompetitionEntry } from "../../../domain/entities/competition-entry";
-import { Competition } from "../../../domain/entities/competition";
-import { ICompetitionRepository } from "../../../domain/interfaces/competition-repository.interface";
+import { CompetitionEntry } from "@/domain/entities/competition-entry";
+import { Competition } from "@/domain/entities/competition";
+import { ICompetitionRepository } from "@/domain/interfaces/competition-repository.interface";
 
 export interface GetCompetitionLeaderboardQuery {
   competitionId: string;
@@ -27,18 +27,18 @@ export interface CompetitionLeaderboardResult {
 export class GetCompetitionLeaderboardUseCase {
   constructor(
     private competitionRepository: ICompetitionRepository
-  ) {}
+  ) { }
 
   async execute(query: GetCompetitionLeaderboardQuery): Promise<CompetitionLeaderboardResult> {
     const competition = await this.competitionRepository.findById(query.competitionId);
-    
+
     if (!competition) {
       throw new Error("Competition not found");
     }
 
     // Get leaderboard entries
     const entries = await this.competitionRepository.getLeaderboard(
-      query.competitionId, 
+      query.competitionId,
       query.limit
     );
 
@@ -92,7 +92,7 @@ export class GetCompetitionLeaderboardUseCase {
 
     const totalWpm = entries.reduce((sum, entry) => sum + entry.wpm, 0);
     const totalAccuracy = entries.reduce((sum, entry) => sum + entry.accuracy, 0);
-    
+
     return {
       averageWpm: totalWpm / entries.length,
       averageAccuracy: totalAccuracy / entries.length,
@@ -106,12 +106,12 @@ export class GetCompetitionLeaderboardUseCase {
     if (b.wpm !== a.wpm) {
       return b.wpm - a.wpm;
     }
-    
+
     // Secondary sort: Accuracy (descending)
     if (b.accuracy !== a.accuracy) {
       return b.accuracy - a.accuracy;
     }
-    
+
     // Tertiary sort: Completion time (ascending - faster is better)
     return a.completionTime - b.completionTime;
   }

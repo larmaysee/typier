@@ -1,8 +1,10 @@
 import { LanguageCode } from "@/enums/site-config";
-import { TypingMode, DifficultyLevel } from "../../domain/entities/typing";
-import { ITypingRepository, LeaderboardFilters } from "../../domain/interfaces/repositories";
-import { GetLeaderboardQueryDTO } from "../dto/queries.dto";
-import { LeaderboardResponseDTO } from "../dto/statistics.dto";
+import { ITypingRepository, LeaderboardFilters } from "@/domain/interfaces/repositories";
+import { GetLeaderboardQueryDTO } from "@/application/dto/queries.dto";
+import { LeaderboardResponseDTO } from "@/application/dto/statistics.dto";
+import { LeaderboardEntry } from "@/domain/entities/statistics";
+import { TypingMode, TypingTest } from "@/domain";
+import { GetLeaderboardQuery } from "@/application";
 
 export class GetLeaderboardUseCase {
   constructor(
@@ -140,8 +142,8 @@ export class GetLeaderboardUseCase {
       rank: startIndex + index + 1,
       userId: entry.userId,
       username: entry.username,
-      wpm: entry.bestWpm,
-      accuracy: entry.bestAccuracy
+      wpm: entry.bestWPM,
+      accuracy: entry.averageAccuracy
     }));
 
     return {
@@ -330,7 +332,7 @@ export class GetLeaderboardUseCase {
   }
 
   // Helper method to get leaderboard for specific user context
-  async getLeaderboardWithUserRank(query: GetLeaderboardQuery & { userId?: string }): Promise<LeaderboardDto> {
+  async getLeaderboardWithUserRank(query: GetLeaderboardQuery & { userId?: string }): Promise<LeaderboardResponseDTO> {
     const baseResult = await this.execute(query);
 
     if (!query.userId) {
@@ -342,7 +344,7 @@ export class GetLeaderboardUseCase {
 
     return {
       ...baseResult,
-      userRank
+      currentUserRank: userRank
     };
   }
 
@@ -352,7 +354,7 @@ export class GetLeaderboardUseCase {
       const filters = this.buildLeaderboardFilters(
         query.language,
         query.mode,
-        query.keyboardLayout,
+        query.layoutId,
         query.timeRange
       );
 

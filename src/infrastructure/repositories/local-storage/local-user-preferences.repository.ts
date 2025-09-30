@@ -12,7 +12,7 @@ export class LocalUserPreferencesRepository implements IUserRepository {
   constructor(
     private storage: LocalStorageClient,
     private logger: ILogger
-  ) {}
+  ) { }
 
   async findById(id: string): Promise<User | null> {
     try {
@@ -27,10 +27,10 @@ export class LocalUserPreferencesRepository implements IUserRepository {
   async save(user: User): Promise<void> {
     try {
       await this.storage.setItem(`${this.USERS_KEY_PREFIX}:${user.id}`, user);
-      
+
       // Also save preferences separately for easier access
       await this.storage.setItem(`${this.PREFERENCES_KEY_PREFIX}:${user.id}`, user.preferences);
-      
+
       this.logger.info(`Saved user to localStorage: ${user.id}`);
     } catch (error) {
       this.logger.error('Failed to save user to localStorage', error as Error);
@@ -42,15 +42,16 @@ export class LocalUserPreferencesRepository implements IUserRepository {
     try {
       // Update the separate preferences record
       await this.storage.setItem(`${this.PREFERENCES_KEY_PREFIX}:${userId}`, preferences);
-      
+
       // Also update the user record if it exists
-      const user = await this.storage.getItem<User>(`${this.USERS_KEY_PREFIX}:${userId}`);
-      if (user) {
-        user.preferences = preferences;
-        user.updatedAt = Date.now();
-        await this.storage.setItem(`${this.USERS_KEY_PREFIX}:${userId}`, user);
+      const userData = await this.storage.getItem<any>(`${this.USERS_KEY_PREFIX}:${userId}`);
+      if (userData) {
+        // Create new User instance with updated preferences
+        const user = User.create(userData);
+        const updatedUser = user.updatePreferences(preferences);
+        await this.storage.setItem(`${this.USERS_KEY_PREFIX}:${userId}`, updatedUser);
       }
-      
+
       this.logger.info(`Updated preferences for user: ${userId}`);
     } catch (error) {
       this.logger.error(`Failed to update preferences for user: ${userId}`, error as Error);
@@ -81,31 +82,11 @@ export class LocalUserPreferencesRepository implements IUserRepository {
 
   // Utility method to create a user with default preferences
   async createUserWithDefaults(userId: string, username: string, email: string): Promise<User> {
-    const defaultPreferences: UserPreferences = {
-      defaultLanguage: LanguageCode.EN,
-      keyboardLayouts: {} as Record<LanguageCode, string>,
-      theme: 'system',
-      soundEnabled: false,
-      visualFeedback: true,
-      autoCompleteEnabled: true
-    };
-
-    const user: User = {
+    const user = User.create({
       id: userId,
       username,
-      email,
-      preferences: defaultPreferences,
-      statistics: {
-        totalTests: 0,
-        bestWpm: 0,
-        averageAccuracy: 0,
-        totalTimeTyped: 0,
-        favoriteLanguage: LanguageCode.EN,
-        improvementTrend: 0
-      },
-      createdAt: Date.now(),
-      updatedAt: Date.now()
-    };
+      email
+    });
 
     await this.save(user);
     return user;

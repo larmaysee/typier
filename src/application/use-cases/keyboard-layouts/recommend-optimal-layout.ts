@@ -1,9 +1,8 @@
-import { KeyboardLayout } from "../../../domain/entities/keyboard-layout";
-import { TypingAnalytics } from "../../../domain/entities/typing-analytics";
-import { LanguageCode } from "../../../domain/enums/language-code";
-import { KeyboardLayoutVariant } from "../../../domain/enums/keyboard-layout-variant";
-import { IKeyboardLayoutRepository } from "../../../domain/interfaces/keyboard-layout-repository.interface";
-import { IAnalyticsRepository } from "../../../domain/interfaces/analytics-repository.interface";
+import { KeyboardLayout } from "@/domain/entities/keyboard-layout";
+import { TypingAnalytics } from "@/domain/entities/typing-analytics";
+import { IKeyboardLayoutRepository } from "@/domain/interfaces/keyboard-layout-repository.interface";
+import { IAnalyticsRepository } from "@/domain/interfaces/analytics-repository.interface";
+import { LanguageCode, LayoutVariant, LayoutType } from "@/domain";
 
 export interface RecommendOptimalLayoutCommand {
   userId: string;
@@ -83,7 +82,7 @@ export interface MigrationPhase {
 }
 
 export interface CustomLayoutSuggestion {
-  basedOn: KeyboardLayoutVariant;
+  basedOn: LayoutVariant;
   modifications: LayoutModification[];
   reasoning: string;
   expectedBenefit: string;
@@ -101,7 +100,7 @@ export class RecommendOptimalLayoutUseCase {
   constructor(
     private keyboardLayoutRepository: IKeyboardLayoutRepository,
     private analyticsRepository: IAnalyticsRepository
-  ) {}
+  ) { }
 
   async execute(command: RecommendOptimalLayoutCommand): Promise<LayoutRecommendationResult> {
     // Get user's current performance data
@@ -188,8 +187,8 @@ export class RecommendOptimalLayoutUseCase {
       .slice(0, 5);
 
     // Determine typing style based on finger usage
-    const typingStyle = fingerUsage.activeFingersCount >= 8 ? 'touch' : 
-                      fingerUsage.activeFingersCount >= 4 ? 'hybrid' : 'hunt-peck';
+    const typingStyle = fingerUsage.activeFingersCount >= 8 ? 'touch' :
+      fingerUsage.activeFingersCount >= 4 ? 'hybrid' : 'hunt-peck';
 
     return {
       averageWpm,
@@ -216,10 +215,10 @@ export class RecommendOptimalLayoutUseCase {
     for (const goal of command.userGoals) {
       const goalScore = this.scoreLayoutForGoal(layout, goal, currentPerformance);
       const weight = goal.priority === 'high' ? 1.0 : goal.priority === 'medium' ? 0.7 : 0.4;
-      
+
       totalScore += goalScore * weight;
       totalWeight += weight;
-      
+
       reasoningPoints.push({
         factor: `${goal.type}_goal`,
         impact: goalScore > 70 ? 'positive' : goalScore < 40 ? 'negative' : 'neutral',
@@ -233,10 +232,10 @@ export class RecommendOptimalLayoutUseCase {
       for (const constraint of command.physicalConstraints) {
         const constraintScore = this.scoreLayoutForConstraint(layout, constraint);
         const weight = constraint.severity === 'severe' ? 0.9 : constraint.severity === 'moderate' ? 0.6 : 0.3;
-        
+
         totalScore += constraintScore * weight;
         totalWeight += weight;
-        
+
         reasoningPoints.push({
           factor: `${constraint.type}_constraint`,
           impact: constraintScore > 70 ? 'positive' : constraintScore < 40 ? 'negative' : 'neutral',
@@ -268,7 +267,7 @@ export class RecommendOptimalLayoutUseCase {
     return {
       layout,
       suitabilityScore,
-      reasoningPoints,
+      reasoning: reasoningPoints,
       expectedOutcomes,
       learningCurve,
       pros,
@@ -295,13 +294,13 @@ export class RecommendOptimalLayoutUseCase {
     let score = 50; // Base score
 
     // Favor layouts optimized for common keys
-    if (layout.variant === KeyboardLayoutVariant.DVORAK) score += 20;
-    if (layout.variant === KeyboardLayoutVariant.COLEMAK) score += 15;
-    
+    if (layout.layoutType === LayoutType.DVORAK) score += 20;
+    if (layout.layoutType === LayoutType.COLEMAK) score += 15;
+
     // Consider user's current speed
     if (performance.averageWpm > 40) {
       // Advanced users might benefit from optimized layouts
-      if (layout.variant === KeyboardLayoutVariant.DVORAK || layout.variant === KeyboardLayoutVariant.COLEMAK) {
+      if (layout.layoutType === LayoutType.DVORAK || layout.layoutType === LayoutType.COLEMAK) {
         score += 15;
       }
     }
@@ -313,8 +312,8 @@ export class RecommendOptimalLayoutUseCase {
     let score = 50;
 
     // Standard layouts are often more accurate due to familiarity
-    if (layout.variant === KeyboardLayoutVariant.QWERTY_US) score += 15;
-    
+    if (layout.variant === LayoutVariant.US) score += 15;
+
     // Custom layouts can be optimized for accuracy
     if (layout.isCustom && layout.metadata.optimizedFor?.includes('accuracy')) score += 20;
 
@@ -332,8 +331,8 @@ export class RecommendOptimalLayoutUseCase {
     let score = 50;
 
     // Ergonomic layouts score higher for comfort
-    if (layout.variant === KeyboardLayoutVariant.DVORAK) score += 25;
-    if (layout.variant === KeyboardLayoutVariant.COLEMAK) score += 20;
+    if (layout.layoutType === LayoutType.DVORAK) score += 25;
+    if (layout.layoutType === LayoutType.COLEMAK) score += 20;
 
     // Consider user's finger strength/weakness
     const layoutMatchesFingerStrength = this.layoutMatchesFingerProfile(layout, performance);
@@ -347,12 +346,12 @@ export class RecommendOptimalLayoutUseCase {
 
     // Beginners benefit from standard layouts
     if (performance.experienceLevel === 'beginner') {
-      if (layout.variant === KeyboardLayoutVariant.QWERTY_US) score += 20;
+      if (layout.variant === LayoutVariant.US) score += 20;
     }
 
     // Intermediate users can handle some complexity
     if (performance.experienceLevel === 'intermediate') {
-      if (layout.variant === KeyboardLayoutVariant.COLEMAK) score += 15;
+      if (layout.layoutType === LayoutType.COLEMAK) score += 15;
     }
 
     // Advanced users can tackle any layout
@@ -389,28 +388,34 @@ export class RecommendOptimalLayoutUseCase {
   }
 
   private scoreLayoutForExperience(layout: KeyboardLayout, experience: 'beginner' | 'intermediate' | 'advanced'): number {
-    const experienceScores = {
+    // Create a unique key combining layout type and variant
+    const layoutKey = `${layout.layoutType}_${layout.variant}`;
+
+    const experienceScores: Record<string, Record<string, number>> = {
       beginner: {
-        [KeyboardLayoutVariant.QWERTY_US]: 90,
-        [KeyboardLayoutVariant.QWERTY_UK]: 85,
-        [KeyboardLayoutVariant.DVORAK]: 30,
-        [KeyboardLayoutVariant.COLEMAK]: 40
+        [`${LayoutType.QWERTY}_${LayoutVariant.US}`]: 90,
+        [`${LayoutType.QWERTY}_${LayoutVariant.UK}`]: 85,
+        [`${LayoutType.QWERTY}_${LayoutVariant.INTERNATIONAL}`]: 80,
+        [`${LayoutType.DVORAK}_${LayoutVariant.US}`]: 30,
+        [`${LayoutType.COLEMAK}_${LayoutVariant.US}`]: 40
       },
       intermediate: {
-        [KeyboardLayoutVariant.QWERTY_US]: 80,
-        [KeyboardLayoutVariant.QWERTY_UK]: 75,
-        [KeyboardLayoutVariant.DVORAK]: 60,
-        [KeyboardLayoutVariant.COLEMAK]: 70
+        [`${LayoutType.QWERTY}_${LayoutVariant.US}`]: 80,
+        [`${LayoutType.QWERTY}_${LayoutVariant.UK}`]: 75,
+        [`${LayoutType.QWERTY}_${LayoutVariant.INTERNATIONAL}`]: 70,
+        [`${LayoutType.DVORAK}_${LayoutVariant.US}`]: 60,
+        [`${LayoutType.COLEMAK}_${LayoutVariant.US}`]: 70
       },
       advanced: {
-        [KeyboardLayoutVariant.QWERTY_US]: 70,
-        [KeyboardLayoutVariant.QWERTY_UK]: 65,
-        [KeyboardLayoutVariant.DVORAK]: 85,
-        [KeyboardLayoutVariant.COLEMAK]: 90
+        [`${LayoutType.QWERTY}_${LayoutVariant.US}`]: 70,
+        [`${LayoutType.QWERTY}_${LayoutVariant.UK}`]: 65,
+        [`${LayoutType.QWERTY}_${LayoutVariant.INTERNATIONAL}`]: 60,
+        [`${LayoutType.DVORAK}_${LayoutVariant.US}`]: 85,
+        [`${LayoutType.COLEMAK}_${LayoutVariant.US}`]: 90
       }
     };
 
-    return experienceScores[experience][layout.variant] || 50;
+    return experienceScores[experience][layoutKey] || 50;
   }
 
   // Helper methods continue...
@@ -483,9 +488,9 @@ export class RecommendOptimalLayoutUseCase {
 
   private calculateLearningCurve(layout: KeyboardLayout, performance: UserPerformanceProfile): LearningCurve {
     const isStandardLayout = [
-      KeyboardLayoutVariant.QWERTY_US,
-      KeyboardLayoutVariant.QWERTY_UK,
-      KeyboardLayoutVariant.QWERTY_INTL
+      LayoutVariant.US,
+      LayoutVariant.UK,
+      LayoutVariant.INTERNATIONAL
     ].includes(layout.variant);
 
     if (isStandardLayout && performance.typingStyle !== 'touch') {
@@ -497,7 +502,7 @@ export class RecommendOptimalLayoutUseCase {
       };
     }
 
-    if (layout.variant === KeyboardLayoutVariant.COLEMAK) {
+    if (layout.layoutType === LayoutType.COLEMAK) {
       return {
         difficulty: 'moderate',
         estimatedTimeWeeks: 8,
@@ -506,7 +511,7 @@ export class RecommendOptimalLayoutUseCase {
       };
     }
 
-    if (layout.variant === KeyboardLayoutVariant.DVORAK) {
+    if (layout.layoutType === LayoutType.DVORAK) {
       return {
         difficulty: 'hard',
         estimatedTimeWeeks: 12,
@@ -562,8 +567,8 @@ export class RecommendOptimalLayoutUseCase {
   }
 
   private estimateSpeedImprovement(layout: KeyboardLayout, performance: UserPerformanceProfile): number {
-    if (layout.variant === KeyboardLayoutVariant.DVORAK) return 8;
-    if (layout.variant === KeyboardLayoutVariant.COLEMAK) return 5;
+    if (layout.layoutType === LayoutType.DVORAK) return 8;
+    if (layout.layoutType === LayoutType.COLEMAK) return 5;
     return 2;
   }
 
@@ -573,7 +578,7 @@ export class RecommendOptimalLayoutUseCase {
 
   private generatePros(layout: KeyboardLayout, performance: UserPerformanceProfile): string[] {
     const pros = [];
-    if (layout.variant === KeyboardLayoutVariant.DVORAK) {
+    if (layout.layoutType === LayoutType.DVORAK) {
       pros.push('Optimized for English letter frequency');
       pros.push('Reduces finger travel distance');
     }
@@ -582,7 +587,7 @@ export class RecommendOptimalLayoutUseCase {
 
   private generateCons(layout: KeyboardLayout, performance: UserPerformanceProfile): string[] {
     const cons = [];
-    if (layout.variant !== KeyboardLayoutVariant.QWERTY_US) {
+    if (layout.variant !== LayoutVariant.US) {
       cons.push('Learning curve required');
       cons.push('Less universal compatibility');
     }
@@ -598,7 +603,7 @@ export class RecommendOptimalLayoutUseCase {
     performance: UserPerformanceProfile
   ): CustomLayoutSuggestion {
     return {
-      basedOn: KeyboardLayoutVariant.COLEMAK,
+      basedOn: LayoutVariant.US, // Base on US layout as most common foundation
       modifications: [
         {
           type: 'move_key',

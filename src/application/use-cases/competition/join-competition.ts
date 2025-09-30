@@ -1,5 +1,5 @@
-import { Competition } from "../../../domain/entities/competition";
-import { ICompetitionRepository } from "../../../domain/interfaces/competition-repository.interface";
+import { Competition } from "@/domain/entities/competition";
+import { ICompetitionRepository } from "@/domain/interfaces/competition-repository.interface";
 
 export interface JoinCompetitionCommand {
   competitionId: string;
@@ -13,18 +13,20 @@ export interface JoinCompetitionResult {
 }
 
 export class JoinCompetitionUseCase {
-  constructor(
-    private competitionRepository: ICompetitionRepository
-  ) {}
+  constructor(private competitionRepository: ICompetitionRepository) { }
 
-  async execute(command: JoinCompetitionCommand): Promise<JoinCompetitionResult> {
-    const competition = await this.competitionRepository.findById(command.competitionId);
+  async execute(
+    command: JoinCompetitionCommand
+  ): Promise<JoinCompetitionResult> {
+    const competition = await this.competitionRepository.findById(
+      command.competitionId
+    );
 
     if (!competition) {
       return {
         competition: null as any,
         canJoin: false,
-        reason: "Competition not found"
+        reason: "Competition not found",
       };
     }
 
@@ -33,17 +35,17 @@ export class JoinCompetitionUseCase {
       return {
         competition,
         canJoin: false,
-        reason: "Competition is not active"
+        reason: "Competition is not active",
       };
     }
 
     // Check if competition has started
-    const now = new Date();
+    const now = Date.now();
     if (now < competition.startDate) {
       return {
         competition,
         canJoin: false,
-        reason: "Competition has not started yet"
+        reason: "Competition has not started yet",
       };
     }
 
@@ -52,7 +54,7 @@ export class JoinCompetitionUseCase {
       return {
         competition,
         canJoin: false,
-        reason: "Competition has ended"
+        reason: "Competition has ended",
       };
     }
 
@@ -66,25 +68,27 @@ export class JoinCompetitionUseCase {
       return {
         competition,
         canJoin: false,
-        reason: "User has already joined this competition"
+        reason: "User has already joined this competition",
       };
     }
 
     // Check participant limit
-    if (competition.maxParticipants) {
-      const entries = await this.competitionRepository.getEntries(command.competitionId);
-      if (entries.length >= competition.maxParticipants) {
+    if (competition.metadata.maxParticipants) {
+      const entries = await this.competitionRepository.getEntries(
+        command.competitionId
+      );
+      if (entries.length >= competition.metadata.maxParticipants) {
         return {
           competition,
           canJoin: false,
-          reason: "Competition has reached maximum participants"
+          reason: "Competition has reached maximum participants",
         };
       }
     }
 
     return {
       competition,
-      canJoin: true
+      canJoin: true,
     };
   }
 }

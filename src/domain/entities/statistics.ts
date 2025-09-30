@@ -2,9 +2,8 @@
  * Domain entities for statistics and leaderboard management
  * Contains statistical analysis and ranking logic
  */
-
-import { LanguageCode } from '../enums/languages';
-import { TypingMode } from '../enums/typing-mode';
+import { TypingMode } from '@/domain/enums/typing-mode';
+import { LanguageCode } from '@/enums/site-config';
 
 export interface StatisticsTimeFrame {
   readonly startDate: number;
@@ -33,6 +32,7 @@ export class TypingStatistics {
     public readonly worstAccuracy: number,
     public readonly totalTimeTyped: number, // in seconds
     public readonly totalCharactersTyped: number,
+    public readonly totalWordsTyped: number, // total words typed across all tests
     public readonly totalErrors: number,
     public readonly improvementRate: number, // WPM improvement per week
     public readonly consistencyScore: number, // 0-100 scale
@@ -52,6 +52,7 @@ export class TypingStatistics {
     if (worstAccuracy < 0 || worstAccuracy > 100) throw new Error('Worst accuracy must be between 0-100');
     if (totalTimeTyped < 0) throw new Error('Total time typed cannot be negative');
     if (totalCharactersTyped < 0) throw new Error('Total characters typed cannot be negative');
+    if (totalWordsTyped < 0) throw new Error('Total words typed cannot be negative');
     if (totalErrors < 0) throw new Error('Total errors cannot be negative');
     if (consistencyScore < 0 || consistencyScore > 100) throw new Error('Consistency score must be between 0-100');
     if (preferredTimeOfDay < 0 || preferredTimeOfDay > 23) throw new Error('Preferred time of day must be between 0-23');
@@ -73,6 +74,7 @@ export class TypingStatistics {
     worstAccuracy?: number;
     totalTimeTyped?: number;
     totalCharactersTyped?: number;
+    totalWordsTyped?: number;
     totalErrors?: number;
     improvementRate?: number;
     consistencyScore?: number;
@@ -95,6 +97,7 @@ export class TypingStatistics {
       data.worstAccuracy || 0,
       data.totalTimeTyped || 0,
       data.totalCharactersTyped || 0,
+      data.totalWordsTyped || 0,
       data.totalErrors || 0,
       data.improvementRate || 0,
       data.consistencyScore || 0,
@@ -110,6 +113,7 @@ export class TypingStatistics {
     const newTotalTests = this.totalTests + 1;
     const newTotalTime = this.totalTimeTyped + duration;
     const newTotalCharacters = this.totalCharactersTyped + charactersTyped;
+    const newTotalWords = this.totalWordsTyped + Math.round(wpm * (duration / 60)); // Calculate words from WPM and duration
     const newTotalErrors = this.totalErrors + errors;
 
     // Calculate new averages
@@ -151,6 +155,7 @@ export class TypingStatistics {
       newWorstAccuracy,
       newTotalTime,
       newTotalCharacters,
+      newTotalWords,
       newTotalErrors,
       newImprovementRate,
       Math.round(newConsistencyScore * 100) / 100,
@@ -164,7 +169,7 @@ export class TypingStatistics {
 
   private calculateWPMVariance(newWPM: number, averageWPM: number, totalTests: number): number {
     if (totalTests <= 1) return 0;
-    
+
     // Simple variance estimation
     const deviation = Math.abs(newWPM - averageWPM);
     return Math.min(deviation / averageWPM * 100, 50); // Cap at 50% variance
@@ -179,7 +184,7 @@ export class TypingStatistics {
     const firstWPM = recentTrends[0].wpm;
     const lastWPM = recentTrends[recentTrends.length - 1].wpm;
     const timespan = recentTrends[recentTrends.length - 1].date - recentTrends[0].date;
-    
+
     if (timespan === 0) return 0;
 
     const improvementPerMs = (lastWPM - firstWPM) / timespan;
@@ -212,6 +217,7 @@ export class TypingStatistics {
       this.worstAccuracy,
       this.totalTimeTyped,
       this.totalCharactersTyped,
+      this.totalWordsTyped,
       this.totalErrors,
       this.improvementRate,
       this.consistencyScore,
@@ -255,27 +261,27 @@ export class TypingStatistics {
 
   isValid(): boolean {
     return this.userId.trim().length > 0 &&
-           this.totalTests >= 0 &&
-           this.averageWPM >= 0 &&
-           this.bestWPM >= 0 &&
-           this.worstWPM >= 0 &&
-           this.averageAccuracy >= 0 && this.averageAccuracy <= 100 &&
-           this.bestAccuracy >= 0 && this.bestAccuracy <= 100 &&
-           this.worstAccuracy >= 0 && this.worstAccuracy <= 100 &&
-           this.totalTimeTyped >= 0 &&
-           this.totalCharactersTyped >= 0 &&
-           this.totalErrors >= 0 &&
-           this.consistencyScore >= 0 && this.consistencyScore <= 100 &&
-           this.preferredTimeOfDay >= 0 && this.preferredTimeOfDay <= 23 &&
-           this.streak >= 0 &&
-           this.longestStreak >= 0 &&
-           this.lastUpdated > 0;
+      this.totalTests >= 0 &&
+      this.averageWPM >= 0 &&
+      this.bestWPM >= 0 &&
+      this.worstWPM >= 0 &&
+      this.averageAccuracy >= 0 && this.averageAccuracy <= 100 &&
+      this.bestAccuracy >= 0 && this.bestAccuracy <= 100 &&
+      this.worstAccuracy >= 0 && this.worstAccuracy <= 100 &&
+      this.totalTimeTyped >= 0 &&
+      this.totalCharactersTyped >= 0 &&
+      this.totalErrors >= 0 &&
+      this.consistencyScore >= 0 && this.consistencyScore <= 100 &&
+      this.preferredTimeOfDay >= 0 && this.preferredTimeOfDay <= 23 &&
+      this.streak >= 0 &&
+      this.longestStreak >= 0 &&
+      this.lastUpdated > 0;
   }
 
   equals(other: TypingStatistics): boolean {
     return this.userId === other.userId &&
-           this.language === other.language &&
-           this.mode === other.mode;
+      this.language === other.language &&
+      this.mode === other.mode;
   }
 }
 
@@ -293,7 +299,9 @@ export class LeaderboardEntry {
     public readonly totalTests: number,
     public readonly lastImproved: number,
     public readonly isVerified: boolean,
-    public readonly achievementBadges: string[]
+    public readonly achievementBadges: string[],
+    public readonly keyboardLayout?: string, // Optional keyboard layout ID for layout-specific leaderboards
+    public readonly timestamp?: number // Optional timestamp for when this entry was last updated
   ) {
     if (!userId.trim()) throw new Error('User ID cannot be empty');
     if (!username.trim()) throw new Error('Username cannot be empty');
@@ -303,6 +311,15 @@ export class LeaderboardEntry {
     if (score < 0) throw new Error('Score cannot be negative');
     if (totalTests < 0) throw new Error('Total tests cannot be negative');
     if (lastImproved <= 0) throw new Error('Last improved timestamp must be positive');
+  }
+
+  // Backwards compatibility getters
+  get wpm(): number {
+    return this.bestWPM;
+  }
+
+  get accuracy(): number {
+    return this.averageAccuracy;
   }
 
   static create(data: {
@@ -318,9 +335,11 @@ export class LeaderboardEntry {
     lastImproved: number;
     isVerified?: boolean;
     achievementBadges?: string[];
+    keyboardLayout?: string;
+    timestamp?: number;
   }): LeaderboardEntry {
     const score = LeaderboardEntry.calculateScore(data.bestWPM, data.averageAccuracy);
-    
+
     return new LeaderboardEntry(
       data.userId,
       data.username,
@@ -334,7 +353,9 @@ export class LeaderboardEntry {
       data.totalTests,
       data.lastImproved,
       data.isVerified || false,
-      data.achievementBadges || []
+      data.achievementBadges || [],
+      data.keyboardLayout,
+      data.timestamp
     );
   }
 
@@ -359,13 +380,15 @@ export class LeaderboardEntry {
       this.totalTests,
       this.lastImproved,
       this.isVerified,
-      this.achievementBadges
+      this.achievementBadges,
+      this.keyboardLayout,
+      this.timestamp
     );
   }
 
   updatePerformance(newBestWPM: number, newAverageAccuracy: number, newTotalTests: number): LeaderboardEntry {
     const newScore = LeaderboardEntry.calculateScore(newBestWPM, newAverageAccuracy);
-    
+
     return new LeaderboardEntry(
       this.userId,
       this.username,
@@ -379,7 +402,9 @@ export class LeaderboardEntry {
       newTotalTests,
       Date.now(),
       this.isVerified,
-      this.achievementBadges
+      this.achievementBadges,
+      this.keyboardLayout,
+      this.timestamp
     );
   }
 
@@ -389,7 +414,7 @@ export class LeaderboardEntry {
     }
 
     const updatedBadges = [...this.achievementBadges, badgeId];
-    
+
     return new LeaderboardEntry(
       this.userId,
       this.username,
@@ -403,7 +428,9 @@ export class LeaderboardEntry {
       this.totalTests,
       this.lastImproved,
       this.isVerified,
-      updatedBadges
+      updatedBadges,
+      this.keyboardLayout,
+      this.timestamp
     );
   }
 
@@ -423,7 +450,9 @@ export class LeaderboardEntry {
       this.totalTests,
       this.lastImproved,
       true,
-      this.achievementBadges
+      this.achievementBadges,
+      this.keyboardLayout,
+      this.timestamp
     );
   }
 
@@ -454,19 +483,19 @@ export class LeaderboardEntry {
 
   isValid(): boolean {
     return this.userId.trim().length > 0 &&
-           this.username.trim().length > 0 &&
-           this.displayName.trim().length > 0 &&
-           this.bestWPM >= 0 &&
-           this.averageAccuracy >= 0 && this.averageAccuracy <= 100 &&
-           this.rank >= 1 &&
-           this.score >= 0 &&
-           this.totalTests >= 0 &&
-           this.lastImproved > 0;
+      this.username.trim().length > 0 &&
+      this.displayName.trim().length > 0 &&
+      this.bestWPM >= 0 &&
+      this.averageAccuracy >= 0 && this.averageAccuracy <= 100 &&
+      this.rank >= 1 &&
+      this.score >= 0 &&
+      this.totalTests >= 0 &&
+      this.lastImproved > 0;
   }
 
   equals(other: LeaderboardEntry): boolean {
     return this.userId === other.userId &&
-           this.language === other.language &&
-           this.mode === other.mode;
+      this.language === other.language &&
+      this.mode === other.mode;
   }
 }

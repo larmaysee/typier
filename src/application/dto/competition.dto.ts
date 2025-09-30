@@ -1,13 +1,13 @@
-import { CompetitionType } from "../../domain/enums/competition-type";
-import { LanguageCode } from "../../domain/enums/language-code";
-import { KeyboardLayoutVariant } from "../../domain/enums/keyboard-layout-variant";
+import { CompetitionType } from "@/domain/enums/competition-types";
+import { LayoutVariant } from "@/domain/enums/keyboard-layouts";
+import { LanguageCode } from "@/enums/site-config";
 
 export interface CreateCompetitionDTO {
   name: string;
   description: string;
   type: CompetitionType;
   language: LanguageCode;
-  allowedLayouts: KeyboardLayoutVariant[];
+  allowedLayouts: LayoutVariant[];
   textContent: string;
   duration: number;
   startDate: string;

@@ -1,6 +1,9 @@
-import { LanguageCode } from "@/enums/site-config";
-import { DifficultyLevel, TypingMode } from "../entities/typing";
-import { KeyboardLayout } from "../entities/keyboard-layout";
+import { LanguageCode } from "@/domain/enums/languages";
+import { KeyboardLayout, KeyMapping, KeyPosition } from "../entities/keyboard-layout";
+import { LayoutType, LayoutVariant } from "../enums/keyboard-layouts";
+import { CompetitionRules } from "../entities/competition";
+import { ValidationResult } from "./repositories";
+import { DifficultyLevel, TextType } from "../enums";
 
 export interface ITextGenerationService {
   generate(config: TextGenerationConfig): Promise<string>;
@@ -31,18 +34,15 @@ export interface IEventBus {
 export interface TextGenerationConfig {
   language: LanguageCode;
   difficulty: DifficultyLevel;
-  textType: 'words' | 'sentences' | 'paragraphs' | 'code';
+  textType: TextType;
   length: number;
+  layoutId?: string;
   userId?: string;
   customWords?: string[];
   avoidRecentWords?: boolean;
 }
 
-export interface ValidationResult {
-  isValid: boolean;
-  errors: string[];
-  warnings: string[];
-}
+
 
 export interface KeyboardModification {
   key: string;
@@ -94,20 +94,6 @@ export interface PracticeRecommendation {
   suggestedDuration: number;
 }
 
-export interface DomainEvent {
-  id: string;
-  type: string;
-  aggregateId: string;
-  data: any;
-  timestamp: Date;
-  userId?: string;
-  improvementAreas: string[];
-  consistencyScore: number;
-  speedProgression: number[];
-  accuracyTrend: number[];
-  fingerEfficiency: Record<string, number>;
-}
-
 export interface ImprovementMetrics {
   wpmGrowth: number;
   accuracyGrowth: number;
@@ -145,18 +131,9 @@ export interface CreateCompetitionData {
   rules: CompetitionRules;
 }
 
-export interface CompetitionRules {
-  timeLimit: number;
-  attemptsAllowed: number;
-  layoutLocked: boolean;
-  retakeAllowed: boolean;
-}
 
-export interface ValidationResult {
-  isValid: boolean;
-  errors: string[];
-  warnings?: string[];
-}
+
+
 
 export interface CustomLayoutConfig {
   name: string;
@@ -215,19 +192,5 @@ export interface EventHandler<T> {
   (event: DomainEvent<T>): Promise<void> | void;
 }
 
-// Key mapping interface for layout management
-export interface KeyMapping {
-  key: string;
-  character: string;
-  shiftCharacter?: string;
-  altCharacter?: string;
-  ctrlCharacter?: string;
-  position: KeyPosition;
-}
 
-export interface KeyPosition {
-  row: number;
-  column: number;
-  finger: string;
-  hand: 'left' | 'right';
-}
+

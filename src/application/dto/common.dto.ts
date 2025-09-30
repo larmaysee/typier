@@ -1,14 +1,13 @@
-import { LanguageCode } from "../../domain/enums/language-code";
-import { DifficultyLevel } from "../../domain/enums/difficulty-level";
-import { TypingMode } from "../../domain/enums/typing-mode";
-import { KeyboardLayoutVariant } from "../../domain/enums/keyboard-layout-variant";
+import { LayoutVariant } from "@/domain/enums/keyboard-layouts";
+import { DifficultyLevel, TypingMode } from "@/domain/enums/typing-mode";
+import { LanguageCode } from "@/enums/site-config";
 
 export interface CreateTypingSessionDTO {
   userId: string;
   language: LanguageCode;
   difficulty: DifficultyLevel;
   mode: TypingMode;
-  layoutVariant: KeyboardLayoutVariant;
+  layoutVariant: LayoutVariant;
   duration: number;
   textContent?: string;
 }
@@ -33,7 +32,7 @@ export interface UserProfileDTO {
   bestWpm: number;
   averageAccuracy: number;
   preferredLanguage: LanguageCode;
-  preferredLayouts: KeyboardLayoutVariant[];
+  preferredLayouts: LayoutVariant[];
 }
 
 export interface LeaderboardEntryDTO {

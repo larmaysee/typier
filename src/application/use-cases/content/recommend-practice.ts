@@ -1,15 +1,15 @@
-import { TypingContent, ContentType } from "../../../domain/entities/typing-content";
-import { LanguageCode } from "../../../domain/enums/language-code";
-import { DifficultyLevel } from "../../../domain/enums/difficulty-level";
-import { KeyboardLayoutVariant } from "../../../domain/enums/keyboard-layout-variant";
-import { IContentRepository } from "../../../domain/interfaces/content-repository.interface";
+import { TypingContent, ContentType } from "@/domain/entities/typing-content";
+import { LanguageCode } from "@/enums/site-config";
+import { DifficultyLevel } from "@/domain/entities";
+import { LayoutVariant } from "@/domain/enums/keyboard-layouts";
+import { IContentRepository } from "@/domain/interfaces/content-repository.interface";
 import { UserPerformanceData, WeakArea } from "./adapt-difficulty";
 
 export interface RecommendPracticeCommand {
   userId: string;
   userPerformance: UserPerformanceData;
   preferredLanguage: LanguageCode;
-  currentLayout: KeyboardLayoutVariant;
+  currentLayout: LayoutVariant;
   availableTime?: number; // in minutes
   practiceGoals?: PracticeGoal[];
 }
@@ -52,15 +52,15 @@ export interface PracticeSession {
 export class RecommendPracticeUseCase {
   constructor(
     private contentRepository: IContentRepository
-  ) {}
+  ) { }
 
   async execute(command: RecommendPracticeCommand): Promise<RecommendPracticeResult> {
     // Analyze user's weak areas and goals
     const focusAreas = this.identifyFocusAreas(command.userPerformance, command.practiceGoals);
-    
+
     // Generate recommendations based on focus areas
     const recommendations: PracticeRecommendation[] = [];
-    
+
     for (const area of focusAreas) {
       const areaRecommendations = await this.generateRecommendationsForArea(
         area,
@@ -90,7 +90,7 @@ export class RecommendPracticeUseCase {
   }
 
   private identifyFocusAreas(
-    userPerformance: UserPerformanceData, 
+    userPerformance: UserPerformanceData,
     practiceGoals?: PracticeGoal[]
   ): FocusArea[] {
     const areas: FocusArea[] = [];
@@ -261,7 +261,7 @@ export class RecommendPracticeUseCase {
     if (weakArea.keys && weakArea.keys.length > 0) {
       // Create targeted content for weak keys
       const targetedContent = await this.createTargetedKeyContent(weakArea.keys, language);
-      
+
       recommendations.push({
         content: targetedContent,
         estimatedTime: 12,
@@ -366,7 +366,7 @@ export class RecommendPracticeUseCase {
   private async createTargetedKeyContent(keys: string[], language: LanguageCode): Promise<TypingContent> {
     // Generate content focusing on specific keys
     const keyText = keys.join(' ').repeat(10);
-    
+
     return await this.contentRepository.create({
       language,
       difficulty: DifficultyLevel.EASY,
@@ -412,7 +412,7 @@ export class RecommendPracticeUseCase {
 
   private recommendFrequency(totalSessions: number, timePerSession: number): 'daily' | 'alternate_days' | 'weekly' {
     const totalTime = totalSessions * timePerSession;
-    
+
     if (totalTime > 120) return 'alternate_days'; // More than 2 hours total
     if (totalTime > 60) return 'daily'; // 1-2 hours
     return 'daily'; // Less than 1 hour

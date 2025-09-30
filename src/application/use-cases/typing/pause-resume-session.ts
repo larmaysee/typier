@@ -1,6 +1,6 @@
-import { TypingSession, SessionStatus } from "../../domain/entities/typing";
-import { ISessionRepository } from "../../domain/interfaces/repositories";
-import { PauseResumeSessionCommandDTO } from "../dto/typing-session.dto";
+import { TypingSession, SessionStatus } from "@/domain/entities/typing";
+import { ISessionRepository } from "@/domain/interfaces/repositories";
+import { PauseResumeSessionCommandDTO } from "@/application/dto/typing-session.dto";
 
 export class PauseResumeSessionUseCase {
   constructor(
@@ -9,7 +9,7 @@ export class PauseResumeSessionUseCase {
 
   async execute(command: PauseResumeSessionCommandDTO): Promise<TypingSession> {
     // 1. Get the session
-    const session = await this.sessionRepository.findById(command.sessionId);
+    let session = await this.sessionRepository.findById(command.sessionId);
     if (!session) {
       throw new Error(`Session not found: ${command.sessionId}`);
     }
@@ -19,7 +19,7 @@ export class PauseResumeSessionUseCase {
       throw new Error('Cannot pause/resume a completed session');
     }
 
-    if (session.status === SessionStatus.CANCELLED) {
+    if (session.status === SessionStatus.ABANDONED) {
       throw new Error('Cannot pause/resume a cancelled session');
     }
 
@@ -33,9 +33,7 @@ export class PauseResumeSessionUseCase {
         return session; // Already paused
       }
 
-      session.status = SessionStatus.PAUSED;
-      session.focusState.isFocused = false;
-      session.focusState.lastFocusTime = command.timestamp;
+      session = session.pause();
     }
 
     // 4. Handle resume action
@@ -45,35 +43,20 @@ export class PauseResumeSessionUseCase {
       }
 
       if (session.status === SessionStatus.PAUSED) {
-        session.status = SessionStatus.ACTIVE;
-        session.focusState.isFocused = true;
-
-        // Calculate focus lost duration
-        const pauseDuration = command.timestamp - session.focusState.lastFocusTime;
-        session.focusState.focusLostDuration += pauseDuration;
-        session.focusState.lastFocusTime = command.timestamp;
-      }
-
-      if (session.status === SessionStatus.IDLE) {
-        // Resume from idle state (first input)
-        session.status = SessionStatus.ACTIVE;
-        session.startTime = command.timestamp;
-        session.focusState.isFocused = true;
-        session.focusState.lastFocusTime = command.timestamp;
+        session = session.resume();
+      } else {
+        throw new Error('Can only resume paused sessions');
       }
     }
 
-    // 5. Update timestamp
-    session.updated_at = new Date();
-
-    // 6. Save session
+    // 5. Save session
     await this.sessionRepository.save(session);
 
     return session;
   }
 
   async cancelSession(sessionId: string): Promise<TypingSession> {
-    const session = await this.sessionRepository.findById(sessionId);
+    let session = await this.sessionRepository.findById(sessionId);
     if (!session) {
       throw new Error(`Session not found: ${sessionId}`);
     }
@@ -82,8 +65,20 @@ export class PauseResumeSessionUseCase {
       throw new Error('Cannot cancel a completed session');
     }
 
-    session.status = SessionStatus.CANCELLED;
-    session.updated_at = new Date();
+    // Create new session with ABANDONED status
+    session = TypingSession.create({
+      id: session.id,
+      test: session.test,
+      currentInput: session.currentInput,
+      startTime: session.startTime,
+      timeLeft: session.timeLeft,
+      status: SessionStatus.ABANDONED,
+      cursorPosition: session.cursorPosition,
+      focusState: session.focusState,
+      mistakes: session.mistakes,
+      liveStats: session.liveStats,
+      activeLayout: session.activeLayout
+    });
 
     await this.sessionRepository.save(session);
     return session;
@@ -109,7 +104,7 @@ export class PauseResumeSessionUseCase {
       status: session.status,
       timeLeft: session.timeLeft,
       elapsedTime,
-      focusLostDuration: session.focusState.focusLostDuration,
+      focusLostDuration: 0, // TODO: Calculate focus lost duration properly
       canResume: session.status === SessionStatus.PAUSED || session.status === SessionStatus.IDLE,
       canPause: session.status === SessionStatus.ACTIVE
     };

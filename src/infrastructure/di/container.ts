@@ -1,37 +1,19 @@
-export interface Container {
-  register<T>(token: string, factory: () => T): void;
-  resolve<T>(token: string): T;
-}
-
-class DIContainer implements Container {
-  private registry = new Map<string, () => any>();
-
-  register<T>(token: string, factory: () => T): void {
-    this.registry.set(token, factory);
-  }
-
-  resolve<T>(token: string): T {
-    const factory = this.registry.get(token);
-    if (!factory) {
-      throw new Error(`No registration found for token: ${token}`);
-    }
-    return factory();
-  }
-}
-
-export const container = new DIContainer();
 /**
  * Dependency Injection Container
  * Provides type-safe service registration and resolution
  */
 
 export enum ServiceLifetime {
-  Singleton = 'singleton',
-  Transient = 'transient',
-  Scoped = 'scoped'
+  Singleton = "singleton",
+  Transient = "transient",
+  Scoped = "scoped",
 }
 
-export interface ServiceDescriptor<T = any> {
+export interface IDisposable {
+  dispose(): void;
+}
+
+export interface ServiceDescriptor<T = unknown> {
   token: string;
   implementation: T | (() => T);
   lifetime: ServiceLifetime;
@@ -39,7 +21,11 @@ export interface ServiceDescriptor<T = any> {
 }
 
 export interface IDependencyContainer {
-  register<T>(token: string, implementation: T | (() => T), lifetime?: ServiceLifetime): void;
+  register<T>(
+    token: string,
+    implementation: T | (() => T),
+    lifetime?: ServiceLifetime
+  ): void;
   resolve<T>(token: string): T;
   registerSingleton<T>(token: string, implementation: () => T): void;
   registerTransient<T>(token: string, implementation: () => T): void;
@@ -50,18 +36,22 @@ export interface IDependencyContainer {
 
 export class DependencyContainer implements IDependencyContainer {
   private services: Map<string, ServiceDescriptor> = new Map();
-  private scopedInstances: Map<string, any> = new Map();
+  private scopedInstances: Map<string, unknown> = new Map();
   private disposed = false;
 
-  register<T>(token: string, implementation: T | (() => T), lifetime: ServiceLifetime = ServiceLifetime.Transient): void {
+  register<T>(
+    token: string,
+    implementation: T | (() => T),
+    lifetime: ServiceLifetime = ServiceLifetime.Transient
+  ): void {
     if (this.disposed) {
-      throw new Error('Cannot register services on disposed container');
+      throw new Error("Cannot register services on disposed container");
     }
 
     this.services.set(token, {
       token,
       implementation,
-      lifetime
+      lifetime,
     });
   }
 
@@ -79,7 +69,7 @@ export class DependencyContainer implements IDependencyContainer {
 
   resolve<T>(token: string): T {
     if (this.disposed) {
-      throw new Error('Cannot resolve services from disposed container');
+      throw new Error("Cannot resolve services from disposed container");
     }
 
     const descriptor = this.services.get(token);
@@ -90,7 +80,11 @@ export class DependencyContainer implements IDependencyContainer {
     try {
       return this.createInstance<T>(descriptor);
     } catch (error) {
-      throw new Error(`Failed to resolve service '${token}': ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to resolve service '${token}': ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     }
   }
 
@@ -103,14 +97,14 @@ export class DependencyContainer implements IDependencyContainer {
 
     // Dispose singleton instances that implement IDisposable
     for (const descriptor of this.services.values()) {
-      if (descriptor.instance && typeof descriptor.instance.dispose === 'function') {
+      if (descriptor.instance && this.isDisposable(descriptor.instance)) {
         descriptor.instance.dispose();
       }
     }
 
-    // Dispose scoped instances that implement IDisposable  
+    // Dispose scoped instances that implement IDisposable
     for (const instance of this.scopedInstances.values()) {
-      if (instance && typeof instance.dispose === 'function') {
+      if (instance && this.isDisposable(instance)) {
         instance.dispose();
       }
     }
@@ -118,6 +112,15 @@ export class DependencyContainer implements IDependencyContainer {
     this.services.clear();
     this.scopedInstances.clear();
     this.disposed = true;
+  }
+
+  private isDisposable(obj: unknown): obj is IDisposable {
+    return (
+      typeof obj === "object" &&
+      obj !== null &&
+      "dispose" in obj &&
+      typeof (obj as IDisposable).dispose === "function"
+    );
   }
 
   private createInstance<T>(descriptor: ServiceDescriptor): T {
@@ -138,13 +141,13 @@ export class DependencyContainer implements IDependencyContainer {
     if (!descriptor.instance) {
       descriptor.instance = this.createNew<T>(descriptor);
     }
-    return descriptor.instance;
+    return descriptor.instance as T;
   }
 
   private createScoped<T>(descriptor: ServiceDescriptor): T {
     const existing = this.scopedInstances.get(descriptor.token);
     if (existing) {
-      return existing;
+      return existing as T;
     }
 
     const instance = this.createNew<T>(descriptor);
@@ -159,17 +162,17 @@ export class DependencyContainer implements IDependencyContainer {
   private createNew<T>(descriptor: ServiceDescriptor): T {
     const { implementation } = descriptor;
 
-    if (typeof implementation === 'function') {
+    if (typeof implementation === "function") {
       return implementation();
     }
 
-    return implementation;
+    return implementation as T;
   }
 
   clearScope(): void {
     // Dispose scoped instances that implement IDisposable
     for (const instance of this.scopedInstances.values()) {
-      if (instance && typeof instance.dispose === 'function') {
+      if (instance && this.isDisposable(instance)) {
         instance.dispose();
       }
     }

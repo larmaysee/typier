@@ -1,11 +1,11 @@
 import { IUserRepository } from "@/domain/interfaces";
-import { User, UserPreferences } from "@/domain/entities";
+import { DifficultyLevel, User, UserPreferences } from "@/domain/entities";
 import { RepositoryError } from "@/shared/errors";
 import { AppwriteDatabaseClient } from "../../persistence/appwrite/database-client";
-import { 
-  COLLECTIONS, 
+import {
+  COLLECTIONS,
   AppwriteUserDocument,
-  AppwriteUserPreferencesDocument 
+  AppwriteUserPreferencesDocument
 } from "../../persistence/appwrite/collections.config";
 import type { ILogger } from "@/shared/utils/logger";
 import { LanguageCode } from "@/enums/site-config";
@@ -14,7 +14,7 @@ export class AppwriteUserRepository implements IUserRepository {
   constructor(
     private client: AppwriteDatabaseClient,
     private logger: ILogger
-  ) {}
+  ) { }
 
   async findById(id: string): Promise<User | null> {
     try {
@@ -68,11 +68,11 @@ export class AppwriteUserRepository implements IUserRepository {
       const preferencesDoc = {
         user_id: userId,
         default_language: preferences.defaultLanguage,
-        keyboard_layouts: JSON.stringify(preferences.keyboardLayouts),
+        keyboard_layouts: JSON.stringify(preferences.preferredLayouts),
         theme: preferences.theme,
         sound_enabled: preferences.soundEnabled,
-        visual_feedback: preferences.visualFeedback,
-        auto_complete_enabled: preferences.autoCompleteEnabled
+        visual_feedback: true, // Default value since not in domain model
+        auto_complete_enabled: false // Default value since not in domain model
       };
 
       await this.client.updateDocument<AppwriteUserPreferencesDocument>(
@@ -110,7 +110,7 @@ export class AppwriteUserRepository implements IUserRepository {
     try {
       // Delete user document
       await this.client.deleteDocument(COLLECTIONS.USERS, userId);
-      
+
       // Delete user preferences
       try {
         await this.client.deleteDocument(COLLECTIONS.USER_PREFERENCES, userId);
@@ -129,10 +129,10 @@ export class AppwriteUserRepository implements IUserRepository {
     return {
       username: user.username,
       email: user.email,
-      total_tests: user.statistics.totalTests,
-      best_wpm: user.statistics.bestWpm,
-      average_accuracy: user.statistics.averageAccuracy,
-      favorite_language: user.statistics.favoriteLanguage
+      total_tests: user.profile.totalTests,
+      best_wpm: user.profile.bestWPM,
+      average_accuracy: user.profile.averageAccuracy,
+      favorite_language: user.profile.favoriteLanguage
     };
   }
 
@@ -140,11 +140,11 @@ export class AppwriteUserRepository implements IUserRepository {
     return {
       user_id: user.id,
       default_language: user.preferences.defaultLanguage,
-      keyboard_layouts: JSON.stringify(user.preferences.keyboardLayouts),
+      keyboard_layouts: JSON.stringify(user.preferences.preferredLayouts),
       theme: user.preferences.theme,
       sound_enabled: user.preferences.soundEnabled,
-      visual_feedback: user.preferences.visualFeedback,
-      auto_complete_enabled: user.preferences.autoCompleteEnabled
+      visual_feedback: true, // Default value since not in domain model
+      auto_complete_enabled: false // Default value since not in domain model
     };
   }
 
@@ -154,39 +154,62 @@ export class AppwriteUserRepository implements IUserRepository {
   ): User {
     const defaultPreferences: UserPreferences = {
       defaultLanguage: LanguageCode.EN,
-      keyboardLayouts: {} as Record<LanguageCode, string>,
+      preferredLayouts: {} as Record<LanguageCode, string>,
       theme: 'system',
       soundEnabled: false,
-      visualFeedback: true,
-      autoCompleteEnabled: true
+      showKeyboard: true,
+      difficulty: DifficultyLevel.MEDIUM,
+      autoSwitchLayout: false,
+      practiceReminders: true,
+      competitionNotifications: true,
+      showDetailedStats: true,
+      privacyMode: false
     };
 
-    return {
+    return User.create({
       id: userDoc.$id,
       username: userDoc.username,
       email: userDoc.email,
       preferences: preferencesDoc ? this.preferencesFromDocument(preferencesDoc) : defaultPreferences,
-      statistics: {
+      profile: {
         totalTests: userDoc.total_tests,
-        bestWpm: userDoc.best_wpm,
+        bestWPM: userDoc.best_wpm,
         averageAccuracy: userDoc.average_accuracy,
+        averageWPM: userDoc.best_wpm, // Simplified - should be calculated
         totalTimeTyped: 0, // This would need to be calculated from tests
         favoriteLanguage: userDoc.favorite_language as LanguageCode,
-        improvementTrend: 0 // This would need to be calculated
+        joinedCompetitions: 0,
+        competitionsWon: 0,
+        currentStreak: 0,
+        longestStreak: 0,
+        achievements: [],
+        level: {
+          current: 1,
+          name: "Beginner",
+          requiredXP: 0,
+          nextLevelXP: 100,
+          progress: 0
+        },
+        experiencePoints: 0
       },
       createdAt: new Date(userDoc.$createdAt).getTime(),
       updatedAt: new Date(userDoc.$updatedAt).getTime()
-    };
+    });
   }
 
   private preferencesFromDocument(doc: AppwriteUserPreferencesDocument): UserPreferences {
     return {
       defaultLanguage: doc.default_language as LanguageCode,
-      keyboardLayouts: JSON.parse(doc.keyboard_layouts || '{}'),
+      preferredLayouts: JSON.parse(doc.keyboard_layouts || '{}'),
       theme: doc.theme as any,
       soundEnabled: doc.sound_enabled,
-      visualFeedback: doc.visual_feedback,
-      autoCompleteEnabled: doc.auto_complete_enabled
+      showKeyboard: true, // Default value since not in document
+      difficulty: DifficultyLevel.MEDIUM, // Default value since not in document
+      autoSwitchLayout: false, // Default value since not in document
+      practiceReminders: true, // Default value since not in document
+      competitionNotifications: true, // Default value since not in document
+      showDetailedStats: true, // Default value since not in document
+      privacyMode: false // Default value since not in document
     };
   }
 }

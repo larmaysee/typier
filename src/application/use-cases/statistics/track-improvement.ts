@@ -1,8 +1,7 @@
-import { LanguageCode } from "@/enums/site-config";
-import { ITypingRepository, IUserRepository } from "../../domain/interfaces/repositories";
-import { IPerformanceAnalyzerService } from "../../domain/interfaces/services";
-import { TrackImprovementQueryDTO } from "../dto/queries.dto";
-import { ImprovementTrackingResponseDTO } from "../dto/statistics.dto";
+import { ITypingRepository, IUserRepository } from "@/domain/interfaces/repositories";
+import { IPerformanceAnalyzerService } from "@/domain/interfaces/services";
+import { TrackImprovementQueryDTO } from "@/application/dto/queries.dto";
+import { ImprovementTrackingResponseDTO } from "@/application/dto/statistics.dto";
 
 export class TrackImprovementUseCase {
   constructor(

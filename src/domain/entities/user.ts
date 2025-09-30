@@ -1,62 +1,15 @@
-export interface User {
-  id: string;
-  username: string;
-  email: string;
-  totalTests: number;
-  bestWpm: number;
-  averageAccuracy: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface UserPreferences {
-  id: string;
-  userId: string;
-  theme: 'light' | 'dark' | 'system';
-  preferredLanguage: 'english' | 'lisu' | 'myanmar';
-  defaultTestDuration: number;
-  showLeaderboard: boolean;
-  showShiftLabel?: boolean;
-  practiceMode?: boolean;
-  difficultyMode?: 'chars' | 'syntaxs';
-  colorTheme?: string;
-  keyboardLayouts: Record<string, string>; // language -> preferred layout ID
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface UserProfile {
-  user: User;
-  preferences: UserPreferences;
-  statistics: UserStatistics;
-}
-
-export interface UserStatistics {
-  userId: string;
-  totalTests: number;
-  totalTimeTyped: number;
-  bestWpm: number;
-  averageWpm: number;
-  bestAccuracy: number;
-  averageAccuracy: number;
-  totalWordsTyped: number;
-  totalCharactersTyped: number;
-  improvementRate: number;
-  lastTestDate: Date;
-  createdAt: Date;
-  updatedAt: Date;
 /**
  * Domain entities for user management and preferences
  * Contains user account, profile, and preference business logic
  */
 
-import { LanguageCode } from '../enums/languages';
-import { DifficultyLevel, TypingMode } from '../enums/typing-mode';
+import { LanguageCode } from "../../enums/site-config";
+import { DifficultyLevel, TypingMode } from "../enums/typing-mode";
 
 export interface UserPreferences {
   readonly defaultLanguage: LanguageCode;
   readonly preferredLayouts: Record<LanguageCode, string>;
-  readonly theme: 'light' | 'dark' | 'system';
+  readonly theme: "light" | "dark" | "system";
   readonly soundEnabled: boolean;
   readonly showKeyboard: boolean;
   readonly difficulty: DifficultyLevel;
@@ -106,15 +59,19 @@ export class User {
     public readonly createdAt: number,
     public readonly updatedAt: number
   ) {
-    if (!id.trim()) throw new Error('User ID cannot be empty');
-    if (!username.trim()) throw new Error('Username cannot be empty');
-    if (!email.trim()) throw new Error('Email cannot be empty');
-    if (!this.isValidEmail(email)) throw new Error('Invalid email format');
-    if (username.length < 3) throw new Error('Username must be at least 3 characters');
-    if (username.length > 30) throw new Error('Username must be at most 30 characters');
-    if (!this.isValidUsername(username)) throw new Error('Username contains invalid characters');
-    if (createdAt <= 0) throw new Error('Created timestamp must be positive');
-    if (updatedAt < createdAt) throw new Error('Updated timestamp cannot be before created timestamp');
+    if (!id.trim()) throw new Error("User ID cannot be empty");
+    if (!username.trim()) throw new Error("Username cannot be empty");
+    if (!email.trim()) throw new Error("Email cannot be empty");
+    if (!this.isValidEmail(email)) throw new Error("Invalid email format");
+    if (username.length < 3)
+      throw new Error("Username must be at least 3 characters");
+    if (username.length > 30)
+      throw new Error("Username must be at most 30 characters");
+    if (!this.isValidUsername(username))
+      throw new Error("Username contains invalid characters");
+    if (createdAt <= 0) throw new Error("Created timestamp must be positive");
+    if (updatedAt < createdAt)
+      throw new Error("Updated timestamp cannot be before created timestamp");
   }
 
   static create(data: {
@@ -144,23 +101,23 @@ export class User {
       achievements: [],
       level: {
         current: 1,
-        name: 'Beginner',
+        name: "Beginner",
         requiredXP: 0,
         nextLevelXP: 100,
-        progress: 0
+        progress: 0,
       },
       experiencePoints: 0,
-      ...data.profile
+      ...data.profile,
     };
 
     const defaultPreferences: UserPreferences = {
       defaultLanguage: LanguageCode.EN,
       preferredLayouts: {
-        [LanguageCode.EN]: 'qwerty-us',
-        [LanguageCode.MY]: 'myanmar3',
-        [LanguageCode.LI]: 'sil-basic'
+        [LanguageCode.EN]: "qwerty-us",
+        [LanguageCode.MY]: "myanmar3",
+        [LanguageCode.LI]: "sil-basic",
       },
-      theme: 'system',
+      theme: "system",
       soundEnabled: true,
       showKeyboard: true,
       difficulty: DifficultyLevel.MEDIUM,
@@ -169,7 +126,7 @@ export class User {
       competitionNotifications: true,
       showDetailedStats: true,
       privacyMode: false,
-      ...data.preferences
+      ...data.preferences,
     };
 
     return new User(
@@ -237,11 +194,16 @@ export class User {
     updatedLayouts[language] = layoutId;
 
     return this.updatePreferences({
-      preferredLayouts: updatedLayouts
+      preferredLayouts: updatedLayouts,
     });
   }
 
-  recordTestResult(wpm: number, accuracy: number, timeTyped: number, mode: TypingMode): User {
+  recordTestResult(
+    wpm: number,
+    accuracy: number,
+    timeTyped: number,
+    mode: TypingMode
+  ): User {
     const isNewBest = wpm > this.profile.bestWPM;
     const newTotalTests = this.profile.totalTests + 1;
     const newTotalTime = this.profile.totalTimeTyped + timeTyped;
@@ -251,14 +213,17 @@ export class User {
     const newAverageWPM = (previousTotalWPM + wpm) / newTotalTests;
 
     // Calculate new average accuracy
-    const previousTotalAccuracy = this.profile.averageAccuracy * this.profile.totalTests;
-    const newAverageAccuracy = (previousTotalAccuracy + accuracy) / newTotalTests;
+    const previousTotalAccuracy =
+      this.profile.averageAccuracy * this.profile.totalTests;
+    const newAverageAccuracy =
+      (previousTotalAccuracy + accuracy) / newTotalTests;
 
     // Update streak
     let newCurrentStreak = this.profile.currentStreak;
     let newLongestStreak = this.profile.longestStreak;
 
-    if (accuracy >= 90) { // Consider 90%+ accuracy as maintaining streak
+    if (accuracy >= 90) {
+      // Consider 90%+ accuracy as maintaining streak
       newCurrentStreak++;
       newLongestStreak = Math.max(newLongestStreak, newCurrentStreak);
     } else {
@@ -283,7 +248,7 @@ export class User {
       currentStreak: newCurrentStreak,
       longestStreak: newLongestStreak,
       experiencePoints: newXP,
-      level: this.calculateLevel(newXP)
+      level: this.calculateLevel(newXP),
     };
 
     return new User(
@@ -304,21 +269,31 @@ export class User {
     const level = Math.floor(Math.sqrt(experiencePoints / 100)) + 1;
     const requiredXP = Math.pow(level - 1, 2) * 100;
     const nextLevelXP = Math.pow(level, 2) * 100;
-    const progress = ((experiencePoints - requiredXP) / (nextLevelXP - requiredXP)) * 100;
+    const progress =
+      ((experiencePoints - requiredXP) / (nextLevelXP - requiredXP)) * 100;
 
     const levelNames = [
-      'Beginner', 'Novice', 'Apprentice', 'Intermediate', 'Advanced',
-      'Expert', 'Master', 'Grandmaster', 'Legend', 'Ultimate'
+      "Beginner",
+      "Novice",
+      "Apprentice",
+      "Intermediate",
+      "Advanced",
+      "Expert",
+      "Master",
+      "Grandmaster",
+      "Legend",
+      "Ultimate",
     ];
 
-    const levelName = levelNames[Math.min(level - 1, levelNames.length - 1)] || 'Ultimate';
+    const levelName =
+      levelNames[Math.min(level - 1, levelNames.length - 1)] || "Ultimate";
 
     return {
       current: level,
       name: levelName,
       requiredXP,
       nextLevelXP,
-      progress: Math.min(Math.max(progress, 0), 100)
+      progress: Math.min(Math.max(progress, 0), 100),
     };
   }
 
@@ -333,13 +308,13 @@ export class User {
     return this.updateProfile({
       achievements: updatedAchievements,
       experiencePoints: this.profile.experiencePoints + bonusXP,
-      level: this.calculateLevel(this.profile.experiencePoints + bonusXP)
+      level: this.calculateLevel(this.profile.experiencePoints + bonusXP),
     });
   }
 
   joinCompetition(): User {
     return this.updateProfile({
-      joinedCompetitions: this.profile.joinedCompetitions + 1
+      joinedCompetitions: this.profile.joinedCompetitions + 1,
     });
   }
 
@@ -349,7 +324,7 @@ export class User {
     return this.updateProfile({
       competitionsWon: this.profile.competitionsWon + 1,
       experiencePoints: this.profile.experiencePoints + bonusXP,
-      level: this.calculateLevel(this.profile.experiencePoints + bonusXP)
+      level: this.calculateLevel(this.profile.experiencePoints + bonusXP),
     });
   }
 
@@ -400,7 +375,7 @@ export class User {
   }
 
   getPreferredLayout(language: LanguageCode): string {
-    return this.preferences.preferredLayouts[language] || 'default';
+    return this.preferences.preferredLayouts[language] || "default";
   }
 
   hasAchievement(achievementId: string): boolean {
@@ -418,16 +393,17 @@ export class User {
     return Math.round(charactersPerMinute * 100) / 100;
   }
 
-  getTypingLevel(): 'beginner' | 'intermediate' | 'advanced' | 'expert' {
+  getTypingLevel(): "beginner" | "intermediate" | "advanced" | "expert" {
     const avgWPM = this.profile.averageWPM;
-    if (avgWPM < 20) return 'beginner';
-    if (avgWPM < 40) return 'intermediate';
-    if (avgWPM < 70) return 'advanced';
-    return 'expert';
+    if (avgWPM < 20) return "beginner";
+    if (avgWPM < 40) return "intermediate";
+    if (avgWPM < 70) return "advanced";
+    return "expert";
   }
 
   isValid(): boolean {
-    return this.id.trim().length > 0 &&
+    return (
+      this.id.trim().length > 0 &&
       this.username.trim().length >= 3 &&
       this.username.trim().length <= 30 &&
       this.isValidEmail(this.email) &&
@@ -436,7 +412,9 @@ export class User {
       this.updatedAt >= this.createdAt &&
       this.profile.totalTests >= 0 &&
       this.profile.bestWPM >= 0 &&
-      this.profile.averageAccuracy >= 0 && this.profile.averageAccuracy <= 100;
+      this.profile.averageAccuracy >= 0 &&
+      this.profile.averageAccuracy <= 100
+    );
   }
 
   equals(other: User): boolean {

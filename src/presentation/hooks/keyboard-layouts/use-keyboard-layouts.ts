@@ -1,81 +1,280 @@
-"use client";
+/**
+ * React Hook for Keyboard Layout Management
+ * Provides keyboard layout functionality within React components following clean architecture
+ */
 
-import { useState, useEffect } from "react";
-import { useSiteConfig } from "@/components/site-config";
+import { useState, useEffect, useCallback } from 'react';
+import { useDependencyInjection } from '@/presentation/hooks/core/use-dependency-injection';
+import { GetAvailableLayoutsUseCase } from '@/application/use-cases/keyboard-layouts/get-available-layouts';
+import { SwitchKeyboardLayoutUseCase } from '@/application/use-cases/keyboard-layouts/switch-keyboard-layout';
+import { LayoutsResponseDTO } from '@/application/dto/keyboard-layouts.dto';
+import { LanguageCode } from '@/enums/site-config';
+import { DomainError } from '@/shared/errors/domain-errors';
 
-interface KeyboardLayout {
-  id: string;
-  name: string;
-  displayName: string;
-  language: string;
-  isDefault: boolean;
+// Type alias for layout summary from DTO
+type LayoutSummary = LayoutsResponseDTO['layouts'][number];
+
+export interface UseKeyboardLayoutsOptions {
+  language: LanguageCode;
+  userId?: string;
+  autoLoad?: boolean;
 }
 
-// Mock keyboard layouts data - in a real implementation this would come from domain layer
-const KEYBOARD_LAYOUTS: KeyboardLayout[] = [
-  { id: "qwerty-us", name: "QWERTY US", displayName: "QWERTY (US)", language: "en", isDefault: true },
-  { id: "qwerty-uk", name: "QWERTY UK", displayName: "QWERTY (UK)", language: "en", isDefault: false },
-  { id: "dvorak", name: "Dvorak", displayName: "Dvorak", language: "en", isDefault: false },
-  { id: "colemak", name: "Colemak", displayName: "Colemak", language: "en", isDefault: false },
-  
-  { id: "sil-basic", name: "SIL Basic", displayName: "SIL Basic", language: "li", isDefault: true },
-  { id: "sil-standard", name: "SIL Standard", displayName: "SIL Standard", language: "li", isDefault: false },
-  { id: "unicode-standard", name: "Unicode Standard", displayName: "Unicode Standard", language: "li", isDefault: false },
-  { id: "traditional", name: "Traditional", displayName: "Traditional", language: "li", isDefault: false },
-  
-  { id: "myanmar3", name: "Myanmar3", displayName: "Myanmar3", language: "my", isDefault: true },
-  { id: "zawgyi", name: "Zawgyi", displayName: "Zawgyi", language: "my", isDefault: false },
-  { id: "unicode-standard-my", name: "Unicode Standard", displayName: "Unicode Standard", language: "my", isDefault: false },
-  { id: "wininnwa", name: "WinInnwa", displayName: "WinInnwa", language: "my", isDefault: false },
-];
+export interface UseKeyboardLayoutsResult {
+  // State
+  availableLayouts: LayoutSummary[];
+  activeLayout: LayoutSummary | null;
+  isLoading: boolean;
+  error: string | null;
+  isChanging: boolean;
 
-export function useKeyboardLayouts() {
-  const { config } = useSiteConfig();
-  const [availableLayouts, setAvailableLayouts] = useState<KeyboardLayout[]>([]);
-  const [activeLayout, setActiveLayout] = useState<KeyboardLayout | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // Actions
+  loadLayouts: () => Promise<void>;
+  switchLayout: (layoutId: string) => Promise<void>;
+  refreshLayouts: () => Promise<void>;
+  clearError: () => void;
 
-  // Filter layouts by current language and set active layout
-  useEffect(() => {
-    setIsLoading(true);
-    
-    // Simulate async loading
-    setTimeout(() => {
-      const languageLayouts = KEYBOARD_LAYOUTS.filter(
-        layout => layout.language === config.language.code
+  // Computed
+  hasLayouts: boolean;
+  defaultLayoutId: string | null;
+  preferredLayoutId: string | null;
+}
+
+/**
+ * Hook for managing keyboard layouts within React components
+ * 
+ * @example
+ * ```tsx
+ * function KeyboardSelector() {
+ *   const { availableLayouts, activeLayout, switchLayout, isLoading } = useKeyboardLayouts({
+ *     language: LanguageCode.EN,
+ *     userId: 'user123'
+ *   });
+ * 
+ *   if (isLoading) return <Spinner />;
+ * 
+ *   return (
+ *     <select onChange={(e) => switchLayout(e.target.value)}>
+ *       {availableLayouts.map(layout => (
+ *         <option key={layout.id} value={layout.id}>
+ *           {layout.displayName}
+ *         </option>
+ *       ))}
+ *     </select>
+ *   );
+ * }
+ * ```
+ */
+export function useKeyboardLayouts({
+  language,
+  userId = 'anonymous',
+  autoLoad = true
+}: UseKeyboardLayoutsOptions): UseKeyboardLayoutsResult {
+  const { resolve, serviceTokens } = useDependencyInjection();
+
+  // State
+  const [availableLayouts, setAvailableLayouts] = useState<LayoutSummary[]>([]);
+  const [activeLayout, setActiveLayout] = useState<LayoutSummary | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isChanging, setIsChanging] = useState(false);
+  const [defaultLayoutId, setDefaultLayoutId] = useState<string | null>(null);
+  const [preferredLayoutId, setPreferredLayoutId] = useState<string | null>(null);
+
+  // Load layouts use case
+  const loadLayouts = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const getLayoutsUseCase = resolve<GetAvailableLayoutsUseCase>(
+        serviceTokens.GET_AVAILABLE_LAYOUTS_USE_CASE
       );
-      
-      setAvailableLayouts(languageLayouts);
-      
-      // Set default active layout
-      const defaultLayout = languageLayouts.find(layout => layout.isDefault) 
-        || languageLayouts[0];
-      
-      setActiveLayout(defaultLayout || null);
+
+      const response = await getLayoutsUseCase.execute({
+        language,
+        userId
+      });
+
+      setAvailableLayouts(response.layouts);
+      setDefaultLayoutId(response.defaultLayoutId);
+      setPreferredLayoutId(response.preferredLayoutId);
+
+      // Set active layout priority: preferred > default > first available
+      const activeLayout = response.layouts.find((l: LayoutSummary) => l.id === response.preferredLayoutId)
+        || response.layouts.find((l: LayoutSummary) => l.id === response.defaultLayoutId)
+        || response.layouts[0]
+        || null;
+
+      setActiveLayout(activeLayout);
+
+    } catch (err) {
+      const errorMessage = err instanceof DomainError
+        ? err.message
+        : err instanceof Error
+          ? err.message
+          : 'Failed to load keyboard layouts';
+
+      setError(errorMessage);
+      console.error('Failed to load keyboard layouts:', err);
+    } finally {
       setIsLoading(false);
-    }, 100);
-    
-  }, [config.language.code]);
-
-  const switchLayout = (layoutId: string) => {
-    const layout = availableLayouts.find(l => l.id === layoutId);
-    if (layout) {
-      setActiveLayout(layout);
-      // TODO: In a real implementation, this would trigger a use case
-      // to switch the layout and potentially preserve typing session
     }
-  };
+  }, [language, userId, resolve, serviceTokens.GET_AVAILABLE_LAYOUTS_USE_CASE]);
 
-  const getLayoutPreview = (layoutId: string) => {
-    // TODO: Return visual representation of the keyboard layout
-    return null;
-  };
+  // Switch layout use case
+  const switchLayout = useCallback(async (layoutId: string) => {
+    if (isChanging || layoutId === activeLayout?.id) {
+      return;
+    }
+
+    try {
+      setIsChanging(true);
+      setError(null);
+
+      const switchLayoutUseCase = resolve<SwitchKeyboardLayoutUseCase>(
+        serviceTokens.SWITCH_KEYBOARD_LAYOUT_USE_CASE
+      );
+
+      await switchLayoutUseCase.execute({
+        layoutId,
+        userId,
+        previousLayoutId: activeLayout?.id
+      });
+
+      // Update active layout
+      const newActiveLayout = availableLayouts.find((l: LayoutSummary) => l.id === layoutId);
+      if (newActiveLayout) {
+        setActiveLayout(newActiveLayout);
+        setPreferredLayoutId(layoutId); // Update preferred layout
+      }
+
+    } catch (err) {
+      const errorMessage = err instanceof DomainError
+        ? err.message
+        : err instanceof Error
+          ? err.message
+          : 'Failed to switch keyboard layout';
+
+      setError(errorMessage);
+      console.error('Failed to switch keyboard layout:', err);
+    } finally {
+      setIsChanging(false);
+    }
+  }, [
+    activeLayout?.id,
+    isChanging,
+    availableLayouts,
+    userId,
+    resolve,
+    serviceTokens.SWITCH_KEYBOARD_LAYOUT_USE_CASE
+  ]);
+
+  // Refresh layouts (reload with cache bust)
+  const refreshLayouts = useCallback(async () => {
+    await loadLayouts();
+  }, [loadLayouts]);
+
+  // Clear error state
+  const clearError = useCallback(() => {
+    setError(null);
+  }, []);
+
+  // Auto-load layouts when language changes
+  useEffect(() => {
+    if (autoLoad) {
+      loadLayouts();
+    }
+  }, [language, autoLoad, loadLayouts]);
+
+  // Computed values
+  const hasLayouts = availableLayouts.length > 0;
 
   return {
+    // State
     availableLayouts,
     activeLayout,
     isLoading,
+    error,
+    isChanging,
+
+    // Actions
+    loadLayouts,
     switchLayout,
-    getLayoutPreview,
+    refreshLayouts,
+    clearError,
+
+    // Computed
+    hasLayouts,
+    defaultLayoutId,
+    preferredLayoutId
+  };
+}
+
+/**
+ * Hook for managing single layout state (useful for components that only need current layout)
+ * 
+ * @example
+ * ```tsx
+ * function TypingArea() {
+ *   const { layout, isLoading } = useActiveLayout(LanguageCode.EN);
+ *   
+ *   if (isLoading || !layout) return <Spinner />;
+ *   
+ *   return <VirtualKeyboard layout={layout} />;
+ * }
+ * ```
+ */
+export function useActiveLayout(language: LanguageCode, userId?: string) {
+  const { activeLayout, isLoading, error, loadLayouts } = useKeyboardLayouts({
+    language,
+    userId,
+    autoLoad: true
+  });
+
+  return {
+    layout: activeLayout,
+    isLoading,
+    error,
+    reload: loadLayouts
+  };
+}
+
+/**
+ * Hook for layout switching with optimistic updates
+ * 
+ * @example
+ * ```tsx
+ * function QuickLayoutSwitcher() {
+ *   const { currentLayoutId, switchToLayout, isChanging } = useLayoutSwitcher(LanguageCode.EN);
+ *   
+ *   return (
+ *     <button 
+ *       onClick={() => switchToLayout('qwerty-us')}
+ *       disabled={isChanging}
+ *     >
+ *       Switch to QWERTY
+ *     </button>
+ *   );
+ * }
+ * ```
+ */
+export function useLayoutSwitcher(language: LanguageCode, userId?: string) {
+  const { activeLayout, switchLayout, isChanging, error } = useKeyboardLayouts({
+    language,
+    userId,
+    autoLoad: true
+  });
+
+  const switchToLayout = useCallback(async (layoutId: string) => {
+    await switchLayout(layoutId);
+  }, [switchLayout]);
+
+  return {
+    currentLayoutId: activeLayout?.id || null,
+    currentLayout: activeLayout,
+    switchToLayout,
+    isChanging,
+    error
   };
 }

@@ -1,8 +1,8 @@
 import { LanguageCode } from "@/enums/site-config";
-import { TypingMode } from "../../domain/entities/typing";
-import { IKeyboardLayoutRepository } from "../../domain/interfaces/repositories";
-import { GetLayoutCompatibilityQueryDTO } from "../dto/queries.dto";
-import { LayoutCompatibilityResponseDTO } from "../dto/keyboard-layouts.dto";
+import { IKeyboardLayoutRepository } from "@/domain/interfaces/repositories";
+import { GetLayoutCompatibilityQueryDTO } from "@/application/dto/queries.dto";
+import { LayoutCompatibilityResponseDTO } from "@/application/dto/keyboard-layouts.dto";
+import { TypingMode } from "@/domain";
 
 export class ValidateLayoutCompatibilityUseCase {
   constructor(
@@ -13,7 +13,7 @@ export class ValidateLayoutCompatibilityUseCase {
     const { layoutId, targetLanguage, mode } = query;
 
     // 1. Get the layout to validate
-    const layout = await this.layoutRepository.getLayoutById(layoutId);
+    const layout = await this.layoutRepository.findById(layoutId);
     if (!layout) {
       return {
         isCompatible: false,

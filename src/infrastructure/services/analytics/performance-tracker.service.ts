@@ -7,7 +7,7 @@ import { LiveTypingStats, TypingResults, TypingSession, TypingMistake } from "@/
  * Real-time typing performance tracking service
  */
 export class PerformanceTrackerService implements IPerformanceTrackerService {
-  
+
   calculateLiveMetrics(
     currentInput: string,
     targetText: string,
@@ -17,7 +17,7 @@ export class PerformanceTrackerService implements IPerformanceTrackerService {
     // Note: mistakes parameter available for future use in live calculations
     const now = Date.now();
     const timeElapsed = (now - startTime) / 1000; // Convert to seconds
-    
+
     if (timeElapsed <= 0) {
       return this.getEmptyLiveStats();
     }
@@ -25,22 +25,23 @@ export class PerformanceTrackerService implements IPerformanceTrackerService {
     const charactersTyped = currentInput.length;
     const correctCharacters = this.countCorrectCharacters(currentInput, targetText);
     const incorrectCharacters = charactersTyped - correctCharacters;
-    
+
     // Calculate WPM (assuming average word length of 5 characters)
     const currentWpm = Math.round((correctCharacters / 5) / (timeElapsed / 60));
-    
+
     // Calculate accuracy percentage
-    const currentAccuracy = charactersTyped > 0 
+    const currentAccuracy = charactersTyped > 0
       ? Math.round((correctCharacters / charactersTyped) * 100)
       : 100;
 
     return {
-      currentWpm: Math.max(0, currentWpm),
+      currentWPM: Math.max(0, currentWpm),
       currentAccuracy: Math.max(0, Math.min(100, currentAccuracy)),
-      charactersTyped,
-      correctCharacters,
-      incorrectCharacters,
-      timeElapsed
+      charactersPerSecond: timeElapsed > 0 ? correctCharacters / timeElapsed : 0,
+      errorRate: charactersTyped > 0 ? (incorrectCharacters / charactersTyped) * 100 : 0,
+      timeElapsed,
+      elapsedTime: timeElapsed,
+      progress: targetText.length > 0 ? (charactersTyped / targetText.length) * 100 : 0
     };
   }
 
@@ -58,19 +59,19 @@ export class PerformanceTrackerService implements IPerformanceTrackerService {
     const charactersTyped = typedText.length;
     const correctCharacters = this.countCorrectCharacters(typedText, targetText);
     const errors = session.mistakes.length;
-    
+
     // Word-based calculations
     const words = this.extractWords(targetText);
     const typedWords = this.extractWords(typedText);
     const { correctWords, incorrectWords } = this.compareWords(words, typedWords);
-    
+
     // WPM calculation (using actual correct words)
-    const wpm = totalTimeSeconds > 0 
+    const wpm = totalTimeSeconds > 0
       ? Math.round((correctWords / (totalTimeSeconds / 60)))
       : 0;
-    
+
     // Accuracy calculation
-    const accuracy = charactersTyped > 0 
+    const accuracy = charactersTyped > 0
       ? Math.round((correctCharacters / charactersTyped) * 100)
       : 100;
 
@@ -79,20 +80,20 @@ export class PerformanceTrackerService implements IPerformanceTrackerService {
     const consistency = this.calculateConsistency(speedOverTime);
 
     // Finger utilization (simplified)
-    const fingerUtilization = this.calculateFingerUtilization(typedText, session.activeLayout);
+    const fingerUtilization = this.calculateFingerUtilization(typedText, session.activeLayout.id);
 
-    return {
+    return TypingResults.create({
       wpm: Math.max(0, wpm),
       accuracy: Math.max(0, Math.min(100, accuracy)),
       correctWords,
       incorrectWords,
-      totalWords: words.length,
       duration: Math.round(totalTimeSeconds),
       charactersTyped,
+      correctChars: this.countCorrectCharacters(typedText, session.test.textContent),
       errors,
       consistency,
       fingerUtilization
-    };
+    });
   }
 
   analyzeTypingRhythm(keystrokes: Array<{ key: string; timestamp: number }>): number[] {
@@ -114,7 +115,7 @@ export class PerformanceTrackerService implements IPerformanceTrackerService {
 
     for (let i = 0; i < intervals.length; i++) {
       const keystrokeTime = keystrokes[i + 1].timestamp;
-      
+
       if (keystrokeTime - windowStart > windowSize) {
         if (currentWindow.length > 0) {
           windows.push([...currentWindow]);
@@ -122,7 +123,7 @@ export class PerformanceTrackerService implements IPerformanceTrackerService {
         currentWindow = [];
         windowStart = keystrokeTime;
       }
-      
+
       currentWindow.push(intervals[i]);
     }
 
@@ -147,14 +148,14 @@ export class PerformanceTrackerService implements IPerformanceTrackerService {
       'e': 'left-middle', 'd': 'left-middle', 'c': 'left-middle',
       'r': 'left-index', 'f': 'left-index', 'v': 'left-index',
       't': 'left-index', 'g': 'left-index', 'b': 'left-index',
-      
+
       // Right hand
       'y': 'right-index', 'h': 'right-index', 'n': 'right-index',
       'u': 'right-index', 'j': 'right-index', 'm': 'right-index',
       'i': 'right-middle', 'k': 'right-middle',
       'o': 'right-ring', 'l': 'right-ring',
       'p': 'right-pinky', ';': 'right-pinky', "'": 'right-pinky',
-      
+
       ' ': 'thumbs'
     };
 
@@ -188,7 +189,7 @@ export class PerformanceTrackerService implements IPerformanceTrackerService {
 
     const speeds = speedOverTime.map(point => point.wpm);
     const mean = speeds.reduce((sum, speed) => sum + speed, 0) / speeds.length;
-    
+
     if (mean === 0) return 100;
 
     // Calculate coefficient of variation (CV)
@@ -199,31 +200,32 @@ export class PerformanceTrackerService implements IPerformanceTrackerService {
     // Convert to consistency score (lower CV = higher consistency)
     // CV of 0 = 100% consistent, CV of 1 = 0% consistent
     const consistency = Math.max(0, Math.min(100, 100 * (1 - Math.min(cv, 1))));
-    
+
     return Math.round(consistency);
   }
 
   private getEmptyLiveStats(): LiveTypingStats {
     return {
-      currentWpm: 0,
+      currentWPM: 0,
       currentAccuracy: 100,
-      charactersTyped: 0,
-      correctCharacters: 0,
-      incorrectCharacters: 0,
-      timeElapsed: 0
+      charactersPerSecond: 0,
+      errorRate: 0,
+      timeElapsed: 0,
+      elapsedTime: 0,
+      progress: 0
     };
   }
 
   private countCorrectCharacters(input: string, target: string): number {
     let correct = 0;
     const minLength = Math.min(input.length, target.length);
-    
+
     for (let i = 0; i < minLength; i++) {
       if (input[i] === target[i]) {
         correct++;
       }
     }
-    
+
     return correct;
   }
 
@@ -237,9 +239,9 @@ export class PerformanceTrackerService implements IPerformanceTrackerService {
   } {
     let correctWords = 0;
     let incorrectWords = 0;
-    
+
     const minLength = Math.min(targetWords.length, typedWords.length);
-    
+
     for (let i = 0; i < minLength; i++) {
       if (targetWords[i] === typedWords[i]) {
         correctWords++;
@@ -247,12 +249,12 @@ export class PerformanceTrackerService implements IPerformanceTrackerService {
         incorrectWords++;
       }
     }
-    
+
     // Add remaining words as incorrect if typed more than target
     if (typedWords.length > targetWords.length) {
       incorrectWords += typedWords.length - targetWords.length;
     }
-    
+
     return { correctWords, incorrectWords };
   }
 
@@ -262,18 +264,18 @@ export class PerformanceTrackerService implements IPerformanceTrackerService {
     const totalTime = session.liveStats.timeElapsed;
     const intervals = Math.max(1, Math.floor(totalTime / 10)); // 10-second intervals
     const speedPoints: Array<{ time: number; wpm: number }> = [];
-    
+
     for (let i = 1; i <= intervals; i++) {
       const timePoint = (totalTime / intervals) * i;
       // Simulate speed variation (in reality this would come from actual tracking)
-      const baseWpm = session.liveStats.currentWpm;
+      const baseWpm = session.liveStats.currentWPM;
       const variation = Math.sin(i) * 5; // Small variation
       speedPoints.push({
         time: timePoint,
         wpm: Math.max(0, baseWpm + variation)
       });
     }
-    
+
     return speedPoints;
   }
 }

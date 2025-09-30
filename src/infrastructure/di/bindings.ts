@@ -5,17 +5,47 @@
 
 import { container, ServiceLifetime } from './container';
 
+// Import types and interfaces
+import { ISessionRepository, IUserRepository, IKeyboardLayoutRepository, ITypingRepository } from '../../domain/interfaces/repositories';
+import { ITextGenerationService } from '../../domain/interfaces/services';
+import { ILayoutProvider, ILayoutRegistryService, ILayoutManagerService } from '../../domain/interfaces/keyboard-layout.interface';
+
+// Import actual implementations
+import { StartTypingSessionUseCase } from '../../application/use-cases/typing/start-typing-session';
+import { ProcessTypingInputUseCase } from '../../application/use-cases/typing/process-typing-input';
+import { CompleteTypingSessionUseCase } from '../../application/use-cases/typing/complete-typing-session';
+import { PauseResumeSessionUseCase } from '../../application/use-cases/typing/pause-resume-session';
+import { GetAvailableLayoutsUseCase } from '../../application/use-cases/keyboard-layouts/get-available-layouts';
+import { SwitchKeyboardLayoutUseCase } from '../../application/use-cases/keyboard-layouts/switch-keyboard-layout';
+
+// Mock repositories for now (will be replaced in Phase 2)
+import { MockTypingRepository } from '@/infrastructure/repositories/mock/mock-typing.repository';
+import { MockUserRepository } from '@/infrastructure/repositories/mock/mock-user.repository';
+import { MockKeyboardLayoutRepository } from '@/infrastructure/repositories/mock/mock-keyboard-layout.repository';
+import { MockSessionRepository } from '@/infrastructure/repositories/mock/mock-session.repository';
+
+// Mock services for now (will be replaced in Phase 2)
+import { MockTextGenerationService } from '@/infrastructure/services/mock/mock-text-generation.service';
+
+// Keyboard layout services
+import { EnglishLayoutsService } from '@/infrastructure/services/keyboard-layouts/english-layouts.service';
+import { LisuLayoutsService } from '@/infrastructure/services/keyboard-layouts/lisu-layouts.service';
+import { MyanmarLayoutsService } from '@/infrastructure/services/keyboard-layouts/myanmar-layouts.service';
+import { LayoutRegistryService } from '@/infrastructure/services/keyboard-layouts/layout-registry.service';
+import { LayoutManagerService } from '@/infrastructure/services/keyboard-layouts/layout-manager.service';
+
 // Service Tokens - following consistent naming convention
 export const SERVICE_TOKENS = {
   // Repository Services
   TYPING_REPOSITORY: 'TypingRepository',
-  KEYBOARD_LAYOUT_REPOSITORY: 'KeyboardLayoutRepository', 
+  KEYBOARD_LAYOUT_REPOSITORY: 'KeyboardLayoutRepository',
   USER_REPOSITORY: 'UserRepository',
   STATISTICS_REPOSITORY: 'StatisticsRepository',
+  SESSION_REPOSITORY: 'SessionRepository',
 
   // Application Use Cases
   START_TYPING_SESSION_USE_CASE: 'StartTypingSessionUseCase',
-  PROCESS_TYPING_INPUT_USE_CASE: 'ProcessTypingInputUseCase', 
+  PROCESS_TYPING_INPUT_USE_CASE: 'ProcessTypingInputUseCase',
   COMPLETE_TYPING_SESSION_USE_CASE: 'CompleteTypingSessionUseCase',
   GET_AVAILABLE_LAYOUTS_USE_CASE: 'GetAvailableLayoutsUseCase',
   SWITCH_KEYBOARD_LAYOUT_USE_CASE: 'SwitchKeyboardLayoutUseCase',
@@ -41,7 +71,7 @@ export const SERVICE_TOKENS = {
   // Configuration Services
   ENVIRONMENT_CONFIG: 'EnvironmentConfig',
   FEATURE_FLAGS: 'FeatureFlags',
-  
+
   // Validation Services
   LAYOUT_VALIDATOR_SERVICE: 'LayoutValidatorService',
   INPUT_VALIDATOR_SERVICE: 'InputValidatorService',
@@ -78,80 +108,82 @@ export interface FeatureFlags {
 export function registerCoreServices(): void {
   // Environment Configuration
   container.registerSingleton(SERVICE_TOKENS.ENVIRONMENT_CONFIG, () => createEnvironmentConfig());
-  
+
   // Feature Flags
   container.registerSingleton(SERVICE_TOKENS.FEATURE_FLAGS, () => createFeatureFlags());
-  
+
   // Logger Service
   container.registerSingleton(SERVICE_TOKENS.LOGGER, () => createLogger());
 }
 
 export function registerRepositories(): void {
-  // Repository services will be registered based on environment
-  // For now, we'll register placeholders that can be replaced with actual implementations
-  
-  // Note: These will be replaced with actual repository implementations in Phase 2
-  container.registerSingleton(SERVICE_TOKENS.TYPING_REPOSITORY, () => {
-    throw new Error('Typing repository not implemented yet');
-  });
-  
-  container.registerSingleton(SERVICE_TOKENS.KEYBOARD_LAYOUT_REPOSITORY, () => {
-    throw new Error('Keyboard layout repository not implemented yet');
-  });
-  
-  container.registerSingleton(SERVICE_TOKENS.USER_REPOSITORY, () => {
-    throw new Error('User repository not implemented yet');
-  });
-  
+  // Repository services using mock implementations for development
+  container.registerSingleton(SERVICE_TOKENS.TYPING_REPOSITORY, () => new MockTypingRepository());
+  container.registerSingleton(SERVICE_TOKENS.KEYBOARD_LAYOUT_REPOSITORY, () => new MockKeyboardLayoutRepository());
+  container.registerSingleton(SERVICE_TOKENS.USER_REPOSITORY, () => new MockUserRepository());
+  container.registerSingleton(SERVICE_TOKENS.SESSION_REPOSITORY, () => new MockSessionRepository());
+
+  // TODO: Implement MockStatisticsRepository
   container.registerSingleton(SERVICE_TOKENS.STATISTICS_REPOSITORY, () => {
     throw new Error('Statistics repository not implemented yet');
   });
 }
 
 export function registerUseCases(): void {
-  // Application use cases - placeholders for Phase 3
-  // These will be implemented once we have the domain and repository layers
-  
+  // Application use cases using dependency injection
   container.registerTransient(SERVICE_TOKENS.START_TYPING_SESSION_USE_CASE, () => {
-    throw new Error('StartTypingSessionUseCase not implemented yet');
+    const sessionRepo = container.resolve<ISessionRepository>(SERVICE_TOKENS.SESSION_REPOSITORY);
+    const userRepo = container.resolve<IUserRepository>(SERVICE_TOKENS.USER_REPOSITORY);
+    const layoutRepo = container.resolve<IKeyboardLayoutRepository>(SERVICE_TOKENS.KEYBOARD_LAYOUT_REPOSITORY);
+    const textService = container.resolve<ITextGenerationService>(SERVICE_TOKENS.TEXT_GENERATOR_SERVICE);
+    return new StartTypingSessionUseCase(sessionRepo, userRepo, layoutRepo, textService);
   });
-  
+
   container.registerTransient(SERVICE_TOKENS.PROCESS_TYPING_INPUT_USE_CASE, () => {
-    throw new Error('ProcessTypingInputUseCase not implemented yet');
+    const sessionRepo = container.resolve<ISessionRepository>(SERVICE_TOKENS.SESSION_REPOSITORY);
+    return new ProcessTypingInputUseCase(sessionRepo);
   });
-  
+
   container.registerTransient(SERVICE_TOKENS.COMPLETE_TYPING_SESSION_USE_CASE, () => {
-    throw new Error('CompleteTypingSessionUseCase not implemented yet');
+    const sessionRepo = container.resolve<ISessionRepository>(SERVICE_TOKENS.SESSION_REPOSITORY);
+    const userRepo = container.resolve<IUserRepository>(SERVICE_TOKENS.USER_REPOSITORY);
+    const typingRepo = container.resolve<ITypingRepository>(SERVICE_TOKENS.TYPING_REPOSITORY);
+    return new CompleteTypingSessionUseCase(sessionRepo, typingRepo, userRepo);
   });
-  
+
+  // TODO: Add remaining use cases when their implementations are available
   container.registerTransient(SERVICE_TOKENS.GET_AVAILABLE_LAYOUTS_USE_CASE, () => {
-    throw new Error('GetAvailableLayoutsUseCase not implemented yet');
+    const layoutRepo = container.resolve<IKeyboardLayoutRepository>(SERVICE_TOKENS.KEYBOARD_LAYOUT_REPOSITORY);
+    const userRepo = container.resolve<IUserRepository>(SERVICE_TOKENS.USER_REPOSITORY);
+    return new GetAvailableLayoutsUseCase(layoutRepo, userRepo);
   });
-  
+
   container.registerTransient(SERVICE_TOKENS.SWITCH_KEYBOARD_LAYOUT_USE_CASE, () => {
-    throw new Error('SwitchKeyboardLayoutUseCase not implemented yet');
+    const layoutRepo = container.resolve<IKeyboardLayoutRepository>(SERVICE_TOKENS.KEYBOARD_LAYOUT_REPOSITORY);
+    const sessionRepo = container.resolve<ISessionRepository>(SERVICE_TOKENS.SESSION_REPOSITORY);
+    // For now, create a simple event bus that logs events
+    const mockEventBus = {
+      publish: async (event: any) => console.log('Event published:', event),
+      subscribe: () => { },
+      unsubscribe: () => { }
+    };
+    return new SwitchKeyboardLayoutUseCase(layoutRepo, sessionRepo, mockEventBus as any);
   });
-  
+
   container.registerTransient(SERVICE_TOKENS.CALCULATE_USER_STATISTICS_USE_CASE, () => {
     throw new Error('CalculateUserStatisticsUseCase not implemented yet');
   });
 }
 
 export function registerInfrastructureServices(): void {
-  // Infrastructure services - placeholders for Phase 2
-  
-  container.registerSingleton(SERVICE_TOKENS.LAYOUT_MANAGER_SERVICE, () => {
-    throw new Error('LayoutManagerService not implemented yet');
-  });
-  
-  container.registerSingleton(SERVICE_TOKENS.TEXT_GENERATOR_SERVICE, () => {
-    throw new Error('TextGeneratorService not implemented yet');
-  });
-  
+  // Infrastructure services using mock implementations for development
+  container.registerSingleton(SERVICE_TOKENS.TEXT_GENERATOR_SERVICE, () => new MockTextGenerationService());
+
+  // TODO: Implement remaining infrastructure services
   container.registerSingleton(SERVICE_TOKENS.PERFORMANCE_TRACKER_SERVICE, () => {
     throw new Error('PerformanceTrackerService not implemented yet');
   });
-  
+
   container.registerSingleton(SERVICE_TOKENS.NOTIFICATION_SERVICE, () => {
     throw new Error('NotificationService not implemented yet');
   });
@@ -159,23 +191,27 @@ export function registerInfrastructureServices(): void {
 
 export function registerKeyboardLayoutServices(): void {
   // Keyboard layout providers and services - priority for Phase 1
-  
+
   container.registerSingleton(SERVICE_TOKENS.ENGLISH_LAYOUT_PROVIDER, () => {
-    throw new Error('EnglishLayoutProvider not implemented yet');
+    return new EnglishLayoutsService();
   });
-  
+
   container.registerSingleton(SERVICE_TOKENS.LISU_LAYOUT_PROVIDER, () => {
-    throw new Error('LisuLayoutProvider not implemented yet');
+    return new LisuLayoutsService();
   });
-  
+
   container.registerSingleton(SERVICE_TOKENS.MYANMAR_LAYOUT_PROVIDER, () => {
-    throw new Error('MyanmarLayoutProvider not implemented yet');
+    return new MyanmarLayoutsService();
   });
-  
+
   container.registerSingleton(SERVICE_TOKENS.LAYOUT_REGISTRY_SERVICE, () => {
-    throw new Error('LayoutRegistryService not implemented yet');
+    return new LayoutRegistryService();
   });
-  
+
+  container.registerSingleton(SERVICE_TOKENS.LAYOUT_MANAGER_SERVICE, () => {
+    return new LayoutManagerService();
+  });
+
   container.registerSingleton(SERVICE_TOKENS.LAYOUT_VALIDATOR_SERVICE, () => {
     throw new Error('LayoutValidatorService not implemented yet');
   });
@@ -183,15 +219,15 @@ export function registerKeyboardLayoutServices(): void {
 
 export function registerExternalServices(): void {
   // External service integrations
-  
+
   container.registerSingleton(SERVICE_TOKENS.APPWRITE_CLIENT_SERVICE, () => {
     throw new Error('AppwriteClientService not implemented yet');
   });
-  
+
   container.registerSingleton(SERVICE_TOKENS.STORAGE_SERVICE, () => {
     throw new Error('StorageService not implemented yet');
   });
-  
+
   container.registerSingleton(SERVICE_TOKENS.ANALYTICS_SERVICE, () => {
     throw new Error('AnalyticsService not implemented yet');
   });
@@ -201,7 +237,7 @@ export function registerExternalServices(): void {
 function createEnvironmentConfig(): EnvironmentConfig {
   const isDevelopment = process.env.NODE_ENV === 'development';
   const isProduction = process.env.NODE_ENV === 'production';
-  
+
   return {
     isDevelopment,
     isProduction,
@@ -216,7 +252,7 @@ function createEnvironmentConfig(): EnvironmentConfig {
 
 function createFeatureFlags(): FeatureFlags {
   const isDevelopment = process.env.NODE_ENV === 'development';
-  
+
   return {
     enableMultipleLayouts: true, // Core feature
     enableCustomLayouts: isDevelopment, // Development feature for now
@@ -231,3 +267,17 @@ function createLogger(): Console {
   // For now, return console. In the future, this can be replaced with a more sophisticated logger
   return console;
 }
+
+// Main initialization function
+export function initializeContainer(): void {
+  // Register services in correct order (dependencies first)
+  registerCoreServices();
+  registerRepositories();
+  registerInfrastructureServices();
+  registerUseCases();
+  registerKeyboardLayoutServices();
+  registerExternalServices();
+}
+
+// Auto-initialize container when module is imported
+initializeContainer();

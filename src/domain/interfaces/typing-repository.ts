@@ -1,5 +1,6 @@
 import { LanguageCode } from "@/enums/site-config";
 import { TypingTest } from "../entities";
+import { LeaderboardEntry } from "../entities/statistics";
 
 export interface TestFilters {
   mode?: string;
@@ -16,14 +17,6 @@ export interface LeaderboardFilters {
   mode?: string;
   timeFrame?: 'day' | 'week' | 'month' | 'all';
   limit?: number;
-}
-
-export interface LeaderboardEntry {
-  userId: string;
-  username: string;
-  wpm: number;
-  accuracy: number;
-  testDate: number;
 }
 
 export interface ITypingRepository {

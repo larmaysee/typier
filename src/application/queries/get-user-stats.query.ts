@@ -1,5 +1,5 @@
+import { DifficultyLevel, TypingMode } from "@/domain/enums";
 import { LanguageCode } from "@/enums/site-config";
-import { TypingMode, DifficultyLevel } from "../entities/typing";
 
 export interface GetUserStatsQuery {
   userId: string;
@@ -17,7 +17,7 @@ export interface GetLeaderboardQuery {
   mode?: TypingMode;
   difficulty?: DifficultyLevel;
   layoutId?: string;
-  timeRange?: 'daily' | 'weekly' | 'monthly' | 'all-time';
+  timeRange?: "daily" | "weekly" | "monthly" | "all-time";
   limit?: number;
   offset?: number;
 }
@@ -37,7 +37,7 @@ export interface GetLayoutCompatibilityQuery {
 export interface TrackImprovementQuery {
   userId: string;
   language?: LanguageCode;
-  analysisDepth?: 'basic' | 'detailed' | 'comprehensive';
+  analysisDepth?: "basic" | "detailed" | "comprehensive";
   timeRange?: {
     start: Date;
     end: Date;

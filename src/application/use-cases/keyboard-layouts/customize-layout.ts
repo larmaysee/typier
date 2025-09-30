@@ -1,8 +1,16 @@
-import { LanguageCode } from "@/enums/site-config";
-import { KeyboardLayout, LayoutType, LayoutVariant, KeyMapping } from "../../domain/entities/keyboard-layout";
-import { IKeyboardLayoutRepository } from "../../domain/interfaces/repositories";
-import { ILayoutManagerService } from "../../domain/interfaces/services";
-import { CustomLayoutCreationResponseDTO } from "../dto/keyboard-layouts.dto";
+import { LanguageCode } from '@/enums/site-config';
+import { LayoutVariant, LayoutType } from '@/domain/enums/keyboard-layouts';
+import { KeyboardLayout, KeyMapping } from '@/domain/entities/keyboard-layout';
+import { IKeyboardLayoutRepository } from '@/domain/interfaces/repositories';
+// TODO: Add ILayoutManagerService interface when it exists
+// import { ILayoutManagerService } from '@/domain/interfaces/services';
+
+// Placeholder for now
+interface ILayoutManagerService {
+  validateModifications(modifications: any[]): Promise<boolean>;
+  validateLayout(layout: KeyboardLayout): Promise<{ isValid: boolean; errors: string[]; warnings?: string[] }>;
+}
+import { CustomLayoutCreationResponseDTO } from "@/application/dto/keyboard-layouts.dto";
 
 export interface CreateCustomLayoutCommandDTO {
   userId: string;
@@ -26,7 +34,7 @@ export class CustomizeLayoutUseCase {
   async execute(command: CreateCustomLayoutCommandDTO): Promise<CustomLayoutCreationResponseDTO> {
     try {
       // 1. Validate the base layout exists
-      const baseLayout = await this.layoutRepository.getLayoutById(command.baseLayoutId);
+      const baseLayout = await this.layoutRepository.findById(command.baseLayoutId);
       if (!baseLayout) {
         return {
           success: false,
@@ -46,29 +54,36 @@ export class CustomizeLayoutUseCase {
       // 3. Create modified key mappings
       const modifiedKeyMappings = this.createModifiedKeyMappings(
         baseLayout.keyMappings,
-        command.keyboardModifications
+        command.keyboardModifications,
+        baseLayout
       );
 
       // 4. Create the custom layout
-      const customLayout: KeyboardLayout = {
+      const customLayout = KeyboardLayout.create({
         id: this.generateCustomLayoutId(command.userId, command.name),
         name: command.name,
         displayName: command.displayName || command.name,
         language: baseLayout.language,
-        layoutType: baseLayout.layoutType,
-        variant: LayoutVariant.EXTENDED, // Custom layouts are typically extended variants
+        layoutType: LayoutType.CUSTOM,
+        variant: LayoutVariant.US, // Custom layouts are typically extended variants
+        inputMethod: baseLayout.inputMethod,
         keyMappings: modifiedKeyMappings,
         metadata: {
-          ...baseLayout.metadata,
           author: command.userId,
           description: command.description || `Custom layout based on ${baseLayout.name}`,
-          version: '1.0',
-          popularity: 0 // New custom layout starts with 0 popularity
+          version: '1.0.0',
+          compatibility: ['desktop'],
+          tags: ['custom'],
+          difficulty: baseLayout.metadata.difficulty,
+          popularity: 0,
+          dateCreated: Date.now(),
+          lastModified: Date.now()
         },
         isCustom: true,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
+        createdBy: command.userId,
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      });
 
       // 5. Validate the resulting layout
       const layoutValidation = await this.layoutManagerService.validateLayout(customLayout);
@@ -107,7 +122,7 @@ export class CustomizeLayoutUseCase {
 
   async cloneLayout(userId: string, sourceLayoutId: string, newName: string): Promise<CustomLayoutCreationResponseDTO> {
     // Clone an existing layout as a starting point for customization
-    const sourceLayout = await this.layoutRepository.getLayoutById(sourceLayoutId);
+    const sourceLayout = await this.layoutRepository.findById(sourceLayoutId);
     if (!sourceLayout) {
       return {
         success: false,
@@ -131,7 +146,7 @@ export class CustomizeLayoutUseCase {
     modifications: CreateCustomLayoutCommandDTO['keyboardModifications']
   ): Promise<CustomLayoutCreationResponseDTO> {
     // Update an existing custom layout
-    const existingLayout = await this.layoutRepository.getLayoutById(layoutId);
+    const existingLayout = await this.layoutRepository.findById(layoutId);
     if (!existingLayout) {
       return {
         success: false,
@@ -156,14 +171,15 @@ export class CustomizeLayoutUseCase {
     // Apply modifications to existing layout
     const modifiedKeyMappings = this.createModifiedKeyMappings(
       existingLayout.keyMappings,
-      modifications
+      modifications,
+      existingLayout
     );
 
-    const updatedLayout: KeyboardLayout = {
+    const updatedLayout = KeyboardLayout.create({
       ...existingLayout,
       keyMappings: modifiedKeyMappings,
-      updatedAt: new Date()
-    };
+      updatedAt: Date.now()
+    });
 
     // Validate the updated layout
     const layoutValidation = await this.layoutManagerService.validateLayout(updatedLayout);
@@ -187,7 +203,7 @@ export class CustomizeLayoutUseCase {
   }
 
   async deleteCustomLayout(userId: string, layoutId: string): Promise<{ success: boolean; error?: string }> {
-    const layout = await this.layoutRepository.getLayoutById(layoutId);
+    const layout = await this.layoutRepository.findById(layoutId);
     if (!layout) {
       return { success: false, error: `Layout not found: ${layoutId}` };
     }
@@ -245,7 +261,8 @@ export class CustomizeLayoutUseCase {
 
   private createModifiedKeyMappings(
     baseKeyMappings: KeyMapping[],
-    modifications: CreateCustomLayoutCommandDTO['keyboardModifications']
+    modifications: CreateCustomLayoutCommandDTO['keyboardModifications'],
+    baseLayout: KeyboardLayout
   ): KeyMapping[] {
     // Create a copy of the base key mappings
     const modifiedMappings = [...baseKeyMappings];
@@ -258,16 +275,18 @@ export class CustomizeLayoutUseCase {
         // Update existing key mapping
         modifiedMappings[existingIndex] = {
           ...modifiedMappings[existingIndex],
-          outputChar: mod.newOutput,
-          modifiers: mod.modifiers
+          character: mod.newOutput
         };
       } else {
-        // Add new key mapping
-        modifiedMappings.push({
-          key: mod.key,
-          outputChar: mod.newOutput,
-          modifiers: mod.modifiers
-        });
+        // Add new key mapping (need to find appropriate position)
+        const baseMapping = baseLayout.keyMappings.find(m => m.key === mod.key);
+        if (baseMapping) {
+          modifiedMappings.push({
+            key: mod.key,
+            character: mod.newOutput,
+            position: baseMapping.position
+          });
+        }
       }
     });
 
