@@ -1,16 +1,23 @@
 "use client";
 
-import { useCallback, useEffect, useState, useRef } from "react";
+import {
+  ProcessInputCommand,
+  StartSessionCommand,
+} from "@/application/commands/session.commands";
+import { CompleteSessionCommandDTO } from "@/application/dto/typing-session.dto";
+import { CompleteTypingSessionUseCase } from "@/application/use-cases/typing/complete-typing-session";
+import { ProcessTypingInputUseCase } from "@/application/use-cases/typing/process-typing-input";
+import { StartTypingSessionUseCase } from "@/application/use-cases/typing/start-typing-session";
 import { useSiteConfig } from "@/components/site-config";
 import { useTypingStatistics } from "@/components/typing-statistics";
-import { useDependencyInjection } from "@/presentation/hooks/core/use-dependency-injection";
-import { StartTypingSessionUseCase } from "@/application/use-cases/typing/start-typing-session";
-import { ProcessTypingInputUseCase } from "@/application/use-cases/typing/process-typing-input";
-import { CompleteTypingSessionUseCase } from "@/application/use-cases/typing/complete-typing-session";
-import { StartSessionCommand, ProcessInputCommand } from "@/application/commands/session.commands";
-import { CompleteSessionCommandDTO } from "@/application/dto/typing-session.dto";
-import { TypingMode, DifficultyLevel, TextType } from "@/domain/enums/typing-mode";
 import { LanguageCode } from "@/domain";
+import {
+  DifficultyLevel,
+  TextType,
+  TypingMode,
+} from "@/domain/enums/typing-mode";
+import { useDependencyInjection } from "@/presentation/hooks/core/use-dependency-injection";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export interface TypingSessionState {
   sessionId: string | null;
@@ -79,13 +86,19 @@ export function useTypingSession() {
   const textContainerRef = useRef<HTMLDivElement>(null!);
 
   // Resolve use cases from DI container
-  const startSessionUseCase = resolve<StartTypingSessionUseCase>(serviceTokens.START_TYPING_SESSION_USE_CASE);
-  const processInputUseCase = resolve<ProcessTypingInputUseCase>(serviceTokens.PROCESS_TYPING_INPUT_USE_CASE);
-  const completeSessionUseCase = resolve<CompleteTypingSessionUseCase>(serviceTokens.COMPLETE_TYPING_SESSION_USE_CASE);
+  const startSessionUseCase = resolve<StartTypingSessionUseCase>(
+    serviceTokens.START_TYPING_SESSION_USE_CASE
+  );
+  const processInputUseCase = resolve<ProcessTypingInputUseCase>(
+    serviceTokens.PROCESS_TYPING_INPUT_USE_CASE
+  );
+  const completeSessionUseCase = resolve<CompleteTypingSessionUseCase>(
+    serviceTokens.COMPLETE_TYPING_SESSION_USE_CASE
+  );
 
   // Map config difficulty mode to domain difficulty level
   const getDifficultyLevel = useCallback((): DifficultyLevel => {
-    if (config.difficultyMode === 'chars') return DifficultyLevel.EASY;
+    if (config.difficultyMode === "chars") return DifficultyLevel.EASY;
     return DifficultyLevel.MEDIUM; // Default for sentence mode
   }, [config.difficultyMode]);
 
@@ -97,7 +110,9 @@ export function useTypingSession() {
 
   // Map config difficulty mode to text type
   const getTextType = useCallback((): TextType => {
-    return config.difficultyMode === 'chars' ? TextType.CHARS : TextType.SENTENCES;
+    return config.difficultyMode === "chars"
+      ? TextType.CHARS
+      : TextType.SENTENCES;
   }, [config.difficultyMode]);
 
   // Start new session
@@ -107,7 +122,7 @@ export function useTypingSession() {
       setError(null);
 
       const command: StartSessionCommand = {
-        userId: 'anonymous', // TODO: Get from auth context when available
+        userId: "anonymous", // TODO: Get from auth context when available
         mode: getTypingMode(),
         difficulty: getDifficultyLevel(),
         language: config.language.code as LanguageCode,
@@ -117,7 +132,7 @@ export function useTypingSession() {
 
       const response = await startSessionUseCase.execute(command);
 
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         sessionId: response.session.id,
         currentData: response.textContent,
@@ -135,9 +150,10 @@ export function useTypingSession() {
         cursorPosition: { wordIndex: 0, charIndex: 0, isSpacePosition: false },
       }));
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to start typing session';
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to start typing session";
       setError(errorMessage);
-      console.error('Error starting session:', err);
+      console.error("Error starting session:", err);
     } finally {
       setIsLoading(false);
     }
@@ -151,20 +167,28 @@ export function useTypingSession() {
     // getTypingMode, getDifficultyLevel, getTextType are stable functions
   ]);
 
+  // Use ref to track the latest session ID without causing re-renders
+  const sessionIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    sessionIdRef.current = state.sessionId;
+  }, [state.sessionId]);
+
   // Process typing input
   const processInput = useCallback(async (input: string) => {
-    if (!state.sessionId) return;
+    const currentSessionId = sessionIdRef.current;
+    if (!currentSessionId) return;
 
     try {
       const command: ProcessInputCommand = {
-        sessionId: state.sessionId,
+        sessionId: currentSessionId,
         input,
         timestamp: Date.now(),
       };
 
       const sessionDto = await processInputUseCase.execute(command);
 
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         typedText: sessionDto.currentInput,
         startTime: sessionDto.startTime,
@@ -172,33 +196,52 @@ export function useTypingSession() {
         currentWPM: sessionDto.currentWPM,
         currentAccuracy: sessionDto.currentAccuracy,
         progress: sessionDto.progress,
-        testCompleted: sessionDto.status === 'completed',
+        testCompleted: sessionDto.status === "completed",
         cursorPosition: {
           wordIndex: 0, // TODO: Map from sessionDto
           charIndex: sessionDto.currentInput.length,
           isSpacePosition: false,
-        }
+        },
       }));
 
       // Ensure input field value is synchronized (for uncontrolled scenarios)
-      if (inputRef.current && inputRef.current.value !== sessionDto.currentInput) {
+      if (
+        inputRef.current &&
+        inputRef.current.value !== sessionDto.currentInput
+      ) {
         inputRef.current.value = sessionDto.currentInput;
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to process input';
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to process input";
       setError(errorMessage);
-      console.error('Error processing input:', err);
+      console.error("Error processing input:", err);
     }
-  }, [state.sessionId, processInputUseCase, inputRef]);
+    // processInputUseCase is stable from DI container, doesn't need to be in deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Use refs to track state values without causing dependency updates
+  const typedTextRef = useRef<string>("");
+  const languageRef = useRef<string>(config.language.code);
+
+  useEffect(() => {
+    typedTextRef.current = state.typedText;
+  }, [state.typedText]);
+
+  useEffect(() => {
+    languageRef.current = config.language.code;
+  }, [config.language.code]);
 
   // Complete session
   const completeSession = useCallback(async () => {
-    if (!state.sessionId) return;
+    const currentSessionId = sessionIdRef.current;
+    if (!currentSessionId) return;
 
     try {
       const command: CompleteSessionCommandDTO = {
-        sessionId: state.sessionId,
-        finalInput: state.typedText,
+        sessionId: currentSessionId,
+        finalInput: typedTextRef.current,
         completionTime: Date.now(),
         isManualCompletion: false,
       };
@@ -215,14 +258,14 @@ export function useTypingSession() {
         incorrectWords: results.incorrectWords,
         totalWords,
         testDuration: results.duration,
-        language: config.language.code,
+        language: languageRef.current,
         charactersTyped: results.charactersTyped,
         errors: results.errors,
       };
 
       addTestResult(testResult);
 
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         lastTestResult: testResult,
         showResults: true,
@@ -230,11 +273,14 @@ export function useTypingSession() {
         incorrectWords: results.incorrectWords,
       }));
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to complete session';
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to complete session";
       setError(errorMessage);
-      console.error('Error completing session:', err);
+      console.error("Error completing session:", err);
     }
-  }, [state.sessionId, state.typedText, completeSessionUseCase, addTestResult, config.language.code]);
+    // completeSessionUseCase and addTestResult are stable functions
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const calculateWPM = useCallback(() => {
     return state.currentWPM;
@@ -246,14 +292,33 @@ export function useTypingSession() {
   }, [startNewSession]);
 
   // Initialize session on mount or when config changes
+  // Use a ref to track if we need to start a new session
+  const configRef = useRef({
+    language: config.language.code,
+    difficultyMode: config.difficultyMode,
+    practiceMode: config.practiceMode,
+  });
+
   useEffect(() => {
-    startNewSession();
+    const hasConfigChanged =
+      configRef.current.language !== config.language.code ||
+      configRef.current.difficultyMode !== config.difficultyMode ||
+      configRef.current.practiceMode !== config.practiceMode;
+
+    if (hasConfigChanged) {
+      configRef.current = {
+        language: config.language.code,
+        difficultyMode: config.difficultyMode,
+        practiceMode: config.practiceMode,
+      };
+      startNewSession();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config.language.code, config.difficultyMode, config.practiceMode]);
 
   // Update time left
   useEffect(() => {
-    setState(prev => ({ ...prev, timeLeft: state.selectedTime }));
+    setState((prev) => ({ ...prev, timeLeft: state.selectedTime }));
   }, [state.selectedTime]);
 
   // Focus input on mount
@@ -272,9 +337,13 @@ export function useTypingSession() {
 
   // Timer countdown
   useEffect(() => {
-    if (state.startTime !== null && state.timeLeft > 0 && !state.testCompleted) {
+    if (
+      state.startTime !== null &&
+      state.timeLeft > 0 &&
+      !state.testCompleted
+    ) {
       const timer = setInterval(() => {
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
           timeLeft: Math.max(0, prev.timeLeft - 1),
         }));
