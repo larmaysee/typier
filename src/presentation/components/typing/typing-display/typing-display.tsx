@@ -121,17 +121,6 @@ export default function TypingDisplay({
       : "text-destructive";
   };
 
-  if (!textContent) {
-    return (
-      <div className="text-center py-12 text-muted-foreground">
-        Loading text...
-      </div>
-    );
-  }
-
-  const words = textContent.split(" ");
-  const typedWords = session.typedText.split(" ");
-
   const handleClickToFocus = () => {
     if (inputRef.current && !testCompleted) {
       inputRef.current.focus();
@@ -144,7 +133,7 @@ export default function TypingDisplay({
       <div
         className={cn(
           "databox-wrapper bg-card rounded-lg border border-dashed w-full cursor-text transition-all duration-200 p-4 relative",
-          isFocused ? "shadow-lg shadow-primary/20 focus" : "",
+          isFocused ? "border-primary/20 focus" : "",
           testCompleted && "opacity-50 pointer-events-none"
         )}
         onClick={handleClickToFocus}
@@ -161,7 +150,7 @@ export default function TypingDisplay({
 
         <div
           className={cn(
-            "databox relative focus-visible:border-primary overflow-hidden"
+            "databox relative focus-visible:border-primary overflow-hidden h-[150px]"
           )}
         >
           {config.difficultyMode === "chars" ? (

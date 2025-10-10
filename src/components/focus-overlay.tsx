@@ -33,10 +33,10 @@ export function FocusOverlay({ isVisible, onClick }: FocusOverlayProps) {
 
   return (
     <div
-      className="absolute inset-0 z-10 bg-background/80 backdrop-blur-sm rounded-lg flex items-center justify-center cursor-pointer transition-all duration-200 hover:bg-background/90"
+      className="absolute inset-0 z-10 bg-background/80 backdrop-blur-sm rounded-xl border border-dashed flex items-center justify-center cursor-pointer transition-all duration-200 hover:bg-background/90"
       onClick={onClick}
     >
-      <div className="text-center space-y-3 p-6 w-full">
+      <div className="text-center space-y-3 p-6 w-full h-full flex flex-col items-center justify-center">
         <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-full mb-2">
           <Keyboard className="h-8 w-8 text-primary" />
         </div>
