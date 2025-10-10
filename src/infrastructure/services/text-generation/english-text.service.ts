@@ -1,10 +1,7 @@
-import {
-  ITextGenerationService,
-  TextGenerationConfig,
-  GeneratedText
-} from "@/domain/interfaces";
-import { LanguageCode, TextType, DifficultyLevel } from "@/domain/enums";
-import engdatasets from "@/datas/english-data";
+import { CHARACTER_SETS_BY_DIFFICULTY, SENTENCES_BY_DIFFICULTY, WORDS_BY_DIFFICULTY } from "@/data/english";
+import { LanguageCode } from "@/domain/enums/languages";
+import { DifficultyLevel, TextType } from "@/domain/enums/typing-mode";
+import { GeneratedText, ITextGenerationService, TextGenerationConfig } from "@/domain/interfaces";
 
 /**
  * English text generation service
@@ -14,7 +11,7 @@ export class EnglishTextService implements ITextGenerationService {
 
   async generate(config: TextGenerationConfig): Promise<GeneratedText> {
     let content: string;
-    
+
     switch (config.textType) {
       case TextType.CHARS:
         content = this.generateCharacters(config);
@@ -41,8 +38,8 @@ export class EnglishTextService implements ITextGenerationService {
         language: config.language,
         textType: config.textType,
         estimatedTime: this.estimateTypingTime(content),
-        source: 'english-text-service'
-      }
+        source: "english-text-service",
+      },
     };
   }
 
@@ -81,35 +78,34 @@ export class EnglishTextService implements ITextGenerationService {
 
   private generateCharacters(config: TextGenerationConfig): string {
     const chars = this.getCharactersByDifficulty(config.difficulty);
-    let result = '';
-    
+    let result = "";
+
     for (let i = 0; i < config.length; i++) {
       if (i > 0 && i % 5 === 0) {
-        result += ' '; // Add spaces for readability
+        result += " "; // Add spaces for readability
       }
       result += chars[Math.floor(Math.random() * chars.length)];
     }
-    
+
     return result.trim();
   }
 
   private generateWords(config: TextGenerationConfig): string {
     const words = this.getWordsByDifficulty(config.difficulty);
     const result: string[] = [];
-    
+
     for (let i = 0; i < config.length; i++) {
       result.push(words[Math.floor(Math.random() * words.length)]);
     }
-    
-    return result.join(' ');
+
+    return result.join(" ");
   }
 
   private generateSentences(config: TextGenerationConfig): string {
-    // Use preset sentences from the dataset
-    const sentences = engdatasets.syntaxs;
+    const sentences = SENTENCES_BY_DIFFICULTY[config.difficulty] || SENTENCES_BY_DIFFICULTY.easy;
     const result: string[] = [];
     let currentLength = 0;
-    
+
     while (currentLength < config.length && result.length < sentences.length) {
       const sentence = sentences[Math.floor(Math.random() * sentences.length)];
       if (!result.includes(sentence)) {
@@ -117,60 +113,39 @@ export class EnglishTextService implements ITextGenerationService {
         currentLength += this.countWords(sentence);
       }
     }
-    
-    return result.join(' ');
+
+    return result.join(" ");
   }
 
   private generateParagraphs(config: TextGenerationConfig): string {
-    // For paragraphs, use longer content from the dataset
-    const longText = engdatasets.syntaxs.find(text => text.length > 200);
-    if (longText) {
-      const words = longText.split(' ');
-      if (words.length >= config.length) {
-        return words.slice(0, config.length).join(' ');
+    const sentences = SENTENCES_BY_DIFFICULTY[config.difficulty] || SENTENCES_BY_DIFFICULTY.medium;
+    const paragraphs: string[] = [];
+    let currentWordCount = 0;
+
+    while (currentWordCount < config.length) {
+      const paragraph: string[] = [];
+      const sentencesPerParagraph = Math.floor(Math.random() * 4) + 3; // 3-6 sentences per paragraph
+
+      for (let i = 0; i < sentencesPerParagraph && currentWordCount < config.length; i++) {
+        const sentence = sentences[Math.floor(Math.random() * sentences.length)];
+        paragraph.push(sentence);
+        currentWordCount += this.countWords(sentence);
       }
+
+      paragraphs.push(paragraph.join(" "));
+
+      if (currentWordCount >= config.length) break;
     }
-    
-    // Fallback to generating multiple sentences
-    return this.generateSentences(config);
+
+    return paragraphs.join("\n\n");
   }
 
   private getCharactersByDifficulty(difficulty: DifficultyLevel): string[] {
-    const baseChars = engdatasets.chars.filter(char => /[a-zA-Z0-9\s]/.test(char));
-    
-    switch (difficulty) {
-      case DifficultyLevel.EASY:
-        return baseChars.filter(char => /[a-z\s]/.test(char));
-      case DifficultyLevel.MEDIUM:
-        return baseChars.filter(char => /[a-zA-Z0-9\s]/.test(char));
-      case DifficultyLevel.HARD:
-        return engdatasets.chars; // All characters including special ones
-      default:
-        return baseChars;
-    }
+    return CHARACTER_SETS_BY_DIFFICULTY[difficulty] || CHARACTER_SETS_BY_DIFFICULTY.easy;
   }
 
   private getWordsByDifficulty(difficulty: DifficultyLevel): string[] {
-    // Extract words from sentences based on difficulty
-    const allWords = engdatasets.syntaxs
-      .join(' ')
-      .toLowerCase()
-      .replace(/[^\w\s]/g, ' ')
-      .split(/\s+/)
-      .filter(word => word.length > 0);
-
-    const uniqueWords = Array.from(new Set(allWords));
-
-    switch (difficulty) {
-      case DifficultyLevel.EASY:
-        return uniqueWords.filter(word => word.length >= 3 && word.length <= 6);
-      case DifficultyLevel.MEDIUM:
-        return uniqueWords.filter(word => word.length >= 4 && word.length <= 10);
-      case DifficultyLevel.HARD:
-        return uniqueWords;
-      default:
-        return uniqueWords.filter(word => word.length >= 3 && word.length <= 8);
-    }
+    return WORDS_BY_DIFFICULTY[difficulty] || WORDS_BY_DIFFICULTY.easy;
   }
 
   private countWords(text: string): number {

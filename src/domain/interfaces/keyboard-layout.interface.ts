@@ -1,5 +1,5 @@
-import { LanguageCode } from "../enums";
 import { KeyboardLayout } from "../entities";
+import { LanguageCode } from "../enums/languages";
 
 /**
  * Layout validation result
@@ -21,8 +21,6 @@ export interface CompatibilityInfo {
   platforms: string[];
   /** Browser compatibility */
   browsers: string[];
-  /** Input method support */
-  inputMethods: string[];
   /** Unicode version required */
   unicodeVersion?: string;
 }
@@ -35,8 +33,8 @@ export interface LayoutSearchCriteria {
   language?: LanguageCode;
   /** Name pattern */
   namePattern?: string;
-  /** Layout type */
-  layoutType?: string;
+  /** Layout variant */
+  variant?: string;
   /** Is custom layout */
   isCustom?: boolean;
   /** Tags to match */

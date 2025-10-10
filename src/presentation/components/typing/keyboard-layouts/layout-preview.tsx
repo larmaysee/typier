@@ -1,11 +1,11 @@
 "use client";
 
-import { memo } from "react";
-import { KeyboardLayout } from "@/domain/entities/keyboard-layout";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { KeyboardLayout } from "@/domain/entities/keyboard-layout";
 import { FingerAssignment } from "@/domain/enums/keyboard-layouts";
+import { cn } from "@/lib/utils";
+import { memo } from "react";
 
 interface LayoutPreviewProps {
   layout: KeyboardLayout | null;
@@ -61,9 +61,7 @@ const KeyButton = memo(function KeyButton({
   interactive,
   onClick,
 }: KeyProps) {
-  const fingerColor = showFingerColor && mapping.position?.finger
-    ? FINGER_COLORS[mapping.position.finger]
-    : "";
+  const fingerColor = showFingerColor && mapping.position?.finger ? FINGER_COLORS[mapping.position.finger] : "";
 
   return (
     <Button
@@ -81,9 +79,7 @@ const KeyButton = memo(function KeyButton({
     >
       <span className="font-mono leading-none">{mapping.character}</span>
       {mapping.shiftCharacter && (
-        <span className="absolute top-0 right-0 text-xs opacity-60">
-          {mapping.shiftCharacter}
-        </span>
+        <span className="absolute top-0 right-0 text-xs opacity-60">{mapping.shiftCharacter}</span>
       )}
     </Button>
   );
@@ -116,24 +112,18 @@ export const LayoutPreview = memo(function LayoutPreview({
   // Sort rows and keys within rows
   const sortedRows = Object.entries(keyRows)
     .sort(([a], [b]) => parseInt(a) - parseInt(b))
-    .map(([, mappings]) =>
-      mappings.sort((a, b) => (a.position?.column || 0) - (b.position?.column || 0))
-    );
+    .map(([, mappings]) => mappings.sort((a, b) => (a.position?.column || 0) - (b.position?.column || 0)));
 
   return (
     <div className="keyboard-preview space-y-5">
       {/* Layout Info Header */}
       <div className="flex items-center justify-between pb-4 border-b">
         <div className="flex items-center gap-2">
-          <Badge variant="secondary">{layout.layoutType}</Badge>
+          <Badge variant="secondary">{layout.variant}</Badge>
           <Badge variant="outline">{layout.variant}</Badge>
           {layout.isCustom && <Badge variant="default">Custom</Badge>}
         </div>
-        {showFingerPositions && (
-          <div className="text-xs text-muted-foreground">
-            Finger position guide
-          </div>
-        )}
+        {showFingerPositions && <div className="text-xs text-muted-foreground">Finger position guide</div>}
       </div>
 
       {/* Virtual Keyboard */}
@@ -164,10 +154,6 @@ export const LayoutPreview = memo(function LayoutPreview({
           <span className="font-mono font-semibold text-base">{layout.keyMappings.length}</span>
         </div>
         <div className="flex flex-col gap-1">
-          <span className="text-xs text-muted-foreground">Input Method</span>
-          <span className="font-medium text-sm">{layout.inputMethod}</span>
-        </div>
-        <div className="flex flex-col gap-1">
           <span className="text-xs text-muted-foreground">Difficulty</span>
           <Badge variant="outline" className="w-fit">
             {layout.metadata.difficulty}
@@ -187,9 +173,7 @@ export const LayoutPreview = memo(function LayoutPreview({
             {Object.entries(FINGER_COLORS).map(([finger, colorClass]) => (
               <div key={finger} className="flex items-center gap-2">
                 <div className={cn("w-3.5 h-3.5 rounded", colorClass)} />
-                <span className="capitalize text-xs">
-                  {finger.replace(/_/g, " ").toLowerCase()}
-                </span>
+                <span className="capitalize text-xs">{finger.replace(/_/g, " ").toLowerCase()}</span>
               </div>
             ))}
           </div>

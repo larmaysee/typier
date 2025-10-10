@@ -1,15 +1,15 @@
+import { LanguageCode } from "@/domain";
+import { KeyboardLayout } from "@/domain/entities";
 import {
+  CompatibilityInfo,
   ILayoutManagerService,
   ILayoutProvider,
+  LayoutSearchCriteria,
   ValidationResult,
-  CompatibilityInfo,
-  LayoutSearchCriteria
 } from "@/domain/interfaces";
-import { KeyboardLayout } from "@/domain/entities";
 import { EnglishLayoutsService } from "./english-layouts.service";
 import { LisuLayoutsService } from "./lisu-layouts.service";
 import { MyanmarLayoutsService } from "./myanmar-layouts.service";
-import { LanguageCode } from "@/domain";
 
 /**
  * Central keyboard layout management service
@@ -46,7 +46,9 @@ export class LayoutManagerService implements ILayoutManagerService {
       this.layoutCache.set(cacheKey, layouts);
       return layouts;
     } catch (error) {
-      throw new Error(`Failed to get layouts for ${language}: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Failed to get layouts for ${language}: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
@@ -68,7 +70,7 @@ export class LayoutManagerService implements ILayoutManagerService {
     // Validate the layout before switching
     const validation = await this.validateLayout(layout);
     if (!validation.isValid) {
-      throw new Error(`Cannot switch to invalid layout: ${validation.errors.join(', ')}`);
+      throw new Error(`Cannot switch to invalid layout: ${validation.errors.join(", ")}`);
     }
 
     this.activeLayouts.set(sessionId, layoutId);
@@ -127,7 +129,7 @@ export class LayoutManagerService implements ILayoutManagerService {
     return {
       isValid: errors.length === 0,
       errors,
-      warnings: warnings.length > 0 ? warnings : undefined
+      warnings: warnings.length > 0 ? warnings : undefined,
     };
   }
 
@@ -139,7 +141,7 @@ export class LayoutManagerService implements ILayoutManagerService {
     // Validate the layout
     const validation = await this.validateLayout(layout);
     if (!validation.isValid) {
-      throw new Error(`Cannot register invalid layout: ${validation.errors.join(', ')}`);
+      throw new Error(`Cannot register invalid layout: ${validation.errors.join(", ")}`);
     }
 
     // If not already marked as custom, create new layout with isCustom = true
@@ -150,16 +152,14 @@ export class LayoutManagerService implements ILayoutManagerService {
         name: layout.name,
         displayName: layout.displayName,
         language: layout.language,
-        layoutType: layout.layoutType,
         variant: layout.variant,
-        inputMethod: layout.inputMethod,
         keyMappings: layout.keyMappings,
         metadata: layout.metadata,
         isCustom: true,
         isPublic: layout.isPublic,
         createdBy: layout.createdBy,
         createdAt: layout.createdAt,
-        updatedAt: Date.now()
+        updatedAt: Date.now(),
       });
     }
 
@@ -179,17 +179,16 @@ export class LayoutManagerService implements ILayoutManagerService {
 
     // Basic compatibility info - in a real implementation this would be more sophisticated
     return {
-      platforms: ['Windows', 'macOS', 'Linux', 'Web'],
-      browsers: ['Chrome', 'Firefox', 'Safari', 'Edge'],
-      inputMethods: [layout.inputMethod],
-      unicodeVersion: this.getRequiredUnicodeVersion(layout)
+      platforms: ["Windows", "macOS", "Linux", "Web"],
+      browsers: ["Chrome", "Firefox", "Safari", "Edge"],
+      unicodeVersion: this.getRequiredUnicodeVersion(layout),
     };
   }
 
   async getLayoutById(layoutId: string): Promise<KeyboardLayout | null> {
     // Search through all cached layouts
     for (const layouts of this.layoutCache.values()) {
-      const found = layouts.find(layout => layout.id === layoutId);
+      const found = layouts.find((layout) => layout.id === layoutId);
       if (found) {
         return found;
       }
@@ -221,12 +220,12 @@ export class LayoutManagerService implements ILayoutManagerService {
     }
 
     // Apply filters
-    return allLayouts.filter(layout => {
+    return allLayouts.filter((layout) => {
       if (criteria.namePattern && !layout.name.toLowerCase().includes(criteria.namePattern.toLowerCase())) {
         return false;
       }
 
-      if (criteria.layoutType && layout.layoutType !== criteria.layoutType) {
+      if (criteria.variant && layout.variant !== criteria.variant) {
         return false;
       }
 
@@ -259,22 +258,24 @@ export class LayoutManagerService implements ILayoutManagerService {
 
   private getRequiredUnicodeVersion(layout: KeyboardLayout): string {
     // Determine Unicode version based on characters used
-    const allChars = layout.keyMappings.flatMap(mapping => [
-      mapping.character,
-      mapping.shiftCharacter || '',
-      mapping.altCharacter || '',
-      mapping.ctrlCharacter || ''
-    ]).join('');
+    const allChars = layout.keyMappings
+      .flatMap((mapping) => [
+        mapping.character,
+        mapping.shiftCharacter || "",
+        mapping.altCharacter || "",
+        mapping.ctrlCharacter || "",
+      ])
+      .join("");
 
     // Simple heuristics - in reality this would be more comprehensive
     if (/[\u{A4D0}-\u{A4FF}]/u.test(allChars)) {
-      return '5.1'; // Lisu block
+      return "5.1"; // Lisu block
     }
 
     if (/[\u{1000}-\u{109F}]/u.test(allChars)) {
-      return '3.0'; // Myanmar block
+      return "3.0"; // Myanmar block
     }
 
-    return '1.1'; // Basic Latin
+    return "1.1"; // Basic Latin
   }
 }

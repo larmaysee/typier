@@ -2,7 +2,6 @@ import { LanguageCode } from "@/domain/enums/languages";
 import { CompetitionRules } from "../entities/competition";
 import { KeyboardLayout } from "../entities/keyboard-layout";
 import { DifficultyLevel, TextType } from "../enums";
-import { LayoutType } from "../enums/keyboard-layouts";
 import { ValidationResult } from "./repositories";
 
 export interface ITextGenerationService {
@@ -14,36 +13,19 @@ export interface ITextGenerationService {
 export interface ILayoutManagerService {
   getLayoutsForLanguage(language: LanguageCode): Promise<KeyboardLayout[]>;
   validateLayout(layout: KeyboardLayout): Promise<ValidationResult>;
-  createCustomLayout(
-    baseLayout: KeyboardLayout,
-    modifications: KeyboardModification[]
-  ): Promise<KeyboardLayout>;
-  optimizeLayoutForUser(
-    userId: string,
-    language: LanguageCode
-  ): Promise<KeyboardLayout>;
+  createCustomLayout(baseLayout: KeyboardLayout, modifications: KeyboardModification[]): Promise<KeyboardLayout>;
+  optimizeLayoutForUser(userId: string, language: LanguageCode): Promise<KeyboardLayout>;
 }
 
 export interface IPerformanceAnalyzerService {
-  analyzeTypingPerformance(
-    tests: any[],
-    options?: AnalysisOptions
-  ): Promise<PerformanceAnalysis>;
-  calculateImprovement(
-    oldStats: any,
-    newStats: any
-  ): Promise<ImprovementMetrics>;
-  recommendPractice(
-    analysis: PerformanceAnalysis
-  ): Promise<PracticeRecommendation[]>;
+  analyzeTypingPerformance(tests: any[], options?: AnalysisOptions): Promise<PerformanceAnalysis>;
+  calculateImprovement(oldStats: any, newStats: any): Promise<ImprovementMetrics>;
+  recommendPractice(analysis: PerformanceAnalysis): Promise<PracticeRecommendation[]>;
 }
 
 export interface IEventBus {
   publish(event: DomainEvent): Promise<void>;
-  subscribe<T extends DomainEvent>(
-    eventType: string,
-    handler: (event: T) => Promise<void>
-  ): void;
+  subscribe<T extends DomainEvent>(eventType: string, handler: (event: T) => Promise<void>): void;
   unsubscribe(eventType: string, handler: (event: any) => Promise<void>): void;
 }
 
@@ -150,7 +132,7 @@ export interface CustomLayoutConfig {
   name: string;
   displayName: string;
   language: LanguageCode;
-  layoutType: LayoutType;
+  layoutType: string;
   baseLayoutId?: string;
   keyMappings: Array<{
     key: string;

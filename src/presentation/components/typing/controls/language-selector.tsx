@@ -1,8 +1,6 @@
 "use client";
 
-import { memo } from "react";
 import { useSiteConfig } from "@/components/site-config";
-import { LanguageCode } from "@/domain";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -10,8 +8,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown, Languages } from "lucide-react";
+import { LANGUAGE_DISPLAY_NAMES, LanguageCode } from "@/domain";
 import { cn } from "@/lib/utils";
+import { ChevronDown, Languages } from "lucide-react";
+import { memo } from "react";
 
 interface LanguageSelectorProps {
   compact?: boolean;
@@ -19,9 +19,9 @@ interface LanguageSelectorProps {
 }
 
 const LANGUAGES = [
-  { code: LanguageCode.EN, name: "English", icon: "🇺🇸" },
-  { code: LanguageCode.LI, name: "Lisu", icon: "🔤" },
-  { code: LanguageCode.MY, name: "Myanmar", icon: "🇲🇲" },
+  { code: LanguageCode.EN, name: LANGUAGE_DISPLAY_NAMES.en, icon: "🇺🇸" },
+  { code: LanguageCode.LI, name: LANGUAGE_DISPLAY_NAMES.li, icon: "⛰️" },
+  { code: LanguageCode.MY, name: LANGUAGE_DISPLAY_NAMES.my, icon: "🇲🇲" },
 ];
 
 export const LanguageSelector = memo(function LanguageSelector({
@@ -48,15 +48,7 @@ export const LanguageSelector = memo(function LanguageSelector({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={disabled}
-          className={cn(
-            "gap-2",
-            compact ? "h-8" : "h-9"
-          )}
-        >
+        <Button variant="outline" size="sm" disabled={disabled} className={cn("gap-2", compact ? "h-8" : "h-9")}>
           <Languages className="h-4 w-4" />
           {!compact && (
             <>
@@ -79,9 +71,7 @@ export const LanguageSelector = memo(function LanguageSelector({
           >
             <span className="text-lg">{language.icon}</span>
             <span className="flex-1">{language.name}</span>
-            {language.code === config.language.code && (
-              <span className="text-xs text-muted-foreground">✓</span>
-            )}
+            {language.code === config.language.code && <span className="text-xs text-muted-foreground">✓</span>}
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>

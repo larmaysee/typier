@@ -1,15 +1,11 @@
-import { LanguageCode } from "@/domain";
+import { LayoutsResponseDTO } from "@/application/dto/keyboard-layouts.dto";
+import { GetAvailableLayoutsQueryDTO } from "@/application/dto/queries.dto";
+import { LanguageCode, LayoutVariant } from "@/domain";
 import { KeyboardLayout } from "@/domain/entities/keyboard-layout";
 import { IKeyboardLayoutRepository, IUserRepository } from "@/domain/interfaces/repositories";
-import { GetAvailableLayoutsQueryDTO } from "@/application/dto/queries.dto";
-import { LayoutsResponseDTO } from "@/application/dto/keyboard-layouts.dto";
-import { LayoutVariant } from "@/domain";
 
 export class GetAvailableLayoutsUseCase {
-  constructor(
-    private layoutRepository: IKeyboardLayoutRepository,
-    private userRepository: IUserRepository
-  ) { }
+  constructor(private layoutRepository: IKeyboardLayoutRepository, private userRepository: IUserRepository) {}
 
   async execute(query: GetAvailableLayoutsQueryDTO): Promise<LayoutsResponseDTO> {
     const { language, userId, includeCustom = true } = query;
@@ -31,7 +27,7 @@ export class GetAvailableLayoutsUseCase {
     const layoutStats = userId ? await this.getUserLayoutStats(userId, language) : new Map();
 
     // 4. Process and enrich layout information
-    const enrichedLayouts = allLayouts.map(layout => {
+    const enrichedLayouts = allLayouts.map((layout) => {
       const userStats = layoutStats.get(layout.id);
       const isRecommended = this.isLayoutRecommended(layout, userStats);
 
@@ -40,47 +36,49 @@ export class GetAvailableLayoutsUseCase {
         name: layout.name,
         displayName: layout.displayName,
         language: layout.language,
-        layoutType: layout.layoutType,
         variant: layout.variant,
         isCustom: layout.isCustom,
         popularity: layout.metadata.popularity,
         isRecommended,
         userTestsCount: userStats?.testsCount || 0,
         userAverageWpm: userStats?.averageWpm,
-        userAverageAccuracy: userStats?.averageAccuracy
+        userAverageAccuracy: userStats?.averageAccuracy,
       };
     });
 
     // 5. Sort layouts by preference and popularity
-    const sortedLayouts = this.sortLayoutsByPreference(
-      enrichedLayouts,
-      preferredLayoutId
-    );
+    const sortedLayouts = this.sortLayoutsByPreference(enrichedLayouts, preferredLayoutId);
 
     // 6. Filter out custom layouts if not requested
-    const filteredLayouts = includeCustom
-      ? sortedLayouts
-      : sortedLayouts.filter(layout => !layout.isCustom);
+    const filteredLayouts = includeCustom ? sortedLayouts : sortedLayouts.filter((layout) => !layout.isCustom);
 
     // 7. Determine default layout
     const defaultLayoutId = this.getDefaultLayoutForLanguage(language, allLayouts);
 
     // 8. Count custom layouts
-    const customLayoutsCount = sortedLayouts.filter(layout => layout.isCustom).length;
+    const customLayoutsCount = sortedLayouts.filter((layout) => layout.isCustom).length;
 
     return {
       layouts: filteredLayouts,
       preferredLayoutId,
       defaultLayoutId,
-      customLayoutsCount
+      customLayoutsCount,
     };
   }
 
-  private async getUserLayoutStats(userId: string, language: LanguageCode): Promise<Map<string, {
-    testsCount: number;
-    averageWpm: number;
-    averageAccuracy: number;
-  }>> {
+  private async getUserLayoutStats(
+    userId: string,
+    language: LanguageCode
+  ): Promise<
+    Map<
+      string,
+      {
+        testsCount: number;
+        averageWpm: number;
+        averageAccuracy: number;
+      }
+    >
+  > {
     // In a real implementation, this would fetch user's typing test history
     // and calculate statistics per layout
     // For now, return empty map
@@ -145,16 +143,16 @@ export class GetAvailableLayoutsUseCase {
   private getDefaultLayoutForLanguage(language: LanguageCode, layouts: KeyboardLayout[]): string {
     // Define default layouts for each language
     const defaults = {
-      [LanguageCode.EN]: 'qwerty_us',
-      [LanguageCode.LI]: 'lisu_sil_basic',
-      [LanguageCode.MY]: 'myanmar3'
+      [LanguageCode.EN]: "qwerty_us",
+      [LanguageCode.LI]: "lisu_sil_basic",
+      [LanguageCode.MY]: "myanmar3",
     };
 
     const defaultLayoutName = defaults[language];
-    const defaultLayout = layouts.find(layout =>
-      layout.id === defaultLayoutName || layout.name.toLowerCase().includes(defaultLayoutName)
+    const defaultLayout = layouts.find(
+      (layout) => layout.id === defaultLayoutName || layout.name.toLowerCase().includes(defaultLayoutName)
     );
 
-    return defaultLayout?.id || layouts[0]?.id || '';
+    return defaultLayout?.id || layouts[0]?.id || "";
   }
 }

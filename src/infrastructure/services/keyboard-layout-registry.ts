@@ -3,17 +3,14 @@
  */
 
 import { LanguageCode } from "@/domain";
-import { LayoutType, LayoutVariant } from "../../domain/enums/keyboard-layouts";
-import {
-  LanguageLayoutDefinition,
-  LanguageLayoutRegistry
-} from "../../domain/interfaces/language-layout-definition";
+import { LayoutVariant } from "@/domain/enums/keyboard-layouts";
+import { LanguageLayoutDefinition, LanguageLayoutRegistry } from "@/domain/interfaces/language-layout-definition";
 import { LanguageLayoutParser } from "./language-layout-parser";
 
-// Import legacy layouts
-import englishLayout from "@/layouts/english";
-import lisuLayout from "@/layouts/lisu";
-import myanmarLayout from "@/layouts/myanmar";
+// Import layout JSON files
+import englishLayout from "@/layouts/english.json";
+import lisuLayout from "@/layouts/lisu.json";
+import myanmarLayout from "@/layouts/myanmar.json";
 
 export class KeyboardLayoutRegistry implements LanguageLayoutRegistry {
   private layouts: Map<string, LanguageLayoutDefinition> = new Map();
@@ -25,35 +22,28 @@ export class KeyboardLayoutRegistry implements LanguageLayoutRegistry {
   }
 
   /**
-   * Initialize registry with default layouts from legacy files
+   * Initialize registry with default layouts from JSON files
    */
   private async initializeDefaultLayouts(): Promise<void> {
     if (this.initialized) return;
 
     try {
-      // English layouts
-      const englishUS = LanguageLayoutParser.parseLegacyLayout(
-        englishLayout,
-        LanguageCode.EN,
-        LayoutType.QWERTY,
-        LayoutVariant.US
-      );
+      // English layouts - QWERTY US
+      const englishUS = LanguageLayoutParser.parseLegacyLayout(englishLayout.us, LanguageCode.EN, LayoutVariant.US);
       this.register(englishUS);
 
-      // Lisu layouts
+      // Lisu layouts - SIL Basic
       const lisuBasic = LanguageLayoutParser.parseLegacyLayout(
-        lisuLayout,
+        lisuLayout.sil_basic,
         LanguageCode.LI,
-        LayoutType.STANDARD,
         LayoutVariant.SIL_BASIC
       );
       this.register(lisuBasic);
 
-      // Myanmar layouts
+      // Myanmar layouts - Unicode Standard
       const myanmarStandard = LanguageLayoutParser.parseLegacyLayout(
-        myanmarLayout,
+        myanmarLayout.unicode_myanmar,
         LanguageCode.MY,
-        LayoutType.UNICODE,
         LayoutVariant.UNICODE_MYANMAR
       );
       this.register(myanmarStandard);
@@ -61,7 +51,7 @@ export class KeyboardLayoutRegistry implements LanguageLayoutRegistry {
       this.initialized = true;
       console.log(`Initialized keyboard registry with ${this.layouts.size} layouts`);
     } catch (error) {
-      console.error('Failed to initialize keyboard layouts:', error);
+      console.error("Failed to initialize keyboard layouts:", error);
     }
   }
 
@@ -87,7 +77,7 @@ export class KeyboardLayoutRegistry implements LanguageLayoutRegistry {
     const languageList = this.languageLayouts.get(definition.language)!;
 
     // Remove existing layout with same ID if it exists
-    const existingIndex = languageList.findIndex(l => l.metadata.id === definition.metadata.id);
+    const existingIndex = languageList.findIndex((l) => l.metadata.id === definition.metadata.id);
     if (existingIndex >= 0) {
       languageList[existingIndex] = definition;
     } else {
@@ -130,28 +120,21 @@ export class KeyboardLayoutRegistry implements LanguageLayoutRegistry {
    */
   searchLayouts(criteria: {
     language?: LanguageCode;
-    type?: LayoutType;
     variant?: LayoutVariant;
     tags?: string[];
   }): LanguageLayoutDefinition[] {
     let results = this.getAllLayouts();
 
     if (criteria.language) {
-      results = results.filter(layout => layout.language === criteria.language);
-    }
-
-    if (criteria.type) {
-      results = results.filter(layout => layout.type === criteria.type);
+      results = results.filter((layout) => layout.language === criteria.language);
     }
 
     if (criteria.variant) {
-      results = results.filter(layout => layout.variant === criteria.variant);
+      results = results.filter((layout) => layout.variant === criteria.variant);
     }
 
     if (criteria.tags && criteria.tags.length > 0) {
-      results = results.filter(layout =>
-        criteria.tags!.some(tag => layout.metadata.tags.includes(tag))
-      );
+      results = results.filter((layout) => criteria.tags!.some((tag) => layout.metadata.tags.includes(tag)));
     }
 
     return results;
@@ -164,7 +147,7 @@ export class KeyboardLayoutRegistry implements LanguageLayoutRegistry {
     const layouts = this.getLayoutsForLanguage(language);
 
     // Return the first non-custom layout, or the first layout if all are custom
-    return layouts.find(l => !l.metadata.isCustom) || layouts[0];
+    return layouts.find((l) => !l.metadata.isCustom) || layouts[0];
   }
 
   /**
@@ -188,7 +171,7 @@ export class KeyboardLayoutRegistry implements LanguageLayoutRegistry {
       stats.layoutsByLanguage[layout.language] = (stats.layoutsByLanguage[layout.language] || 0) + 1;
 
       // Count by type
-      stats.layoutsByType[layout.type] = (stats.layoutsByType[layout.type] || 0) + 1;
+      stats.layoutsByType[layout.variant] = (stats.layoutsByType[layout.variant] || 0) + 1;
     }
 
     return stats;
@@ -213,7 +196,7 @@ export class KeyboardLayoutRegistry implements LanguageLayoutRegistry {
       this.register(definition);
       return true;
     } catch (error) {
-      console.error('Failed to import layout:', error);
+      console.error("Failed to import layout:", error);
       return false;
     }
   }
@@ -231,7 +214,7 @@ export class KeyboardLayoutRegistry implements LanguageLayoutRegistry {
     // Remove from language-specific registry
     const languageList = this.languageLayouts.get(layout.language);
     if (languageList) {
-      const index = languageList.findIndex(l => l.metadata.id === id);
+      const index = languageList.findIndex((l) => l.metadata.id === id);
       if (index >= 0) {
         languageList.splice(index, 1);
       }

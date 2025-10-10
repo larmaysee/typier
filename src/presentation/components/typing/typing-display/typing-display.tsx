@@ -42,11 +42,7 @@ export default function TypingDisplay({
 
       // Don't interfere with other inputs or interactive elements
       const target = e.target as HTMLElement;
-      if (
-        target.tagName === "INPUT" ||
-        target.tagName === "TEXTAREA" ||
-        target.contentEditable === "true"
-      ) {
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.contentEditable === "true") {
         return;
       }
 
@@ -69,33 +65,38 @@ export default function TypingDisplay({
         databox.scrollTo({ top: databox.clientHeight, behavior: "smooth" });
       } else {
         const topOffset =
-          activeWord.offsetTop - databox.clientHeight > 0
-            ? activeWord.offsetTop - databox.clientHeight
-            : 0;
+          activeWord.offsetTop - databox.clientHeight > 0 ? activeWord.offsetTop - databox.clientHeight : 0;
         databox.scrollTo({ top: topOffset, behavior: "smooth" });
       }
     }
   }, [session.typedText]);
 
   const getActiveWordIndex = () => {
-    const words = session.typedText.split(" ");
-    return words.length - 1;
+    // Use cursor position instead of splitting typed text
+    return session.cursorPosition.wordIndex;
   };
 
   const getWordClass = (wordIndex: number) => {
-    const words = session.typedText.split(" ");
     const currentWords = textContent?.split(" ") || [];
-    const typedWord = words[wordIndex] || "";
-    if (typedWord === currentWords[wordIndex] && wordIndex < words.length - 1) {
-      return "correct typed";
-    } else if (typedWord.length > 0 && wordIndex < words.length - 1) {
-      return "incorrect border-b border-dashed border-destructive typed";
+    const typedWords = session.typedText.split(" ");
+
+    // Handle the case where typed text ends with space
+    const typedWord = typedWords[wordIndex] || "";
+    const targetWord = currentWords[wordIndex] || "";
+
+    // Only mark as typed if we've moved past this word
+    if (session.cursorPosition.wordIndex > wordIndex) {
+      if (typedWord === targetWord) {
+        return "correct typed";
+      } else if (typedWord.length > 0) {
+        return "incorrect border-b border-dashed border-destructive typed";
+      }
     }
+
     return "";
   };
 
   const getLetterClass = (wordIndex: number, charIndex: number) => {
-    const words = session.typedText.split(" ");
     const currentWords = textContent?.split(" ") || [];
 
     if (wordIndex >= currentWords.length) {
@@ -103,11 +104,13 @@ export default function TypingDisplay({
     }
 
     const currentWord = currentWords[wordIndex];
-    const typedWord = words[wordIndex] || "";
-
     if (charIndex >= currentWord.length) {
       return "text-muted-foreground";
     }
+
+    // Get the typed text for this specific word
+    const typedWords = session.typedText.split(" ");
+    const typedWord = typedWords[wordIndex] || "";
 
     const currentChar = currentWord[charIndex];
     const typedChar = typedWord[charIndex] || "";
@@ -116,9 +119,7 @@ export default function TypingDisplay({
       return "text-muted-foreground";
     }
 
-    return typedChar === currentChar
-      ? "text-black dark:text-white"
-      : "text-destructive";
+    return typedChar === currentChar ? "text-black dark:text-white" : "text-destructive";
   };
 
   const handleClickToFocus = () => {
@@ -148,11 +149,7 @@ export default function TypingDisplay({
           </div>
         )}
 
-        <div
-          className={cn(
-            "databox relative focus-visible:border-primary overflow-hidden h-[150px]"
-          )}
-        >
+        <div className={cn("databox relative focus-visible:border-primary overflow-hidden h-[150px]")}>
           {config.difficultyMode === "chars" ? (
             // Character mode with special styling
             <div className="flex flex-wrap gap-2 p-2">
@@ -181,9 +178,7 @@ export default function TypingDisplay({
                       "relative flex items-center justify-center min-w-[40px] h-[40px] rounded-md border text-xl font-medium transition-colors",
                       bgColor,
                       textColor,
-                      char === " "
-                        ? "min-w-[20px] bg-transparent border-dashed"
-                        : ""
+                      char === " " ? "min-w-[20px] bg-transparent border-dashed" : ""
                     )}
                   >
                     {char === " " ? "⎵" : char}
@@ -196,13 +191,13 @@ export default function TypingDisplay({
             </div>
           ) : (
             // Sentence mode with original styling
-            <div className="words flex flex-wrap relative">
+            <div className="words flex flex-wrap relative leading-relaxed">
               {textContent?.split(" ").map((word, wordIndex) => (
                 <div
                   key={wordIndex}
-                  className={`word word-${wordIndex} h-[30px] flex px-1 ${getWordClass(
-                    wordIndex
-                  )}${getActiveWordIndex() === wordIndex ? " active" : ""}`}
+                  className={`word word-${wordIndex} h-[30px] flex items-baseline mr-2 ${getWordClass(wordIndex)}${
+                    getActiveWordIndex() === wordIndex ? " active" : ""
+                  }`}
                 >
                   {word.split("").map((char, charIndex) => {
                     const isCursorPosition =
@@ -225,15 +220,22 @@ export default function TypingDisplay({
                       </span>
                     );
                   })}
-                  {/* Space cursor */}
+                  {/* Space cursor - show when at end of current word and ready for space */}
                   {session.cursorPosition.wordIndex === wordIndex &&
                     session.cursorPosition.isSpacePosition &&
                     isFocused &&
                     !testCompleted && (
-                      <span className="relative">
-                        <span className="absolute right-0 top-0 w-0.5 h-full bg-primary animate-pulse" />
+                      <span className="relative ml-1">
+                        <span className="absolute left-0 top-0 w-0.5 h-full bg-primary animate-pulse" />
                       </span>
                     )}
+                  {/* Show cursor at start of word if we're positioned there */}
+                  {session.cursorPosition.wordIndex === wordIndex &&
+                    session.cursorPosition.charIndex === 0 &&
+                    !session.cursorPosition.isSpacePosition &&
+                    word.length > 0 &&
+                    isFocused &&
+                    !testCompleted && <span className="absolute left-1 top-0 w-0.5 h-full bg-primary animate-pulse" />}
                 </div>
               ))}
             </div>
@@ -246,9 +248,7 @@ export default function TypingDisplay({
             <div className="text-center space-y-2">
               <div className="text-4xl">🎉</div>
               <div className="text-xl font-semibold">Test Completed!</div>
-              <div className="text-sm text-muted-foreground">
-                Check your results above
-              </div>
+              <div className="text-sm text-muted-foreground">Check your results above</div>
             </div>
           </div>
         )}

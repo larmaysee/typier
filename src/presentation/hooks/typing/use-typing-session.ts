@@ -1,9 +1,6 @@
 "use client";
 
-import {
-  ProcessInputCommand,
-  StartSessionCommand,
-} from "@/application/commands/session.commands";
+import { ProcessInputCommand, StartSessionCommand } from "@/application/commands/session.commands";
 import { CompleteSessionCommandDTO } from "@/application/dto/typing-session.dto";
 import { CompleteTypingSessionUseCase } from "@/application/use-cases/typing/complete-typing-session";
 import { ProcessTypingInputUseCase } from "@/application/use-cases/typing/process-typing-input";
@@ -11,11 +8,7 @@ import { StartTypingSessionUseCase } from "@/application/use-cases/typing/start-
 import { useSiteConfig } from "@/components/site-config";
 import { useTypingStatistics } from "@/components/typing-statistics";
 import { LanguageCode } from "@/domain";
-import {
-  DifficultyLevel,
-  TextType,
-  TypingMode,
-} from "@/domain/enums/typing-mode";
+import { DifficultyLevel, TextType, TypingMode } from "@/domain/enums/typing-mode";
 import { useDependencyInjection } from "@/presentation/hooks/core/use-dependency-injection";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -86,15 +79,9 @@ export function useTypingSession() {
   const textContainerRef = useRef<HTMLDivElement>(null!);
 
   // Resolve use cases from DI container
-  const startSessionUseCase = resolve<StartTypingSessionUseCase>(
-    serviceTokens.START_TYPING_SESSION_USE_CASE
-  );
-  const processInputUseCase = resolve<ProcessTypingInputUseCase>(
-    serviceTokens.PROCESS_TYPING_INPUT_USE_CASE
-  );
-  const completeSessionUseCase = resolve<CompleteTypingSessionUseCase>(
-    serviceTokens.COMPLETE_TYPING_SESSION_USE_CASE
-  );
+  const startSessionUseCase = resolve<StartTypingSessionUseCase>(serviceTokens.START_TYPING_SESSION_USE_CASE);
+  const processInputUseCase = resolve<ProcessTypingInputUseCase>(serviceTokens.PROCESS_TYPING_INPUT_USE_CASE);
+  const completeSessionUseCase = resolve<CompleteTypingSessionUseCase>(serviceTokens.COMPLETE_TYPING_SESSION_USE_CASE);
 
   // Map config difficulty mode to domain difficulty level
   const getDifficultyLevel = useCallback((): DifficultyLevel => {
@@ -110,9 +97,7 @@ export function useTypingSession() {
 
   // Map config difficulty mode to text type
   const getTextType = useCallback((): TextType => {
-    return config.difficultyMode === "chars"
-      ? TextType.CHARS
-      : TextType.SENTENCES;
+    return config.difficultyMode === "chars" ? TextType.CHARS : TextType.SENTENCES;
   }, [config.difficultyMode]);
 
   // Start new session
@@ -150,8 +135,7 @@ export function useTypingSession() {
         cursorPosition: { wordIndex: 0, charIndex: 0, isSpacePosition: false },
       }));
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to start typing session";
+      const errorMessage = err instanceof Error ? err.message : "Failed to start typing session";
       setError(errorMessage);
       console.error("Error starting session:", err);
     } finally {
@@ -187,6 +171,51 @@ export function useTypingSession() {
 
       const sessionDto = await processInputUseCase.execute(command);
 
+      // Calculate proper cursor position based on current input
+      const calculateCursorPosition = (input: string, textContent: string | null) => {
+        if (!textContent) {
+          return { wordIndex: 0, charIndex: 0, isSpacePosition: false };
+        }
+
+        const words = textContent.split(" ");
+
+        // If input ends with space, we're at the beginning of next word
+        if (input.endsWith(" ")) {
+          // Count spaces to determine which word we're on
+          const spaceCount = (input.match(/ /g) || []).length;
+          const nextWordIndex = spaceCount;
+          return {
+            wordIndex: Math.min(nextWordIndex, words.length - 1),
+            charIndex: 0,
+            isSpacePosition: false,
+          };
+        }
+
+        // Split and filter out empty strings to handle trailing spaces correctly
+        const typedWords = input.split(" ").filter((word, index, arr) => index < arr.length - 1 || word !== "");
+
+        // Current word being typed
+        const currentWordIndex = Math.max(0, typedWords.length - 1);
+        const currentTypedWord = typedWords[currentWordIndex] || "";
+        const currentTargetWord = words[currentWordIndex] || "";
+
+        // If we're at the end of a word and it matches the target word
+        if (currentTypedWord.length === currentTargetWord.length && currentTypedWord === currentTargetWord) {
+          return {
+            wordIndex: currentWordIndex,
+            charIndex: currentTypedWord.length,
+            isSpacePosition: true,
+          };
+        }
+
+        // Otherwise, we're typing within the current word
+        return {
+          wordIndex: currentWordIndex,
+          charIndex: currentTypedWord.length,
+          isSpacePosition: false,
+        };
+      };
+
       setState((prev) => ({
         ...prev,
         typedText: sessionDto.currentInput,
@@ -196,23 +225,15 @@ export function useTypingSession() {
         currentAccuracy: sessionDto.currentAccuracy,
         progress: sessionDto.progress,
         testCompleted: sessionDto.status === "completed",
-        cursorPosition: {
-          wordIndex: 0, // TODO: Map from sessionDto
-          charIndex: sessionDto.currentInput.length,
-          isSpacePosition: false,
-        },
+        cursorPosition: calculateCursorPosition(sessionDto.currentInput, prev.currentData),
       }));
 
       // Ensure input field value is synchronized (for uncontrolled scenarios)
-      if (
-        inputRef.current &&
-        inputRef.current.value !== sessionDto.currentInput
-      ) {
+      if (inputRef.current && inputRef.current.value !== sessionDto.currentInput) {
         inputRef.current.value = sessionDto.currentInput;
       }
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to process input";
+      const errorMessage = err instanceof Error ? err.message : "Failed to process input";
       setError(errorMessage);
       console.error("Error processing input:", err);
     }
@@ -277,8 +298,7 @@ export function useTypingSession() {
         incorrectWords: results.incorrectWords,
       }));
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to complete session";
+      const errorMessage = err instanceof Error ? err.message : "Failed to complete session";
       setError(errorMessage);
       console.error("Error completing session:", err);
     }
@@ -341,11 +361,7 @@ export function useTypingSession() {
 
   // Timer countdown
   useEffect(() => {
-    if (
-      state.startTime !== null &&
-      state.timeLeft > 0 &&
-      !state.testCompleted
-    ) {
+    if (state.startTime !== null && state.timeLeft > 0 && !state.testCompleted) {
       const timer = setInterval(() => {
         setState((prev) => ({
           ...prev,

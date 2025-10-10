@@ -4,7 +4,7 @@
  */
 
 import { LanguageCode } from "@/domain";
-import { FingerAssignment, InputMethod, LayoutType, LayoutVariant } from "../enums/keyboard-layouts";
+import { FingerAssignment, LayoutVariant } from "../enums/keyboard-layouts";
 
 export interface KeyDefinition {
   /** Physical key identifier (e.g., 'q', 'w', 'e') */
@@ -18,7 +18,7 @@ export interface KeyDefinition {
   /** Character with Ctrl modifier */
   ctrlChar?: string;
   /** Special key type (for modifier and function keys) */
-  type?: 'modifier' | 'function' | 'space' | 'normal';
+  type?: "modifier" | "function" | "space" | "normal";
   /** Custom width multiplier for special keys */
   width?: number;
 }
@@ -28,7 +28,7 @@ export interface LayoutRow {
   keys: KeyDefinition[];
   /** Optional row-specific styling or properties */
   properties?: {
-    alignment?: 'left' | 'center' | 'right';
+    alignment?: "left" | "center" | "right";
     spacing?: number;
   };
 }
@@ -64,7 +64,7 @@ export interface LayoutMetadata {
   /** Tags for categorization */
   tags: string[];
   /** Difficulty level */
-  difficulty: 'easy' | 'medium' | 'hard';
+  difficulty: "easy" | "medium" | "hard";
   /** Whether this is a custom user layout */
   isCustom: boolean;
   /** Whether this layout is publicly available */
@@ -75,11 +75,7 @@ export interface LanguageLayoutDefinition {
   /** Language code */
   language: LanguageCode;
   /** Layout type (qwerty, dvorak, etc.) */
-  type: LayoutType;
-  /** Layout variant (us, uk, etc.) */
   variant: LayoutVariant;
-  /** Input method */
-  inputMethod: InputMethod;
   /** Layout metadata */
   metadata: LayoutMetadata;
   /** Physical layout structure */
@@ -132,13 +128,13 @@ export interface LanguageLayoutDefinition {
  */
 export interface LanguageLayoutFactory {
   /** Create a KeyboardLayout from a language definition */
-  createFromDefinition(definition: LanguageLayoutDefinition): Promise<any>; // Using any to avoid circular dependency
+  createFromDefinition(definition: LanguageLayoutDefinition): Promise<unknown>; // Using any to avoid circular dependency
 
   /** Validate a language definition */
   validateDefinition(definition: LanguageLayoutDefinition): boolean;
 
   /** Parse legacy layout format to new definition */
-  parseLegacyLayout(legacyLayout: any, language: LanguageCode): LanguageLayoutDefinition;
+  parseLegacyLayout(legacyLayout: unknown, language: LanguageCode): LanguageLayoutDefinition;
 }
 
 /**
@@ -163,7 +159,6 @@ export interface LanguageLayoutRegistry {
   /** Search layouts by criteria */
   searchLayouts(criteria: {
     language?: LanguageCode;
-    type?: LayoutType;
     variant?: LayoutVariant;
     tags?: string[];
   }): LanguageLayoutDefinition[];

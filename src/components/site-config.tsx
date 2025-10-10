@@ -1,18 +1,17 @@
 "use client";
 
-import layouts from "@/layouts/kb-layouts";
-import React, { createContext, ReactNode, useContext, useState, useEffect, useCallback } from "react";
-import { TypingDatabaseService, languageCodeToDb, dbToLanguageCode } from "@/lib/appwrite";
-import { useAuth } from "./auth-provider";
+import themesConfig from "@/config/themes.json";
+import { LANGUAGE_DISPLAY_NAMES, LanguageCode } from "@/domain";
+import { dbToLanguageCode, languageCodeToDb, TypingDatabaseService } from "@/lib/appwrite";
 import { applyThemeColors } from "@/lib/utils";
 import { useTheme } from "next-themes";
-import themesConfig from "@/config/themes.json";
-import { LanguageCode } from "@/domain";
+import React, { createContext, ReactNode, useCallback, useContext, useEffect, useState } from "react";
+import { useAuth } from "./auth-provider";
 
 enum ThemeMode {
-  LIGHT = 'light',
-  DARK = 'dark',
-  SYSTEM = 'system',
+  LIGHT = "light",
+  DARK = "dark",
+  SYSTEM = "system",
 }
 
 interface SiteConfig {
@@ -23,7 +22,7 @@ interface SiteConfig {
   };
   showShiftLabel?: boolean;
   practiceMode?: boolean;
-  difficultyMode: 'chars' | 'syntaxs'; // New property for difficulty mode
+  difficultyMode: "chars" | "syntaxs"; // New property for difficulty mode
   // Keyboard layout preferences per language
   preferredLayouts?: {
     [LanguageCode.EN]?: string;
@@ -47,73 +46,77 @@ const defaultConfig: SiteConfig = {
   theme: ThemeMode.LIGHT,
   language: {
     code: LanguageCode.LI,
-    name: layouts.find((layout) => layout.code === LanguageCode.LI)?.name || "",
+    name: LANGUAGE_DISPLAY_NAMES[LanguageCode.LI] || "Lisu",
   },
   showShiftLabel: false,
   practiceMode: false,
-  difficultyMode: 'syntaxs', // Default to syntax mode
+  difficultyMode: "syntaxs", // Default to syntax mode
   preferredLayouts: {
-    [LanguageCode.EN]: 'en-qwerty-us',
-    [LanguageCode.LI]: 'li-sil-basic',
-    [LanguageCode.MY]: 'my-myanmar3', // Default to Myanmar3 (recommended)
+    [LanguageCode.EN]: "en-us",
+    [LanguageCode.LI]: "li-sil-basic",
+    [LanguageCode.MY]: "my-unicode-myanmar",
   },
 };
 
 const SiteConfigContext = createContext<SiteConfigContextType>({
   config: defaultConfig,
-  setConfig: async () => { },
+  setConfig: async () => {},
   loading: false,
-  saveSettings: async () => { },
+  saveSettings: async () => {},
 });
 
-export const SiteConfigProvider: React.FC<SiteConfigProviderProps> = ({
-  children,
-}) => {
+export const SiteConfigProvider: React.FC<SiteConfigProviderProps> = ({ children }) => {
   const [config, setConfig] = useState<SiteConfig>(defaultConfig);
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
   const { theme } = useTheme();
 
-  const STORAGE_KEY = 'typoria_site_config';
+  const STORAGE_KEY = "typoria_site_config";
 
   // Function to apply color theme
-  const applyColorTheme = useCallback((themeId?: string) => {
-    if (typeof window === 'undefined') return; // Guard for SSR
+  const applyColorTheme = useCallback(
+    (themeId?: string) => {
+      if (typeof window === "undefined") return; // Guard for SSR
 
-    const colorThemeId = themeId || localStorage.getItem('selectedColorTheme') || 'default';
-    const themes = themesConfig.themes;
-    const selectedThemeData = themes.find(t => t.id === colorThemeId);
+      const colorThemeId = themeId || localStorage.getItem("selectedColorTheme") || "default";
+      const themes = themesConfig.themes;
+      const selectedThemeData = themes.find((t) => t.id === colorThemeId);
 
-    if (selectedThemeData) {
-      const isDarkMode = theme === 'dark';
-      applyThemeColors(selectedThemeData, isDarkMode);
-    }
-  }, [theme]);
+      if (selectedThemeData) {
+        const isDarkMode = theme === "dark";
+        applyThemeColors(selectedThemeData, isDarkMode);
+      }
+    },
+    [theme]
+  );
 
   const loadSettings = useCallback(async () => {
     setLoading(true);
     try {
-      if (user && !user.id.startsWith('guest_') && !user.id.startsWith('anonymous')) {
+      if (user && !user.id.startsWith("guest_") && !user.id.startsWith("anonymous")) {
         // Load from Appwrite for authenticated users
         const userSettings = await TypingDatabaseService.getUserSettings(user.id);
         if (userSettings) {
           const loadedConfig: SiteConfig = {
-            theme: userSettings.theme === 'light' ? ThemeMode.LIGHT
-              : userSettings.theme === 'dark' ? ThemeMode.DARK
+            theme:
+              userSettings.theme === "light"
+                ? ThemeMode.LIGHT
+                : userSettings.theme === "dark"
+                ? ThemeMode.DARK
                 : ThemeMode.SYSTEM,
             language: {
               code: dbToLanguageCode(userSettings.preferred_language),
-              name: layouts.find(l => l.code === dbToLanguageCode(userSettings.preferred_language))?.name || "English"
+              name: LANGUAGE_DISPLAY_NAMES[dbToLanguageCode(userSettings.preferred_language)] || "English",
             },
             showShiftLabel: userSettings.show_shift_label ?? false,
             practiceMode: userSettings.practice_mode ?? false,
-            difficultyMode: userSettings.difficulty_mode ?? 'syntaxs'
+            difficultyMode: userSettings.difficulty_mode ?? "syntaxs",
           };
           setConfig(loadedConfig);
 
           // Also save color theme if present and apply it
           if (userSettings.color_theme) {
-            localStorage.setItem('selectedColorTheme', userSettings.color_theme);
+            localStorage.setItem("selectedColorTheme", userSettings.color_theme);
             applyColorTheme(userSettings.color_theme);
           } else {
             // Apply default theme
@@ -131,7 +134,7 @@ export const SiteConfigProvider: React.FC<SiteConfigProviderProps> = ({
             // Apply saved color theme for guest users
             applyColorTheme();
           } catch (error) {
-            console.error('Error parsing saved config:', error);
+            console.error("Error parsing saved config:", error);
           }
         } else {
           // Apply default theme for new users
@@ -139,7 +142,7 @@ export const SiteConfigProvider: React.FC<SiteConfigProviderProps> = ({
         }
       }
     } catch (error) {
-      console.error('Error loading settings:', error);
+      console.error("Error loading settings:", error);
       // Fall back to localStorage
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
@@ -150,7 +153,7 @@ export const SiteConfigProvider: React.FC<SiteConfigProviderProps> = ({
           // Apply color theme from localStorage fallback
           applyColorTheme();
         } catch (parseError) {
-          console.error('Error parsing saved config:', parseError);
+          console.error("Error parsing saved config:", parseError);
           // Apply default theme as final fallback
           applyColorTheme();
         }
@@ -179,22 +182,20 @@ export const SiteConfigProvider: React.FC<SiteConfigProviderProps> = ({
   const saveSettings = async (newConfig: SiteConfig) => {
     setLoading(true);
     try {
-      if (user && !user.id.startsWith('guest_') && !user.id.startsWith('anonymous')) {
+      if (user && !user.id.startsWith("guest_") && !user.id.startsWith("anonymous")) {
         // Get the current color theme from localStorage
-        const colorTheme = localStorage.getItem('selectedColorTheme') || 'default';
+        const colorTheme = localStorage.getItem("selectedColorTheme") || "default";
 
         // Save to Appwrite for authenticated users
         await TypingDatabaseService.createOrUpdateUserSettings(user.id, {
-          theme: newConfig.theme === ThemeMode.LIGHT ? 'light'
-            : newConfig.theme === ThemeMode.DARK ? 'dark'
-              : 'system',
+          theme: newConfig.theme === ThemeMode.LIGHT ? "light" : newConfig.theme === ThemeMode.DARK ? "dark" : "system",
           preferred_language: languageCodeToDb(newConfig.language.code),
           default_test_duration: 60, // Default value, could be made configurable
           show_leaderboard: true, // Default value, could be made configurable
           show_shift_label: newConfig.showShiftLabel,
           practice_mode: newConfig.practiceMode,
           difficulty_mode: newConfig.difficultyMode,
-          color_theme: colorTheme
+          color_theme: colorTheme,
         });
       }
 
@@ -202,7 +203,7 @@ export const SiteConfigProvider: React.FC<SiteConfigProviderProps> = ({
       localStorage.setItem(STORAGE_KEY, JSON.stringify(newConfig));
       setConfig(newConfig);
     } catch (error) {
-      console.error('Error saving settings:', error);
+      console.error("Error saving settings:", error);
       // Fall back to localStorage only
       localStorage.setItem(STORAGE_KEY, JSON.stringify(newConfig));
       setConfig(newConfig);
@@ -213,17 +214,19 @@ export const SiteConfigProvider: React.FC<SiteConfigProviderProps> = ({
 
   // Wrap setConfig to use saveSettings
   const handleConfigChange = async (newConfig: SiteConfig | ((prev: SiteConfig) => SiteConfig)) => {
-    const configToSave = typeof newConfig === 'function' ? newConfig(config) : newConfig;
+    const configToSave = typeof newConfig === "function" ? newConfig(config) : newConfig;
     await saveSettings(configToSave);
   };
 
   return (
-    <SiteConfigContext.Provider value={{
-      config,
-      setConfig: handleConfigChange,
-      loading,
-      saveSettings
-    }}>
+    <SiteConfigContext.Provider
+      value={{
+        config,
+        setConfig: handleConfigChange,
+        loading,
+        saveSettings,
+      }}
+    >
       {children}
     </SiteConfigContext.Provider>
   );

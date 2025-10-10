@@ -16,13 +16,7 @@ export interface AnalyzeTypingPatternsCommand {
 }
 
 export interface AnalysisFocusArea {
-  type:
-  | "rhythm"
-  | "accuracy"
-  | "speed"
-  | "consistency"
-  | "finger_usage"
-  | "error_patterns";
+  type: "rhythm" | "accuracy" | "speed" | "consistency" | "finger_usage" | "error_patterns";
   priority: "high" | "medium" | "low";
 }
 
@@ -80,11 +74,9 @@ export interface PatternComparison {
 }
 
 export class AnalyzeTypingPatternsUseCase {
-  constructor(private analyticsRepository: IAnalyticsRepository) { }
+  constructor(private analyticsRepository: IAnalyticsRepository) {}
 
-  async execute(
-    command: AnalyzeTypingPatternsCommand
-  ): Promise<TypingPatternAnalysisResult> {
+  async execute(command: AnalyzeTypingPatternsCommand): Promise<TypingPatternAnalysisResult> {
     // Get user analytics data
     const userAnalytics = await this.getUserAnalytics(command);
 
@@ -93,11 +85,7 @@ export class AnalyzeTypingPatternsUseCase {
     }
 
     // Perform pattern analysis based on depth
-    const patterns = await this.analyzePatterns(
-      userAnalytics,
-      command.analysisDepth,
-      command.focusAreas
-    );
+    const patterns = await this.analyzePatterns(userAnalytics, command.analysisDepth, command.focusAreas);
 
     // Generate insights from patterns
     const insights = this.generateInsights(patterns, userAnalytics);
@@ -106,17 +94,10 @@ export class AnalyzeTypingPatternsUseCase {
     const recommendations = this.generateRecommendations(patterns, insights);
 
     // Generate comparisons with average users
-    const comparisons = await this.generateComparisons(
-      userAnalytics,
-      command.userId
-    );
+    const comparisons = await this.generateComparisons(userAnalytics, command.userId);
 
     // Create aggregate analysis
-    const analysis = await this.createAggregateAnalysis(
-      userAnalytics,
-      patterns,
-      command.userId
-    );
+    const analysis = await this.createAggregateAnalysis(userAnalytics, patterns, command.userId);
 
     return {
       analysis,
@@ -127,41 +108,30 @@ export class AnalyzeTypingPatternsUseCase {
     };
   }
 
-  private async getUserAnalytics(
-    command: AnalyzeTypingPatternsCommand
-  ): Promise<TypingAnalytics[]> {
+  private async getUserAnalytics(command: AnalyzeTypingPatternsCommand): Promise<TypingAnalytics[]> {
     let analytics: TypingAnalytics[];
 
     if (command.sessionIds && command.sessionIds.length > 0) {
       // Get specific sessions
       analytics = [];
       for (const sessionId of command.sessionIds) {
-        const sessionAnalytics = await this.analyticsRepository.findBySessionId(
-          sessionId
-        );
+        const sessionAnalytics = await this.analyticsRepository.findBySessionId(sessionId);
         analytics.push(...sessionAnalytics);
       }
     } else {
       // Get all user analytics within time range
-      const allAnalytics = await this.analyticsRepository.findByUserId(
-        command.userId
-      );
+      const allAnalytics = await this.analyticsRepository.findByUserId(command.userId);
 
       if (command.timeRangeInDays) {
         const cutoffDate = new Date();
         cutoffDate.setDate(cutoffDate.getDate() - command.timeRangeInDays);
-        analytics = allAnalytics.filter(
-          (a) => new Date(a.generatedAt) >= cutoffDate
-        );
+        analytics = allAnalytics.filter((a) => new Date(a.generatedAt) >= cutoffDate);
       } else {
         analytics = allAnalytics;
       }
     }
 
-    return analytics.sort(
-      (a, b) =>
-        new Date(a.generatedAt).getTime() - new Date(b.generatedAt).getTime()
-    );
+    return analytics.sort((a, b) => new Date(a.generatedAt).getTime() - new Date(b.generatedAt).getTime());
   }
 
   private async analyzePatterns(
@@ -214,14 +184,7 @@ export class AnalyzeTypingPatternsUseCase {
       case "detailed":
         return ["speed", "accuracy", "consistency", "error_patterns"];
       case "comprehensive":
-        return [
-          "rhythm",
-          "accuracy",
-          "speed",
-          "consistency",
-          "finger_usage",
-          "error_patterns",
-        ];
+        return ["rhythm", "accuracy", "speed", "consistency", "finger_usage", "error_patterns"];
       default:
         return ["speed", "accuracy"];
     }
@@ -255,8 +218,7 @@ export class AnalyzeTypingPatternsUseCase {
       patterns.push({
         type: "rhythm",
         name: "Erratic Rhythm",
-        description:
-          "Your typing rhythm varies significantly, affecting consistency",
+        description: "Your typing rhythm varies significantly, affecting consistency",
         strength: "strong",
         frequency: 0.7,
         impact: "negative",
@@ -274,9 +236,7 @@ export class AnalyzeTypingPatternsUseCase {
     return patterns;
   }
 
-  private analyzeAccuracyPatterns(
-    analytics: TypingAnalytics[]
-  ): TypingPattern[] {
+  private analyzeAccuracyPatterns(analytics: TypingAnalytics[]): TypingPattern[] {
     const patterns: TypingPattern[] = [];
 
     // Analyze accuracy trends over time
@@ -375,9 +335,7 @@ export class AnalyzeTypingPatternsUseCase {
     return patterns;
   }
 
-  private analyzeConsistencyPatterns(
-    analytics: TypingAnalytics[]
-  ): TypingPattern[] {
+  private analyzeConsistencyPatterns(analytics: TypingAnalytics[]): TypingPattern[] {
     const patterns: TypingPattern[] = [];
 
     // Analyze overall consistency across metrics
@@ -385,7 +343,7 @@ export class AnalyzeTypingPatternsUseCase {
     let overallConsistency = 0;
 
     for (const metric of metrics) {
-      const values = analytics.map((a) => (a.data as any)[metric]);
+      const values = analytics.map((a) => (a.data as unknown as Record<string, number>)[metric]);
       const consistency = this.calculateConsistency(values);
       overallConsistency += consistency;
     }
@@ -414,9 +372,7 @@ export class AnalyzeTypingPatternsUseCase {
     return patterns;
   }
 
-  private analyzeFingerUsagePatterns(
-    analytics: TypingAnalytics[]
-  ): TypingPattern[] {
+  private analyzeFingerUsagePatterns(analytics: TypingAnalytics[]): TypingPattern[] {
     const patterns: TypingPattern[] = [];
 
     // Analyze finger usage distribution
@@ -473,10 +429,7 @@ export class AnalyzeTypingPatternsUseCase {
     return patterns;
   }
 
-  private generateInsights(
-    patterns: TypingPattern[],
-    analytics: TypingAnalytics[]
-  ): Insight[] {
+  private generateInsights(patterns: TypingPattern[], analytics: TypingAnalytics[]): Insight[] {
     const insights: Insight[] = [];
 
     // Performance insights
@@ -487,8 +440,7 @@ export class AnalyzeTypingPatternsUseCase {
       insights.push({
         category: "performance",
         title: "Strong Foundation",
-        description:
-          "You have more positive typing patterns than negative ones, indicating a solid foundation",
+        description: "You have more positive typing patterns than negative ones, indicating a solid foundation",
         confidence: 0.8,
         actionable: true,
         relatedPatterns: performancePatterns.map((p) => p.name),
@@ -501,8 +453,7 @@ export class AnalyzeTypingPatternsUseCase {
       insights.push({
         category: "potential",
         title: "Untapped Speed Potential",
-        description:
-          "Your speed bursts indicate you can type faster consistently with practice",
+        description: "Your speed bursts indicate you can type faster consistently with practice",
         confidence: 0.7,
         actionable: true,
         relatedPatterns: [speedBursts.name],
@@ -510,15 +461,12 @@ export class AnalyzeTypingPatternsUseCase {
     }
 
     // Warning insights
-    const criticalPatterns = patterns.filter(
-      (p) => p.impact === "negative" && p.strength === "strong"
-    );
+    const criticalPatterns = patterns.filter((p) => p.impact === "negative" && p.strength === "strong");
     if (criticalPatterns.length > 0) {
       insights.push({
         category: "warning",
         title: "Critical Areas Need Attention",
-        description:
-          "Several strong negative patterns are limiting your progress",
+        description: "Several strong negative patterns are limiting your progress",
         confidence: 0.9,
         actionable: true,
         relatedPatterns: criticalPatterns.map((p) => p.name),
@@ -528,10 +476,7 @@ export class AnalyzeTypingPatternsUseCase {
     return insights;
   }
 
-  private generateRecommendations(
-    patterns: TypingPattern[],
-    insights: Insight[]
-  ): PatternRecommendation[] {
+  private generateRecommendations(patterns: TypingPattern[], insights: Insight[]): PatternRecommendation[] {
     const recommendations: PatternRecommendation[] = [];
 
     // Generate recommendations for each negative pattern
@@ -553,17 +498,11 @@ export class AnalyzeTypingPatternsUseCase {
     return recommendations;
   }
 
-  private async generateComparisons(
-    analytics: TypingAnalytics[],
-    userId: string
-  ): Promise<PatternComparison[]> {
+  private async generateComparisons(analytics: TypingAnalytics[], userId: string): Promise<PatternComparison[]> {
     // This would typically compare against a database of anonymous user data
     // For now, we'll use representative averages
-    const userAvgWpm =
-      analytics.reduce((sum, a) => sum + a.data.averageWpm, 0) /
-      analytics.length;
-    const userAvgAccuracy =
-      analytics.reduce((sum, a) => sum + a.data.accuracy, 0) / analytics.length;
+    const userAvgWpm = analytics.reduce((sum, a) => sum + a.data.averageWpm, 0) / analytics.length;
+    const userAvgAccuracy = analytics.reduce((sum, a) => sum + a.data.accuracy, 0) / analytics.length;
 
     return [
       {
@@ -578,8 +517,7 @@ export class AnalyzeTypingPatternsUseCase {
         userValue: userAvgAccuracy,
         averageValue: 92, // Representative average
         percentile: this.calculatePercentile(userAvgAccuracy, 92, 5), // mean=92, std=5
-        interpretation:
-          userAvgAccuracy > 92 ? "Above average" : "Below average",
+        interpretation: userAvgAccuracy > 92 ? "Above average" : "Below average",
       },
     ];
   }
@@ -590,23 +528,13 @@ export class AnalyzeTypingPatternsUseCase {
     userId: string
   ): Promise<TypingAnalytics> {
     const analysisData = {
-      averageWpm:
-        analytics.reduce((sum, a) => sum + a.data.averageWpm, 0) /
-        analytics.length,
-      peakWpm: Math.max(
-        ...analytics.map((a) => a.data.peakWpm || a.data.averageWpm)
-      ),
-      accuracy:
-        analytics.reduce((sum, a) => sum + a.data.accuracy, 0) /
-        analytics.length,
+      averageWpm: analytics.reduce((sum, a) => sum + a.data.averageWpm, 0) / analytics.length,
+      peakWpm: Math.max(...analytics.map((a) => a.data.peakWpm || a.data.averageWpm)),
+      accuracy: analytics.reduce((sum, a) => sum + a.data.accuracy, 0) / analytics.length,
       keystrokePattern: this.aggregateKeystrokeData(analytics),
       problemAreas: this.aggregateProblemAreas(analytics),
-      strengths: patterns
-        .filter((p) => p.impact === "positive")
-        .map((p) => p.name),
-      weaknesses: patterns
-        .filter((p) => p.impact === "negative")
-        .map((p) => p.name),
+      strengths: patterns.filter((p) => p.impact === "positive").map((p) => p.name),
+      weaknesses: patterns.filter((p) => p.impact === "negative").map((p) => p.name),
       progressTrend: this.calculateProgressTrend(analytics),
     };
 
@@ -625,18 +553,13 @@ export class AnalyzeTypingPatternsUseCase {
   // Helper methods
   private extractKeystrokeIntervals(analytics: TypingAnalytics[]): number[] {
     // Simplified implementation
-    return analytics.flatMap((a) =>
-      (a.data.keystrokePattern || []).map((k) => k.averageTime)
-    );
+    return analytics.flatMap((a) => (a.data.keystrokePattern || []).map((k) => k.averageTime));
   }
 
   private calculateRhythmVariation(intervals: number[]): number {
     if (intervals.length < 2) return 0;
-    const mean =
-      intervals.reduce((sum, val) => sum + val, 0) / intervals.length;
-    const variance =
-      intervals.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) /
-      intervals.length;
+    const mean = intervals.reduce((sum, val) => sum + val, 0) / intervals.length;
+    const variance = intervals.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / intervals.length;
     return Math.sqrt(variance) / mean;
   }
 
@@ -663,9 +586,7 @@ export class AnalyzeTypingPatternsUseCase {
     if (values.length < 2) return 1;
 
     const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
-    const variance =
-      values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) /
-      values.length;
+    const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
     const standardDeviation = Math.sqrt(variance);
 
     // Return consistency score (1 - coefficient of variation)
@@ -673,9 +594,7 @@ export class AnalyzeTypingPatternsUseCase {
   }
 
   private detectSpeedBursts(analytics: TypingAnalytics[]): TypingAnalytics[] {
-    const avgWpm =
-      analytics.reduce((sum, a) => sum + a.data.averageWpm, 0) /
-      analytics.length;
+    const avgWpm = analytics.reduce((sum, a) => sum + a.data.averageWpm, 0) / analytics.length;
     const threshold = avgWpm * 1.2; // 20% above average
     return analytics.filter((a) => a.data.averageWpm > threshold);
   }
@@ -695,20 +614,15 @@ export class AnalyzeTypingPatternsUseCase {
       errorCounts[key] = (errorCounts[key] || 0) + 1;
     });
 
-    const repeatedErrors = Object.values(errorCounts).filter(
-      (count) => count > 1
-    );
+    const repeatedErrors = Object.values(errorCounts).filter((count) => count > 1);
     const hasPattern = repeatedErrors.length > 0;
     const frequency = repeatedErrors.length / Object.keys(errorCounts).length;
-    const consistency =
-      Math.max(...Object.values(errorCounts)) / analytics.length;
+    const consistency = Math.max(...Object.values(errorCounts)) / analytics.length;
 
     return { hasPattern, frequency, consistency };
   }
 
-  private aggregateFingerUsage(
-    analytics: TypingAnalytics[]
-  ): Record<string, number> {
+  private aggregateFingerUsage(analytics: TypingAnalytics[]): Record<string, number> {
     const fingerUsage: Record<string, number> = {};
 
     analytics.forEach((a) => {
@@ -723,16 +637,12 @@ export class AnalyzeTypingPatternsUseCase {
     return fingerUsage;
   }
 
-  private calculateFingerImbalance(
-    fingerUsage: Record<string, number>
-  ): number {
+  private calculateFingerImbalance(fingerUsage: Record<string, number>): number {
     const values = Object.values(fingerUsage);
     if (values.length === 0) return 0;
 
     const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
-    const variance =
-      values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) /
-      values.length;
+    const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
 
     return Math.sqrt(variance) / mean;
   }
@@ -756,9 +666,7 @@ export class AnalyzeTypingPatternsUseCase {
     ];
   }
 
-  private createRecommendationForPattern(
-    pattern: TypingPattern
-  ): PatternRecommendation | null {
+  private createRecommendationForPattern(pattern: TypingPattern): PatternRecommendation | null {
     const recommendationMap: Record<string, Partial<PatternRecommendation>> = {
       "Erratic Rhythm": {
         type: "technique",
@@ -809,20 +717,14 @@ export class AnalyzeTypingPatternsUseCase {
       type: baseRecommendation.type || "practice",
       priority: baseRecommendation.priority || "medium",
       title: baseRecommendation.title || "Improve Pattern",
-      description:
-        baseRecommendation.description || "Work on this typing pattern",
-      expectedImpact:
-        baseRecommendation.expectedImpact || "Performance improvement",
+      description: baseRecommendation.description || "Work on this typing pattern",
+      expectedImpact: baseRecommendation.expectedImpact || "Performance improvement",
       timeToSeeResults: baseRecommendation.timeToSeeResults || "2-4 weeks",
       actionSteps: baseRecommendation.actionSteps || ["Practice regularly"],
     };
   }
 
-  private calculatePercentile(
-    value: number,
-    mean: number,
-    stdDev: number
-  ): number {
+  private calculatePercentile(value: number, mean: number, stdDev: number): number {
     // Simplified percentile calculation using normal distribution approximation
     const z = (value - mean) / stdDev;
     return Math.round(this.normalCDF(z) * 100);
@@ -846,16 +748,12 @@ export class AnalyzeTypingPatternsUseCase {
     x = Math.abs(x);
 
     const t = 1.0 / (1.0 + p * x);
-    const y =
-      1.0 -
-      ((((a5 * t + a4) * t + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+    const y = 1.0 - ((((a5 * t + a4) * t + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
 
     return sign * y;
   }
 
-  private aggregateKeystrokeData(
-    analytics: TypingAnalytics[]
-  ): KeystrokeData[] {
+  private aggregateKeystrokeData(analytics: TypingAnalytics[]): KeystrokeData[] {
     const aggregated: Record<string, KeystrokeData> = {};
 
     analytics.forEach((a) => {
@@ -872,8 +770,7 @@ export class AnalyzeTypingPatternsUseCase {
 
         const existing = aggregated[keystroke.key];
         existing.frequency += keystroke.frequency;
-        existing.averageTime =
-          (existing.averageTime + keystroke.averageTime) / 2;
+        existing.averageTime = (existing.averageTime + keystroke.averageTime) / 2;
         existing.errorRate = (existing.errorRate + keystroke.errorRate) / 2;
       });
     });
@@ -894,8 +791,7 @@ export class AnalyzeTypingPatternsUseCase {
             suggestion: area.suggestion,
           };
         } else {
-          problemMap[area.category].errorRate =
-            (problemMap[area.category].errorRate + area.errorRate) / 2;
+          problemMap[area.category].errorRate = (problemMap[area.category].errorRate + area.errorRate) / 2;
         }
       });
     });
@@ -903,9 +799,7 @@ export class AnalyzeTypingPatternsUseCase {
     return Object.values(problemMap);
   }
 
-  private calculateProgressTrend(
-    analytics: TypingAnalytics[]
-  ): ProgressPoint[] {
+  private calculateProgressTrend(analytics: TypingAnalytics[]): ProgressPoint[] {
     return analytics.map((a) => ({
       date: new Date(a.generatedAt),
       metric: "wpm",

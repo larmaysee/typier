@@ -1,14 +1,24 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { useSiteConfig } from "@/components/site-config";
 import { usePracticeMode } from "@/components/pratice-mode";
+import { useSiteConfig } from "@/components/site-config";
 import { useTypingStatistics } from "@/components/typing-statistics";
+import { useCallback, useEffect, useState } from "react";
 
-// Data imports
-import engdatasets from "@/datas/english-data";
-import lidatasets from "@/datas/lisu-data";
-import mydatasets from "@/datas/myanmar-data";
+// Data imports - using new data structure
+import { ENGLISH_CHARACTERS, ENGLISH_SENTENCES } from "@/data/english";
+import { LISU_CHARACTERS, LISU_SENTENCES } from "@/data/lisu";
+import { MYANMAR_CHARACTERS, MYANMAR_SENTENCES } from "@/data/myanmar";
+
+// Create compatibility adapters for old data format
+const createDatasetAdapter = (sentences: Record<string, string[]>, characters: Record<string, string[]>) => ({
+  syntaxs: [...(sentences.easy || []), ...(sentences.medium || []), ...(sentences.hard || [])].slice(0, 50), // Limit to reasonable number
+  chars: characters?.basic || [],
+});
+
+const engdatasets = createDatasetAdapter(ENGLISH_SENTENCES, ENGLISH_CHARACTERS);
+const lidatasets = createDatasetAdapter(LISU_SENTENCES, LISU_CHARACTERS);
+const mydatasets = createDatasetAdapter(MYANMAR_SENTENCES, MYANMAR_CHARACTERS);
 
 interface TestResult {
   wpm: number;
@@ -57,11 +67,7 @@ interface TypingSessionActions {
   setTimeLeft: (time: number) => void;
   setTestCompleted: (completed: boolean) => void;
   setShowResults: (show: boolean) => void;
-  setCursorPosition: (position: {
-    wordIndex: number;
-    charIndex: number;
-    isSpacePosition: boolean;
-  }) => void;
+  setCursorPosition: (position: { wordIndex: number; charIndex: number; isSpacePosition: boolean }) => void;
   setIsStartNextWord: (value: boolean) => void;
   setLastTestResult: (result: TestResult | null) => void;
 }
@@ -76,18 +82,18 @@ export function useTypingSession(): TypingSessionState & TypingSessionActions {
   const [language, setLanguage] = useState<string>("en");
   const [syntaxs, setSyntaxs] = useState<string[]>([]);
   const [typedText, setTypedText] = useState<string>("");
-  
+
   // Typing metrics
   const [correctWords, setCorrectWords] = useState<number>(0);
   const [incorrectWords, setIncorrectWords] = useState<number>(0);
   const [startTime, setStartTime] = useState<number | null>(null);
-  
+
   // Timer and test state
   const [selectedTime, setSelectedTime] = useState<number>(30);
   const [timeLeft, setTimeLeft] = useState<number>(selectedTime);
   const [testCompleted, setTestCompleted] = useState<boolean>(false);
   const [showResults, setShowResults] = useState<boolean>(false);
-  
+
   // Cursor and interaction state
   const [cursorPosition, setCursorPosition] = useState<{
     wordIndex: number;
@@ -95,7 +101,7 @@ export function useTypingSession(): TypingSessionState & TypingSessionActions {
     isSpacePosition: boolean;
   }>({ wordIndex: 0, charIndex: 0, isSpacePosition: false });
   const [isStartNextWord, setIsStartNextWord] = useState<boolean>(false);
-  
+
   // Test result state
   const [lastTestResult, setLastTestResult] = useState<TestResult | null>(null);
 
@@ -110,17 +116,17 @@ export function useTypingSession(): TypingSessionState & TypingSessionActions {
     const dataset = datasets[language];
     if (!dataset) return;
 
-    if (config.difficultyMode === 'chars' && dataset.chars) {
+    if (config.difficultyMode === "chars" && dataset.chars) {
       const chars = dataset.chars;
       const sequenceLength = Math.floor(Math.random() * 20) + 10;
-      let sequence = '';
+      let sequence = "";
 
       for (let i = 0; i < sequenceLength; i++) {
         const randomChar = chars[Math.floor(Math.random() * chars.length)];
         sequence += randomChar;
 
         if (i > 0 && i % 5 === 0 && Math.random() > 0.7) {
-          sequence += ' ';
+          sequence += " ";
         }
       }
 
@@ -225,7 +231,7 @@ export function useTypingSession(): TypingSessionState & TypingSessionActions {
           testDuration,
           language,
           charactersTyped,
-          errors: incorrectWords
+          errors: incorrectWords,
         };
 
         setLastTestResult(result);
@@ -235,7 +241,17 @@ export function useTypingSession(): TypingSessionState & TypingSessionActions {
 
       saveTestResult();
     }
-  }, [testCompleted, startTime, selectedTime, typedText.length, calculateWPM, correctWords, incorrectWords, language, addTestResult]);
+  }, [
+    testCompleted,
+    startTime,
+    selectedTime,
+    typedText.length,
+    calculateWPM,
+    correctWords,
+    incorrectWords,
+    language,
+    addTestResult,
+  ]);
 
   return {
     // State
@@ -253,7 +269,7 @@ export function useTypingSession(): TypingSessionState & TypingSessionActions {
     cursorPosition,
     isStartNextWord,
     lastTestResult,
-    
+
     // Actions
     getRandomData,
     calculateWPM,
@@ -270,6 +286,6 @@ export function useTypingSession(): TypingSessionState & TypingSessionActions {
     setShowResults,
     setCursorPosition,
     setIsStartNextWord,
-    setLastTestResult
+    setLastTestResult,
   };
 }

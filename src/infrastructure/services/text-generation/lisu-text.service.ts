@@ -1,10 +1,7 @@
-import {
-  ITextGenerationService,
-  TextGenerationConfig,
-  GeneratedText
-} from "@/domain/interfaces";
-import { LanguageCode, TextType, DifficultyLevel } from "@/domain/enums";
-import lidatasets from "@/datas/lisu-data";
+import { LISU_CHARACTER_SETS_BY_DIFFICULTY, LISU_SENTENCES_BY_DIFFICULTY, LISU_WORDS_BY_DIFFICULTY } from "@/data/lisu";
+import { LanguageCode } from "@/domain/enums/languages";
+import { DifficultyLevel, TextType } from "@/domain/enums/typing-mode";
+import { GeneratedText, ITextGenerationService, TextGenerationConfig } from "@/domain/interfaces";
 
 /**
  * Lisu text generation service with proper Unicode handling
@@ -14,7 +11,7 @@ export class LisuTextService implements ITextGenerationService {
 
   async generate(config: TextGenerationConfig): Promise<GeneratedText> {
     let content: string;
-    
+
     switch (config.textType) {
       case TextType.CHARS:
         content = this.generateCharacters(config);
@@ -41,8 +38,8 @@ export class LisuTextService implements ITextGenerationService {
         language: config.language,
         textType: config.textType,
         estimatedTime: this.estimateTypingTime(content),
-        source: 'lisu-text-service'
-      }
+        source: "lisu-text-service",
+      },
     };
   }
 
@@ -81,35 +78,34 @@ export class LisuTextService implements ITextGenerationService {
 
   private generateCharacters(config: TextGenerationConfig): string {
     const chars = this.getCharactersByDifficulty(config.difficulty);
-    let result = '';
-    
+    let result = "";
+
     for (let i = 0; i < config.length; i++) {
       if (i > 0 && i % 4 === 0) {
-        result += ' '; // Add spaces for readability
+        result += " "; // Add spaces for readability
       }
       result += chars[Math.floor(Math.random() * chars.length)];
     }
-    
+
     return result.trim();
   }
 
   private generateWords(config: TextGenerationConfig): string {
     const words = this.getWordsByDifficulty(config.difficulty);
     const result: string[] = [];
-    
+
     for (let i = 0; i < config.length; i++) {
       result.push(words[Math.floor(Math.random() * words.length)]);
     }
-    
-    return result.join(' ');
+
+    return result.join(" ");
   }
 
   private generateSentences(config: TextGenerationConfig): string {
-    // Use preset sentences from the Lisu dataset
-    const sentences = lidatasets.syntaxs;
+    const sentences = LISU_SENTENCES_BY_DIFFICULTY[config.difficulty] || LISU_SENTENCES_BY_DIFFICULTY.easy;
     const result: string[] = [];
     let currentLength = 0;
-    
+
     while (currentLength < config.length && result.length < sentences.length) {
       const sentence = sentences[Math.floor(Math.random() * sentences.length)];
       if (!result.includes(sentence)) {
@@ -117,66 +113,46 @@ export class LisuTextService implements ITextGenerationService {
         currentLength += this.countWords(sentence);
       }
     }
-    
-    return result.join(' ');
+
+    return result.join(" ");
   }
 
   private generateParagraphs(config: TextGenerationConfig): string {
-    // For paragraphs, combine multiple sentences
-    const sentenceConfig = { ...config, length: Math.min(config.length, lidatasets.syntaxs.length) };
-    return this.generateSentences(sentenceConfig);
+    const sentences = LISU_SENTENCES_BY_DIFFICULTY[config.difficulty] || LISU_SENTENCES_BY_DIFFICULTY.medium;
+    const paragraphs: string[] = [];
+    let currentWordCount = 0;
+
+    while (currentWordCount < config.length) {
+      const paragraph: string[] = [];
+      const sentencesPerParagraph = Math.floor(Math.random() * 3) + 2; // 2-4 sentences per paragraph
+
+      for (let i = 0; i < sentencesPerParagraph && currentWordCount < config.length; i++) {
+        const sentence = sentences[Math.floor(Math.random() * sentences.length)];
+        paragraph.push(sentence);
+        currentWordCount += this.countWords(sentence);
+      }
+
+      paragraphs.push(paragraph.join(" "));
+
+      if (currentWordCount >= config.length) break;
+    }
+
+    return paragraphs.join("\n\n");
   }
 
   private getCharactersByDifficulty(difficulty: DifficultyLevel): string[] {
-    const baseChars = lidatasets.chars.filter(char => char !== ' ' && char !== '"' && char !== '"');
-    
-    switch (difficulty) {
-      case DifficultyLevel.EASY:
-        // Common Lisu letters only
-        return baseChars.filter(char => 
-          char >= 'ꓐ' && char <= 'ꓯ' // Basic Lisu letters
-        );
-      case DifficultyLevel.MEDIUM:
-        // Include tone marks and diacritics
-        return baseChars.filter(char => 
-          (char >= 'ꓐ' && char <= '꓿') || char === 'ˍ' || char === '˗'
-        );
-      case DifficultyLevel.HARD:
-        return lidatasets.chars; // All characters including punctuation
-      default:
-        return baseChars;
-    }
+    return LISU_CHARACTER_SETS_BY_DIFFICULTY[difficulty] || LISU_CHARACTER_SETS_BY_DIFFICULTY.easy;
   }
 
   private getWordsByDifficulty(difficulty: DifficultyLevel): string[] {
-    // Extract words from sentences, accounting for Lisu word boundaries
-    const allWords = lidatasets.syntaxs
-      .join(' ')
-      .split(/\s+/)
-      .filter(word => word.length > 0);
-
-    const uniqueWords = Array.from(new Set(allWords));
-
-    switch (difficulty) {
-      case DifficultyLevel.EASY:
-        // Shorter Lisu words (basic syllables)
-        return uniqueWords.filter(word => this.countLisuCharacters(word) <= 4);
-      case DifficultyLevel.MEDIUM:
-        // Medium-length words
-        return uniqueWords.filter(word => 
-          this.countLisuCharacters(word) >= 2 && this.countLisuCharacters(word) <= 8
-        );
-      case DifficultyLevel.HARD:
-        return uniqueWords;
-      default:
-        return uniqueWords.filter(word => 
-          this.countLisuCharacters(word) >= 2 && this.countLisuCharacters(word) <= 6
-        );
-    }
+    return LISU_WORDS_BY_DIFFICULTY[difficulty] || LISU_WORDS_BY_DIFFICULTY.easy;
   }
 
   private countWords(text: string): number {
-    return text.trim().split(/\s+/).filter(word => word.length > 0).length;
+    return text
+      .trim()
+      .split(/\s+/)
+      .filter((word) => word.length > 0).length;
   }
 
   private countLisuCharacters(word: string): number {

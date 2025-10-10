@@ -3,12 +3,8 @@
  * Contains competition logic, entry management, and ranking systems
  */
 
-import { LanguageCode } from "../../enums/site-config";
-import {
-  CompetitionCategory,
-  CompetitionStatus,
-  CompetitionType,
-} from "../enums/competition-types";
+import { CompetitionCategory, CompetitionStatus, CompetitionType } from "../enums/competition-types";
+import { LanguageCode } from "../enums/languages";
 import { DifficultyLevel } from "../enums/typing-mode";
 
 export interface CompetitionRules {
@@ -64,17 +60,12 @@ export class Competition {
     if (!textContent.trim()) throw new Error("Text content cannot be empty");
     if (!createdBy.trim()) throw new Error("Creator ID cannot be empty");
     if (startDate <= 0) throw new Error("Start date must be positive");
-    if (endDate <= startDate)
-      throw new Error("End date must be after start date");
-    if (registrationDeadline <= 0)
-      throw new Error("Registration deadline must be positive");
-    if (registrationDeadline > startDate)
-      throw new Error("Registration deadline must be before start date");
-    if (participantCount < 0)
-      throw new Error("Participant count cannot be negative");
+    if (endDate <= startDate) throw new Error("End date must be after start date");
+    if (registrationDeadline <= 0) throw new Error("Registration deadline must be positive");
+    if (registrationDeadline > startDate) throw new Error("Registration deadline must be before start date");
+    if (participantCount < 0) throw new Error("Participant count cannot be negative");
     if (createdAt <= 0) throw new Error("Created timestamp must be positive");
-    if (updatedAt < createdAt)
-      throw new Error("Updated timestamp cannot be before created timestamp");
+    if (updatedAt < createdAt) throw new Error("Updated timestamp cannot be before created timestamp");
   }
 
   static create(data: {
@@ -172,13 +163,8 @@ export class Competition {
   }
 
   cancel(): Competition {
-    if (
-      this.status === CompetitionStatus.COMPLETED ||
-      this.status === CompetitionStatus.CANCELLED
-    ) {
-      throw new Error(
-        "Cannot cancel completed or already cancelled competition"
-      );
+    if (this.status === CompetitionStatus.COMPLETED || this.status === CompetitionStatus.CANCELLED) {
+      throw new Error("Cannot cancel completed or already cancelled competition");
     }
 
     return new Competition(
@@ -206,10 +192,7 @@ export class Competition {
       throw new Error("Competition cannot accept new participants");
     }
 
-    if (
-      this.metadata.maxParticipants &&
-      this.participantCount >= this.metadata.maxParticipants
-    ) {
+    if (this.metadata.maxParticipants && this.participantCount >= this.metadata.maxParticipants) {
       throw new Error("Competition has reached maximum participants");
     }
 
@@ -263,13 +246,8 @@ export class Competition {
       throw new Error("Text content cannot be empty");
     }
 
-    if (
-      this.status === CompetitionStatus.ACTIVE ||
-      this.status === CompetitionStatus.COMPLETED
-    ) {
-      throw new Error(
-        "Cannot update text content of active or completed competition"
-      );
+    if (this.status === CompetitionStatus.ACTIVE || this.status === CompetitionStatus.COMPLETED) {
+      throw new Error("Cannot update text content of active or completed competition");
     }
 
     return new Competition(
@@ -313,8 +291,7 @@ export class Competition {
     return (
       this.status === CompetitionStatus.UPCOMING &&
       now <= this.registrationDeadline &&
-      (!this.metadata.maxParticipants ||
-        this.participantCount < this.metadata.maxParticipants)
+      (!this.metadata.maxParticipants || this.participantCount < this.metadata.maxParticipants)
     );
   }
 
@@ -324,11 +301,7 @@ export class Competition {
 
   isActive(): boolean {
     const now = Date.now();
-    return (
-      this.status === CompetitionStatus.ACTIVE &&
-      now >= this.startDate &&
-      now <= this.endDate
-    );
+    return this.status === CompetitionStatus.ACTIVE && now >= this.startDate && now <= this.endDate;
   }
 
   isCompleted(): boolean {
@@ -420,20 +393,17 @@ export class CompetitionEntry {
     public readonly rank?: number
   ) {
     if (!id.trim()) throw new Error("Entry ID cannot be empty");
-    if (!competitionId.trim())
-      throw new Error("Competition ID cannot be empty");
+    if (!competitionId.trim()) throw new Error("Competition ID cannot be empty");
     if (!userId.trim()) throw new Error("User ID cannot be empty");
     if (!username.trim()) throw new Error("Username cannot be empty");
     if (wpm < 0) throw new Error("WPM cannot be negative");
-    if (accuracy < 0 || accuracy > 100)
-      throw new Error("Accuracy must be between 0-100");
+    if (accuracy < 0 || accuracy > 100) throw new Error("Accuracy must be between 0-100");
     if (errors < 0) throw new Error("Errors cannot be negative");
     if (timeElapsed <= 0) throw new Error("Time elapsed must be positive");
     if (!layoutUsed.trim()) throw new Error("Layout used cannot be empty");
     if (attemptNumber < 1) throw new Error("Attempt number must be positive");
     if (score < 0) throw new Error("Score cannot be negative");
-    if (submittedAt <= 0)
-      throw new Error("Submitted timestamp must be positive");
+    if (submittedAt <= 0) throw new Error("Submitted timestamp must be positive");
   }
 
   static create(data: {
@@ -466,11 +436,7 @@ export class CompetitionEntry {
       data.qualificationRules?.penaltyPerError || 0
     );
 
-    const isQualified = CompetitionEntry.checkQualification(
-      data.wpm,
-      data.accuracy,
-      data.qualificationRules
-    );
+    const isQualified = CompetitionEntry.checkQualification(data.wpm, data.accuracy, data.qualificationRules);
 
     return new CompetitionEntry(
       data.id,
@@ -500,12 +466,7 @@ export class CompetitionEntry {
     return `entry_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
-  static calculateScore(
-    wpm: number,
-    accuracy: number,
-    errors: number,
-    penaltyPerError: number = 0
-  ): number {
+  static calculateScore(wpm: number, accuracy: number, errors: number, penaltyPerError: number = 0): number {
     // Base score from WPM weighted by accuracy
     const accuracyMultiplier = accuracy / 100;
     const baseScore = wpm * accuracyMultiplier;
@@ -517,11 +478,7 @@ export class CompetitionEntry {
     return Math.round(finalScore * 100) / 100;
   }
 
-  static checkQualification(
-    wpm: number,
-    accuracy: number,
-    rules?: { minAccuracy?: number; minWPM?: number }
-  ): boolean {
+  static checkQualification(wpm: number, accuracy: number, rules?: { minAccuracy?: number; minWPM?: number }): boolean {
     if (!rules) return true;
 
     if (rules.minAccuracy && accuracy < rules.minAccuracy) return false;
@@ -566,12 +523,7 @@ export class CompetitionEntry {
     return this.wpm * (1 - errorRate);
   }
 
-  getPerformanceLevel():
-    | "poor"
-    | "fair"
-    | "good"
-    | "excellent"
-    | "outstanding" {
+  getPerformanceLevel(): "poor" | "fair" | "good" | "excellent" | "outstanding" {
     if (this.score < 20) return "poor";
     if (this.score < 40) return "fair";
     if (this.score < 60) return "good";
@@ -579,12 +531,7 @@ export class CompetitionEntry {
     return "outstanding";
   }
 
-  getRankCategory():
-    | "winner"
-    | "top_10"
-    | "top_50"
-    | "qualified"
-    | "participated" {
+  getRankCategory(): "winner" | "top_10" | "top_50" | "qualified" | "participated" {
     if (!this.rank) return this.isQualified ? "qualified" : "participated";
 
     if (this.rank === 1) return "winner";
@@ -593,12 +540,7 @@ export class CompetitionEntry {
     return this.isQualified ? "qualified" : "participated";
   }
 
-  getTypingConsistency():
-    | "very_low"
-    | "low"
-    | "moderate"
-    | "high"
-    | "very_high" {
+  getTypingConsistency(): "very_low" | "low" | "moderate" | "high" | "very_high" {
     const consistency = this.metadata.consistency;
     if (consistency < 20) return "very_low";
     if (consistency < 40) return "low";

@@ -1,12 +1,12 @@
-import { LayoutType, LayoutVariant } from "@/domain/enums/keyboard-layouts";
 import { LanguageCode } from "@/domain";
+import { LayoutVariant } from "@/domain/enums/keyboard-layouts";
 
 export interface KeyboardLayoutDto {
   id: string;
   name: string;
   displayName: string;
   language: LanguageCode;
-  layoutType: LayoutType;
+  layoutType: string;
   variant: LayoutVariant;
   isCustom: boolean;
   metadata: {
@@ -37,7 +37,7 @@ export interface CustomLayoutDto {
   name: string;
   displayName: string;
   language: LanguageCode;
-  layoutType: LayoutType;
+  layoutType: string;
   baseLayoutId?: string;
   keyMappings: Array<{
     key: string;

@@ -1,37 +1,28 @@
-import { Query } from "appwrite";
 import { LanguageCode } from "@/domain";
-import { IKeyboardLayoutRepository } from "@/domain/interfaces";
 import { KeyboardLayout } from "@/domain/entities";
-import { RepositoryError, NotFoundError } from "@/shared/errors";
-import { AppwriteDatabaseClient } from "../../persistence/appwrite/database-client";
-import {
-  COLLECTIONS,
-  AppwriteKeyboardLayoutDocument
-} from "../../persistence/appwrite/collections.config";
+import { IKeyboardLayoutRepository } from "@/domain/interfaces";
+import { NotFoundError, RepositoryError } from "@/shared/errors";
 import type { ILogger } from "@/shared/utils/logger";
+import { Query } from "appwrite";
+import { AppwriteKeyboardLayoutDocument, COLLECTIONS } from "../../persistence/appwrite/collections.config";
+import { AppwriteDatabaseClient } from "../../persistence/appwrite/database-client";
 
 export class AppwriteKeyboardLayoutRepository implements IKeyboardLayoutRepository {
-  constructor(
-    private client: AppwriteDatabaseClient,
-    private logger: ILogger
-  ) { }
+  constructor(private client: AppwriteDatabaseClient, private logger: ILogger) {}
 
   async getAvailableLayouts(language: LanguageCode): Promise<KeyboardLayout[]> {
     try {
-      const queries = [
-        Query.equal('language', language),
-        Query.orderAsc('name')
-      ];
+      const queries = [Query.equal("language", language), Query.orderAsc("name")];
 
       const documents = await this.client.listDocuments<AppwriteKeyboardLayoutDocument>(
         COLLECTIONS.KEYBOARD_LAYOUTS,
         queries
       );
 
-      return documents.map(doc => this.fromAppwriteDocument(doc));
+      return documents.map((doc) => this.fromAppwriteDocument(doc));
     } catch (error) {
       this.logger.error(`Failed to get available layouts for language: ${language}`, error as Error);
-      throw new RepositoryError('Failed to get available layouts', error as Error);
+      throw new RepositoryError("Failed to get available layouts", error as Error);
     }
   }
 
@@ -45,7 +36,7 @@ export class AppwriteKeyboardLayoutRepository implements IKeyboardLayoutReposito
       return document ? this.fromAppwriteDocument(document) : null;
     } catch (error) {
       this.logger.error(`Failed to get layout: ${layoutId}`, error as Error);
-      throw new RepositoryError('Failed to get layout', error as Error);
+      throw new RepositoryError("Failed to get layout", error as Error);
     }
   }
 
@@ -61,8 +52,8 @@ export class AppwriteKeyboardLayoutRepository implements IKeyboardLayoutReposito
 
       this.logger.info(`Saved custom layout: ${layout.id}`);
     } catch (error) {
-      this.logger.error('Failed to save custom layout', error as Error);
-      throw new RepositoryError('Failed to save custom layout', error as Error);
+      this.logger.error("Failed to save custom layout", error as Error);
+      throw new RepositoryError("Failed to save custom layout", error as Error);
     }
   }
 
@@ -71,10 +62,10 @@ export class AppwriteKeyboardLayoutRepository implements IKeyboardLayoutReposito
       // This would typically be stored in user preferences
       // For now, we'll use a separate query or integrate with user preferences
       const queries = [
-        Query.equal('created_by', userId),
-        Query.equal('language', language),
-        Query.equal('is_custom', true),
-        Query.limit(1)
+        Query.equal("created_by", userId),
+        Query.equal("language", language),
+        Query.equal("is_custom", true),
+        Query.limit(1),
       ];
 
       const documents = await this.client.listDocuments<AppwriteKeyboardLayoutDocument>(
@@ -110,7 +101,7 @@ export class AppwriteKeyboardLayoutRepository implements IKeyboardLayoutReposito
       this.logger.error(`Failed to set user preferred layout`, error as Error);
       throw error instanceof NotFoundError || error instanceof RepositoryError
         ? error
-        : new RepositoryError('Failed to set user preferred layout', error as Error);
+        : new RepositoryError("Failed to set user preferred layout", error as Error);
     }
   }
 
@@ -124,11 +115,11 @@ export class AppwriteKeyboardLayoutRepository implements IKeyboardLayoutReposito
       }
 
       if (!layout.isCustom) {
-        throw new RepositoryError('Cannot delete built-in layout');
+        throw new RepositoryError("Cannot delete built-in layout");
       }
 
       if (layout.createdBy !== userId) {
-        throw new RepositoryError('User does not have permission to delete this layout');
+        throw new RepositoryError("User does not have permission to delete this layout");
       }
 
       await this.client.deleteDocument(COLLECTIONS.KEYBOARD_LAYOUTS, layoutId);
@@ -138,41 +129,38 @@ export class AppwriteKeyboardLayoutRepository implements IKeyboardLayoutReposito
         throw error;
       }
       this.logger.error(`Failed to delete custom layout: ${layoutId}`, error as Error);
-      throw new RepositoryError('Failed to delete custom layout', error as Error);
+      throw new RepositoryError("Failed to delete custom layout", error as Error);
     }
   }
 
   async getAllCustomLayouts(userId: string): Promise<KeyboardLayout[]> {
     try {
-      const queries = [
-        Query.equal('created_by', userId),
-        Query.equal('is_custom', true),
-        Query.orderAsc('name')
-      ];
+      const queries = [Query.equal("created_by", userId), Query.equal("is_custom", true), Query.orderAsc("name")];
 
       const documents = await this.client.listDocuments<AppwriteKeyboardLayoutDocument>(
         COLLECTIONS.KEYBOARD_LAYOUTS,
         queries
       );
 
-      return documents.map(doc => this.fromAppwriteDocument(doc));
+      return documents.map((doc) => this.fromAppwriteDocument(doc));
     } catch (error) {
       this.logger.error(`Failed to get custom layouts for user: ${userId}`, error as Error);
-      throw new RepositoryError('Failed to get custom layouts', error as Error);
+      throw new RepositoryError("Failed to get custom layouts", error as Error);
     }
   }
 
-  private toAppwriteDocument(layout: KeyboardLayout): Omit<AppwriteKeyboardLayoutDocument, '$id' | '$createdAt' | '$updatedAt'> {
+  private toAppwriteDocument(
+    layout: KeyboardLayout
+  ): Omit<AppwriteKeyboardLayoutDocument, "$id" | "$createdAt" | "$updatedAt"> {
     return {
       name: layout.name,
       display_name: layout.displayName,
       language: layout.language,
-      layout_type: layout.layoutType,
       variant: layout.variant,
       key_mappings: JSON.stringify(layout.keyMappings),
       metadata: JSON.stringify(layout.metadata),
       is_custom: layout.isCustom,
-      created_by: layout.createdBy
+      created_by: layout.createdBy,
     };
   }
 
@@ -182,16 +170,14 @@ export class AppwriteKeyboardLayoutRepository implements IKeyboardLayoutReposito
       name: doc.name,
       displayName: doc.display_name,
       language: doc.language as LanguageCode,
-      layoutType: doc.layout_type as any,
       variant: doc.variant as any,
-      inputMethod: 'keyboard' as any, // Default input method
       keyMappings: JSON.parse(doc.key_mappings),
       metadata: JSON.parse(doc.metadata),
       isCustom: doc.is_custom,
       isPublic: false, // Default value since not in document
-      createdBy: doc.created_by || 'system',
+      createdBy: doc.created_by || "system",
       createdAt: new Date(doc.$createdAt).getTime(),
-      updatedAt: new Date(doc.$updatedAt).getTime()
+      updatedAt: new Date(doc.$updatedAt).getTime(),
     };
 
     return KeyboardLayout.create(layoutData);

@@ -13,18 +13,14 @@ export interface JoinCompetitionResult {
 }
 
 export class JoinCompetitionUseCase {
-  constructor(private competitionRepository: ICompetitionRepository) { }
+  constructor(private competitionRepository: ICompetitionRepository) {}
 
-  async execute(
-    command: JoinCompetitionCommand
-  ): Promise<JoinCompetitionResult> {
-    const competition = await this.competitionRepository.findById(
-      command.competitionId
-    );
+  async execute(command: JoinCompetitionCommand): Promise<JoinCompetitionResult> {
+    const competition = await this.competitionRepository.findById(command.competitionId);
 
     if (!competition) {
       return {
-        competition: null as any,
+        competition: null as unknown as Competition,
         canJoin: false,
         reason: "Competition not found",
       };
@@ -59,10 +55,7 @@ export class JoinCompetitionUseCase {
     }
 
     // Check if user has already joined
-    const existingEntry = await this.competitionRepository.getUserEntry(
-      command.competitionId,
-      command.userId
-    );
+    const existingEntry = await this.competitionRepository.getUserEntry(command.competitionId, command.userId);
 
     if (existingEntry) {
       return {
@@ -74,9 +67,7 @@ export class JoinCompetitionUseCase {
 
     // Check participant limit
     if (competition.metadata.maxParticipants) {
-      const entries = await this.competitionRepository.getEntries(
-        command.competitionId
-      );
+      const entries = await this.competitionRepository.getEntries(command.competitionId);
       if (entries.length >= competition.metadata.maxParticipants) {
         return {
           competition,

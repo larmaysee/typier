@@ -1,4 +1,3 @@
-import { LayoutType } from "@/domain/enums/keyboard-layouts";
 import { LanguageCode } from "@/domain";
 
 export interface SwitchLayoutCommand {
@@ -12,7 +11,6 @@ export interface CreateCustomLayoutCommand {
   name: string;
   displayName: string;
   language: LanguageCode;
-  layoutType: LayoutType;
   baseLayoutId?: string;
   keyMappings: Array<{
     key: string;

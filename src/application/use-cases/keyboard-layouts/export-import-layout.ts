@@ -1,20 +1,20 @@
-import { KeyboardLayout } from "@/domain/entities/keyboard-layout";
-import { IKeyboardLayoutRepository } from "@/domain/interfaces/repositories";
-import { DifficultyLevel } from "@/domain/enums/typing-mode";
-import { LayoutType, LayoutVariant, InputMethod } from "@/domain/enums/keyboard-layouts";
 import { LanguageCode } from "@/domain";
+import { KeyboardLayout } from "@/domain/entities/keyboard-layout";
+import { LayoutVariant } from "@/domain/enums/keyboard-layouts";
+import { DifficultyLevel } from "@/domain/enums/typing-mode";
+import { IKeyboardLayoutRepository } from "@/domain/interfaces/repositories";
 
 export interface ExportLayoutCommand {
   layoutId: string;
   userId: string;
   includeMetadata?: boolean;
-  format?: 'json' | 'xml' | 'yaml';
+  format?: "json" | "xml" | "yaml";
 }
 
 export interface ImportLayoutCommand {
   layoutData: string;
   userId: string;
-  format?: 'json' | 'xml' | 'yaml';
+  format?: "json" | "xml" | "yaml";
   newName?: string;
   makePublic?: boolean;
 }
@@ -33,9 +33,7 @@ export interface ImportLayoutResult {
 }
 
 export class ExportImportLayoutUseCase {
-  constructor(
-    private keyboardLayoutRepository: IKeyboardLayoutRepository
-  ) { }
+  constructor(private keyboardLayoutRepository: IKeyboardLayoutRepository) {}
 
   async exportLayout(command: ExportLayoutCommand): Promise<ExportLayoutResult> {
     const layout = await this.keyboardLayoutRepository.findById(command.layoutId);
@@ -49,7 +47,7 @@ export class ExportImportLayoutUseCase {
       throw new Error("Permission denied: Cannot export private layout of another user");
     }
 
-    const format = command.format || 'json';
+    const format = command.format || "json";
     const exportData = await this.serializeLayout(layout, format, command.includeMetadata);
     const fileName = this.generateExportFileName(layout, format);
 
@@ -57,12 +55,12 @@ export class ExportImportLayoutUseCase {
       exportData,
       fileName,
       format,
-      layout
+      layout,
     };
   }
 
   async importLayout(command: ImportLayoutCommand): Promise<ImportLayoutResult> {
-    const format = command.format || 'json';
+    const format = command.format || "json";
     const warnings: string[] = [];
 
     // Parse the layout data
@@ -73,38 +71,36 @@ export class ExportImportLayoutUseCase {
     warnings.push(...validationResult.warnings);
 
     if (validationResult.hasErrors) {
-      throw new Error(`Import validation failed: ${validationResult.errors.join(', ')}`);
+      throw new Error(`Import validation failed: ${validationResult.errors.join(", ")}`);
     }
 
     // Create new layout from imported data
     const now = Date.now();
-    const layoutName = command.newName || parsedLayout.name || 'Imported Layout';
+    const layoutName = command.newName || parsedLayout.name || "Imported Layout";
 
     const layout = KeyboardLayout.create({
       id: `imported_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       name: layoutName,
       displayName: layoutName,
       language: parsedLayout.language || LanguageCode.EN,
-      layoutType: parsedLayout.layoutType || LayoutType.CUSTOM,
       variant: parsedLayout.variant || LayoutVariant.US,
-      inputMethod: parsedLayout.inputMethod || InputMethod.DIRECT,
       keyMappings: parsedLayout.keyMappings || [],
       metadata: {
         description: `Imported layout: ${layoutName}`,
         author: command.userId,
-        version: '1.0.0',
-        compatibility: parsedLayout.metadata?.compatibility || ['desktop'],
-        tags: [...(parsedLayout.metadata?.tags || []), 'imported'],
+        version: "1.0.0",
+        compatibility: parsedLayout.metadata?.compatibility || ["desktop"],
+        tags: [...(parsedLayout.metadata?.tags || []), "imported"],
         difficulty: parsedLayout.metadata?.difficulty || DifficultyLevel.MEDIUM,
         popularity: 0,
         dateCreated: now,
-        lastModified: now
+        lastModified: now,
       },
       isCustom: true,
       isPublic: command.makePublic || false,
       createdBy: command.userId,
       createdAt: now,
-      updatedAt: now
+      updatedAt: now,
     });
 
     // Save the layout - use proper repository method
@@ -113,22 +109,18 @@ export class ExportImportLayoutUseCase {
     return {
       layout,
       warnings,
-      originalLayout: parsedLayout
+      originalLayout: parsedLayout,
     };
   }
 
-  private async serializeLayout(
-    layout: KeyboardLayout,
-    format: string,
-    includeMetadata = true
-  ): Promise<string> {
+  private async serializeLayout(layout: KeyboardLayout, format: string, includeMetadata = true): Promise<string> {
     const exportObject: any = {
       name: layout.name,
       displayName: layout.displayName,
       language: layout.language,
       variant: layout.variant,
       keyMappings: layout.keyMappings,
-      isCustom: layout.isCustom
+      isCustom: layout.isCustom,
     };
 
     if (includeMetadata && layout.metadata) {
@@ -138,13 +130,13 @@ export class ExportImportLayoutUseCase {
     }
 
     switch (format.toLowerCase()) {
-      case 'json':
+      case "json":
         return JSON.stringify(exportObject, null, 2);
 
-      case 'xml':
+      case "xml":
         return this.convertToXML(exportObject);
 
-      case 'yaml':
+      case "yaml":
         return this.convertToYAML(exportObject);
 
       default:
@@ -155,20 +147,20 @@ export class ExportImportLayoutUseCase {
   private async parseLayoutData(layoutData: string, format: string): Promise<Partial<KeyboardLayout>> {
     try {
       switch (format.toLowerCase()) {
-        case 'json':
+        case "json":
           return JSON.parse(layoutData);
 
-        case 'xml':
+        case "xml":
           return this.parseXML(layoutData);
 
-        case 'yaml':
+        case "yaml":
           return this.parseYAML(layoutData);
 
         default:
           throw new Error(`Unsupported import format: ${format}`);
       }
     } catch (error) {
-      throw new Error(`Failed to parse ${format} data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(`Failed to parse ${format} data: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   }
 
@@ -206,13 +198,13 @@ export class ExportImportLayoutUseCase {
     return {
       hasErrors: errors.length > 0,
       errors,
-      warnings
+      warnings,
     };
   }
 
   private generateExportFileName(layout: KeyboardLayout, format: string): string {
-    const cleanName = layout.displayName.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
-    const timestamp = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const cleanName = layout.displayName.replace(/[^a-zA-Z0-9]/g, "-").toLowerCase();
+    const timestamp = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
     return `${cleanName}-${timestamp}.${format}`;
   }
 
@@ -221,8 +213,8 @@ export class ExportImportLayoutUseCase {
     customName: string | undefined,
     userId: string
   ): string {
-    const baseName = customName || parsedLayout.displayName || parsedLayout.name || 'imported-layout';
-    const cleanName = baseName.toLowerCase().replace(/[^a-z0-9]/g, '-');
+    const baseName = customName || parsedLayout.displayName || parsedLayout.name || "imported-layout";
+    const cleanName = baseName.toLowerCase().replace(/[^a-z0-9]/g, "-");
     const timestamp = Date.now();
     return `imported-${userId}-${cleanName}-${timestamp}`;
   }
@@ -236,7 +228,7 @@ export class ExportImportLayoutUseCase {
         xml += `  <${key}>\n`;
         value.forEach((item, index) => {
           xml += `    <item index="${index}">\n`;
-          if (typeof item === 'object') {
+          if (typeof item === "object") {
             Object.entries(item).forEach(([itemKey, itemValue]) => {
               xml += `      <${itemKey}>${this.escapeXML(String(itemValue))}</${itemKey}>\n`;
             });
@@ -246,7 +238,7 @@ export class ExportImportLayoutUseCase {
           xml += `    </item>\n`;
         });
         xml += `  </${key}>\n`;
-      } else if (typeof value === 'object' && value !== null) {
+      } else if (typeof value === "object" && value !== null) {
         xml += `  <${key}>\n`;
         Object.entries(value).forEach(([subKey, subValue]) => {
           xml += `    <${subKey}>${this.escapeXML(String(subValue))}</${subKey}>\n`;
@@ -257,7 +249,7 @@ export class ExportImportLayoutUseCase {
       }
     });
 
-    xml += '</layout>';
+    xml += "</layout>";
     return xml;
   }
 
@@ -266,29 +258,34 @@ export class ExportImportLayoutUseCase {
     const yamlLines: string[] = [];
 
     const convertValue = (value: any, indent = 0): string => {
-      const indentStr = '  '.repeat(indent);
+      const indentStr = "  ".repeat(indent);
 
       if (Array.isArray(value)) {
-        return value.map(item => {
-          if (typeof item === 'object') {
-            const itemLines = Object.entries(item).map(([k, v]) =>
-              `${indentStr}  ${k}: ${typeof v === 'object' ? '\n' + convertValue(v, indent + 2) : String(v)}`
-            );
-            return `${indentStr}- \n${itemLines.join('\n')}`;
-          }
-          return `${indentStr}- ${item}`;
-        }).join('\n');
-      } else if (typeof value === 'object') {
-        return Object.entries(value).map(([k, v]) =>
-          `${indentStr}${k}: ${typeof v === 'object' ? '\n' + convertValue(v, indent + 1) : String(v)}`
-        ).join('\n');
+        return value
+          .map((item) => {
+            if (typeof item === "object") {
+              const itemLines = Object.entries(item).map(
+                ([k, v]) =>
+                  `${indentStr}  ${k}: ${typeof v === "object" ? "\n" + convertValue(v, indent + 2) : String(v)}`
+              );
+              return `${indentStr}- \n${itemLines.join("\n")}`;
+            }
+            return `${indentStr}- ${item}`;
+          })
+          .join("\n");
+      } else if (typeof value === "object") {
+        return Object.entries(value)
+          .map(
+            ([k, v]) => `${indentStr}${k}: ${typeof v === "object" ? "\n" + convertValue(v, indent + 1) : String(v)}`
+          )
+          .join("\n");
       }
 
       return String(value);
     };
 
     Object.entries(obj).forEach(([key, value]) => {
-      if (typeof value === 'object') {
+      if (typeof value === "object") {
         yamlLines.push(`${key}:`);
         yamlLines.push(convertValue(value, 1));
       } else {
@@ -296,7 +293,7 @@ export class ExportImportLayoutUseCase {
       }
     });
 
-    return yamlLines.join('\n');
+    return yamlLines.join("\n");
   }
 
   private parseXML(xmlData: string): Partial<KeyboardLayout> {
@@ -305,17 +302,17 @@ export class ExportImportLayoutUseCase {
   }
 
   private parseYAML(yamlData: string): Partial<KeyboardLayout> {
-    // Simple YAML parsing - in production, use a proper YAML parser  
+    // Simple YAML parsing - in production, use a proper YAML parser
     throw new Error("YAML import not fully implemented - use JSON format");
   }
 
   private escapeXML(text: string): string {
     return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&apos;');
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&apos;");
   }
 }
 

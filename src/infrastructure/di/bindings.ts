@@ -3,84 +3,99 @@
  * Defines all service registrations for the application
  */
 
-import { container, ServiceLifetime } from './container';
+import { container } from "./container";
 
 // Import types and interfaces
-import { ISessionRepository, IUserRepository, IKeyboardLayoutRepository, ITypingRepository } from '../../domain/interfaces/repositories';
-import { ITextGenerationService } from '../../domain/interfaces/services';
-import { ILayoutProvider, ILayoutRegistryService, ILayoutManagerService } from '../../domain/interfaces/keyboard-layout.interface';
+import {
+  IKeyboardLayoutRepository,
+  ISessionRepository,
+  ITypingRepository,
+  IUserRepository,
+} from "../../domain/interfaces/repositories";
+import {
+  DomainEvent,
+  IEventBus,
+  ITextGenerationService,
+} from "../../domain/interfaces/services";
 
 // Import actual implementations
-import { StartTypingSessionUseCase } from '../../application/use-cases/typing/start-typing-session';
-import { ProcessTypingInputUseCase } from '../../application/use-cases/typing/process-typing-input';
-import { CompleteTypingSessionUseCase } from '../../application/use-cases/typing/complete-typing-session';
-import { PauseResumeSessionUseCase } from '../../application/use-cases/typing/pause-resume-session';
-import { GetAvailableLayoutsUseCase } from '../../application/use-cases/keyboard-layouts/get-available-layouts';
-import { SwitchKeyboardLayoutUseCase } from '../../application/use-cases/keyboard-layouts/switch-keyboard-layout';
+import { GetAvailableLayoutsUseCase } from "../../application/use-cases/keyboard-layouts/get-available-layouts";
+import { SwitchKeyboardLayoutUseCase } from "../../application/use-cases/keyboard-layouts/switch-keyboard-layout";
+import { CalculateUserStatisticsUseCase } from "../../application/use-cases/statistics/calculate-user-statistics";
+import { CompleteTypingSessionUseCase } from "../../application/use-cases/typing/complete-typing-session";
+import { ProcessTypingInputUseCase } from "../../application/use-cases/typing/process-typing-input";
+import { StartTypingSessionUseCase } from "../../application/use-cases/typing/start-typing-session";
 
 // Mock repositories for now (will be replaced in Phase 2)
-import { MockTypingRepository } from '@/infrastructure/repositories/mock/mock-typing.repository';
-import { MockUserRepository } from '@/infrastructure/repositories/mock/mock-user.repository';
-import { MockKeyboardLayoutRepository } from '@/infrastructure/repositories/mock/mock-keyboard-layout.repository';
-import { MockSessionRepository } from '@/infrastructure/repositories/mock/mock-session.repository';
+import { MockKeyboardLayoutRepository } from "@/infrastructure/repositories/mock/mock-keyboard-layout.repository";
+import { MockSessionRepository } from "@/infrastructure/repositories/mock/mock-session.repository";
+import { MockStatisticsRepository } from "@/infrastructure/repositories/mock/mock-statistics.repository";
+import { MockTypingRepository } from "@/infrastructure/repositories/mock/mock-typing.repository";
+import { MockUserRepository } from "@/infrastructure/repositories/mock/mock-user.repository";
 
 // Mock services for now (will be replaced in Phase 2)
-import { MockTextGenerationService } from '@/infrastructure/services/mock/mock-text-generation.service';
+import { MockAnalyticsService } from "@/infrastructure/services/mock/mock-analytics.service";
+import { MockAppwriteClientService } from "@/infrastructure/services/mock/mock-appwrite-client.service";
+import { MockLayoutValidatorService } from "@/infrastructure/services/mock/mock-layout-validator.service";
+import { MockNotificationService } from "@/infrastructure/services/mock/mock-notification.service";
+import { MockPerformanceTrackerService } from "@/infrastructure/services/mock/mock-performance-tracker.service";
+import { MockStorageService } from "@/infrastructure/services/mock/mock-storage.service";
+import { MockTextGenerationService } from "@/infrastructure/services/mock/mock-text-generation.service";
 
 // Keyboard layout services
-import { EnglishLayoutsService } from '@/infrastructure/services/keyboard-layouts/english-layouts.service';
-import { LisuLayoutsService } from '@/infrastructure/services/keyboard-layouts/lisu-layouts.service';
-import { MyanmarLayoutsService } from '@/infrastructure/services/keyboard-layouts/myanmar-layouts.service';
-import { LayoutRegistryService } from '@/infrastructure/services/keyboard-layouts/layout-registry.service';
-import { LayoutManagerService } from '@/infrastructure/services/keyboard-layouts/layout-manager.service';
+import { EnglishLayoutsService } from "@/infrastructure/services/keyboard-layouts/english-layouts.service";
+import { LayoutManagerService } from "@/infrastructure/services/keyboard-layouts/layout-manager.service";
+import { LayoutRegistryService } from "@/infrastructure/services/keyboard-layouts/layout-registry.service";
+import { LisuLayoutsService } from "@/infrastructure/services/keyboard-layouts/lisu-layouts.service";
+import { MyanmarLayoutsService } from "@/infrastructure/services/keyboard-layouts/myanmar-layouts.service";
 
 // Service Tokens - following consistent naming convention
 export const SERVICE_TOKENS = {
   // Repository Services
-  TYPING_REPOSITORY: 'TypingRepository',
-  KEYBOARD_LAYOUT_REPOSITORY: 'KeyboardLayoutRepository',
-  USER_REPOSITORY: 'UserRepository',
-  STATISTICS_REPOSITORY: 'StatisticsRepository',
-  SESSION_REPOSITORY: 'SessionRepository',
+  TYPING_REPOSITORY: "TypingRepository",
+  KEYBOARD_LAYOUT_REPOSITORY: "KeyboardLayoutRepository",
+  USER_REPOSITORY: "UserRepository",
+  STATISTICS_REPOSITORY: "StatisticsRepository",
+  SESSION_REPOSITORY: "SessionRepository",
 
   // Application Use Cases
-  START_TYPING_SESSION_USE_CASE: 'StartTypingSessionUseCase',
-  PROCESS_TYPING_INPUT_USE_CASE: 'ProcessTypingInputUseCase',
-  COMPLETE_TYPING_SESSION_USE_CASE: 'CompleteTypingSessionUseCase',
-  GET_AVAILABLE_LAYOUTS_USE_CASE: 'GetAvailableLayoutsUseCase',
-  SWITCH_KEYBOARD_LAYOUT_USE_CASE: 'SwitchKeyboardLayoutUseCase',
-  CALCULATE_USER_STATISTICS_USE_CASE: 'CalculateUserStatisticsUseCase',
+  START_TYPING_SESSION_USE_CASE: "StartTypingSessionUseCase",
+  PROCESS_TYPING_INPUT_USE_CASE: "ProcessTypingInputUseCase",
+  COMPLETE_TYPING_SESSION_USE_CASE: "CompleteTypingSessionUseCase",
+  GET_AVAILABLE_LAYOUTS_USE_CASE: "GetAvailableLayoutsUseCase",
+  SWITCH_KEYBOARD_LAYOUT_USE_CASE: "SwitchKeyboardLayoutUseCase",
+  CALCULATE_USER_STATISTICS_USE_CASE: "CalculateUserStatisticsUseCase",
 
   // Infrastructure Services
-  LAYOUT_MANAGER_SERVICE: 'LayoutManagerService',
-  TEXT_GENERATOR_SERVICE: 'TextGeneratorService',
-  PERFORMANCE_TRACKER_SERVICE: 'PerformanceTrackerService',
-  NOTIFICATION_SERVICE: 'NotificationService',
+  LAYOUT_MANAGER_SERVICE: "LayoutManagerService",
+  TEXT_GENERATOR_SERVICE: "TextGeneratorService",
+  PERFORMANCE_TRACKER_SERVICE: "PerformanceTrackerService",
+  NOTIFICATION_SERVICE: "NotificationService",
 
   // Layout Providers by Language
-  ENGLISH_LAYOUT_PROVIDER: 'EnglishLayoutProvider',
-  LISU_LAYOUT_PROVIDER: 'LisuLayoutProvider',
-  MYANMAR_LAYOUT_PROVIDER: 'MyanmarLayoutProvider',
-  LAYOUT_REGISTRY_SERVICE: 'LayoutRegistryService',
+  ENGLISH_LAYOUT_PROVIDER: "EnglishLayoutProvider",
+  LISU_LAYOUT_PROVIDER: "LisuLayoutProvider",
+  MYANMAR_LAYOUT_PROVIDER: "MyanmarLayoutProvider",
+  LAYOUT_REGISTRY_SERVICE: "LayoutRegistryService",
 
   // External Services
-  APPWRITE_CLIENT_SERVICE: 'AppwriteClientService',
-  STORAGE_SERVICE: 'StorageService',
-  ANALYTICS_SERVICE: 'AnalyticsService',
+  APPWRITE_CLIENT_SERVICE: "AppwriteClientService",
+  STORAGE_SERVICE: "StorageService",
+  ANALYTICS_SERVICE: "AnalyticsService",
 
   // Configuration Services
-  ENVIRONMENT_CONFIG: 'EnvironmentConfig',
-  FEATURE_FLAGS: 'FeatureFlags',
+  ENVIRONMENT_CONFIG: "EnvironmentConfig",
+  FEATURE_FLAGS: "FeatureFlags",
 
   // Validation Services
-  LAYOUT_VALIDATOR_SERVICE: 'LayoutValidatorService',
-  INPUT_VALIDATOR_SERVICE: 'InputValidatorService',
+  LAYOUT_VALIDATOR_SERVICE: "LayoutValidatorService",
+  INPUT_VALIDATOR_SERVICE: "InputValidatorService",
 
   // Logger Service
-  LOGGER: 'Logger'
+  LOGGER: "Logger",
 } as const;
 
-export type ServiceToken = typeof SERVICE_TOKENS[keyof typeof SERVICE_TOKENS];
+export type ServiceToken = (typeof SERVICE_TOKENS)[keyof typeof SERVICE_TOKENS];
 
 // Environment-specific configuration
 export interface EnvironmentConfig {
@@ -91,7 +106,7 @@ export interface EnvironmentConfig {
   appwriteDatabaseId?: string;
   enableOfflineMode: boolean;
   enableAnalytics: boolean;
-  debugLevel: 'none' | 'error' | 'warn' | 'info' | 'debug';
+  debugLevel: "none" | "error" | "warn" | "info" | "debug";
 }
 
 // Feature flags configuration
@@ -107,10 +122,14 @@ export interface FeatureFlags {
 // Service registration functions
 export function registerCoreServices(): void {
   // Environment Configuration
-  container.registerSingleton(SERVICE_TOKENS.ENVIRONMENT_CONFIG, () => createEnvironmentConfig());
+  container.registerSingleton(SERVICE_TOKENS.ENVIRONMENT_CONFIG, () =>
+    createEnvironmentConfig()
+  );
 
   // Feature Flags
-  container.registerSingleton(SERVICE_TOKENS.FEATURE_FLAGS, () => createFeatureFlags());
+  container.registerSingleton(SERVICE_TOKENS.FEATURE_FLAGS, () =>
+    createFeatureFlags()
+  );
 
   // Logger Service
   container.registerSingleton(SERVICE_TOKENS.LOGGER, () => createLogger());
@@ -118,75 +137,150 @@ export function registerCoreServices(): void {
 
 export function registerRepositories(): void {
   // Repository services using mock implementations for development
-  container.registerSingleton(SERVICE_TOKENS.TYPING_REPOSITORY, () => new MockTypingRepository());
-  container.registerSingleton(SERVICE_TOKENS.KEYBOARD_LAYOUT_REPOSITORY, () => new MockKeyboardLayoutRepository());
-  container.registerSingleton(SERVICE_TOKENS.USER_REPOSITORY, () => new MockUserRepository());
-  container.registerSingleton(SERVICE_TOKENS.SESSION_REPOSITORY, () => new MockSessionRepository());
-
-  // TODO: Implement MockStatisticsRepository
-  container.registerSingleton(SERVICE_TOKENS.STATISTICS_REPOSITORY, () => {
-    throw new Error('Statistics repository not implemented yet');
-  });
+  container.registerSingleton(
+    SERVICE_TOKENS.TYPING_REPOSITORY,
+    () => new MockTypingRepository()
+  );
+  container.registerSingleton(
+    SERVICE_TOKENS.KEYBOARD_LAYOUT_REPOSITORY,
+    () => new MockKeyboardLayoutRepository()
+  );
+  container.registerSingleton(
+    SERVICE_TOKENS.USER_REPOSITORY,
+    () => new MockUserRepository()
+  );
+  container.registerSingleton(
+    SERVICE_TOKENS.SESSION_REPOSITORY,
+    () => new MockSessionRepository()
+  );
+  container.registerSingleton(
+    SERVICE_TOKENS.STATISTICS_REPOSITORY,
+    () => new MockStatisticsRepository()
+  );
 }
 
 export function registerUseCases(): void {
   // Application use cases using dependency injection
-  container.registerTransient(SERVICE_TOKENS.START_TYPING_SESSION_USE_CASE, () => {
-    const sessionRepo = container.resolve<ISessionRepository>(SERVICE_TOKENS.SESSION_REPOSITORY);
-    const userRepo = container.resolve<IUserRepository>(SERVICE_TOKENS.USER_REPOSITORY);
-    const layoutRepo = container.resolve<IKeyboardLayoutRepository>(SERVICE_TOKENS.KEYBOARD_LAYOUT_REPOSITORY);
-    const textService = container.resolve<ITextGenerationService>(SERVICE_TOKENS.TEXT_GENERATOR_SERVICE);
-    return new StartTypingSessionUseCase(sessionRepo, userRepo, layoutRepo, textService);
-  });
+  container.registerTransient(
+    SERVICE_TOKENS.START_TYPING_SESSION_USE_CASE,
+    () => {
+      const sessionRepo = container.resolve<ISessionRepository>(
+        SERVICE_TOKENS.SESSION_REPOSITORY
+      );
+      const userRepo = container.resolve<IUserRepository>(
+        SERVICE_TOKENS.USER_REPOSITORY
+      );
+      const layoutRepo = container.resolve<IKeyboardLayoutRepository>(
+        SERVICE_TOKENS.KEYBOARD_LAYOUT_REPOSITORY
+      );
+      const textService = container.resolve<ITextGenerationService>(
+        SERVICE_TOKENS.TEXT_GENERATOR_SERVICE
+      );
+      return new StartTypingSessionUseCase(
+        sessionRepo,
+        userRepo,
+        layoutRepo,
+        textService
+      );
+    }
+  );
 
-  container.registerTransient(SERVICE_TOKENS.PROCESS_TYPING_INPUT_USE_CASE, () => {
-    const sessionRepo = container.resolve<ISessionRepository>(SERVICE_TOKENS.SESSION_REPOSITORY);
-    return new ProcessTypingInputUseCase(sessionRepo);
-  });
+  container.registerTransient(
+    SERVICE_TOKENS.PROCESS_TYPING_INPUT_USE_CASE,
+    () => {
+      const sessionRepo = container.resolve<ISessionRepository>(
+        SERVICE_TOKENS.SESSION_REPOSITORY
+      );
+      return new ProcessTypingInputUseCase(sessionRepo);
+    }
+  );
 
-  container.registerTransient(SERVICE_TOKENS.COMPLETE_TYPING_SESSION_USE_CASE, () => {
-    const sessionRepo = container.resolve<ISessionRepository>(SERVICE_TOKENS.SESSION_REPOSITORY);
-    const userRepo = container.resolve<IUserRepository>(SERVICE_TOKENS.USER_REPOSITORY);
-    const typingRepo = container.resolve<ITypingRepository>(SERVICE_TOKENS.TYPING_REPOSITORY);
-    return new CompleteTypingSessionUseCase(sessionRepo, typingRepo, userRepo);
-  });
+  container.registerTransient(
+    SERVICE_TOKENS.COMPLETE_TYPING_SESSION_USE_CASE,
+    () => {
+      const sessionRepo = container.resolve<ISessionRepository>(
+        SERVICE_TOKENS.SESSION_REPOSITORY
+      );
+      const userRepo = container.resolve<IUserRepository>(
+        SERVICE_TOKENS.USER_REPOSITORY
+      );
+      const typingRepo = container.resolve<ITypingRepository>(
+        SERVICE_TOKENS.TYPING_REPOSITORY
+      );
+      return new CompleteTypingSessionUseCase(
+        sessionRepo,
+        typingRepo,
+        userRepo
+      );
+    }
+  );
 
   // TODO: Add remaining use cases when their implementations are available
-  container.registerTransient(SERVICE_TOKENS.GET_AVAILABLE_LAYOUTS_USE_CASE, () => {
-    const layoutRepo = container.resolve<IKeyboardLayoutRepository>(SERVICE_TOKENS.KEYBOARD_LAYOUT_REPOSITORY);
-    const userRepo = container.resolve<IUserRepository>(SERVICE_TOKENS.USER_REPOSITORY);
-    return new GetAvailableLayoutsUseCase(layoutRepo, userRepo);
-  });
+  container.registerTransient(
+    SERVICE_TOKENS.GET_AVAILABLE_LAYOUTS_USE_CASE,
+    () => {
+      const layoutRepo = container.resolve<IKeyboardLayoutRepository>(
+        SERVICE_TOKENS.KEYBOARD_LAYOUT_REPOSITORY
+      );
+      const userRepo = container.resolve<IUserRepository>(
+        SERVICE_TOKENS.USER_REPOSITORY
+      );
+      return new GetAvailableLayoutsUseCase(layoutRepo, userRepo);
+    }
+  );
 
-  container.registerTransient(SERVICE_TOKENS.SWITCH_KEYBOARD_LAYOUT_USE_CASE, () => {
-    const layoutRepo = container.resolve<IKeyboardLayoutRepository>(SERVICE_TOKENS.KEYBOARD_LAYOUT_REPOSITORY);
-    const sessionRepo = container.resolve<ISessionRepository>(SERVICE_TOKENS.SESSION_REPOSITORY);
-    // For now, create a simple event bus that logs events
-    const mockEventBus = {
-      publish: async (event: any) => console.log('Event published:', event),
-      subscribe: () => { },
-      unsubscribe: () => { }
-    };
-    return new SwitchKeyboardLayoutUseCase(layoutRepo, sessionRepo, mockEventBus as any);
-  });
+  container.registerTransient(
+    SERVICE_TOKENS.SWITCH_KEYBOARD_LAYOUT_USE_CASE,
+    () => {
+      const layoutRepo = container.resolve<IKeyboardLayoutRepository>(
+        SERVICE_TOKENS.KEYBOARD_LAYOUT_REPOSITORY
+      );
+      const sessionRepo = container.resolve<ISessionRepository>(
+        SERVICE_TOKENS.SESSION_REPOSITORY
+      );
+      // For now, create a simple event bus that logs events
+      const mockEventBus: IEventBus = {
+        publish: async (event: DomainEvent) =>
+          console.log("Event published:", event),
+        subscribe: () => {},
+        unsubscribe: () => {},
+      };
+      return new SwitchKeyboardLayoutUseCase(
+        layoutRepo,
+        sessionRepo,
+        mockEventBus
+      );
+    }
+  );
 
-  container.registerTransient(SERVICE_TOKENS.CALCULATE_USER_STATISTICS_USE_CASE, () => {
-    throw new Error('CalculateUserStatisticsUseCase not implemented yet');
-  });
+  container.registerTransient(
+    SERVICE_TOKENS.CALCULATE_USER_STATISTICS_USE_CASE,
+    () => {
+      const typingRepo = container.resolve<ITypingRepository>(
+        SERVICE_TOKENS.TYPING_REPOSITORY
+      );
+      const userRepo = container.resolve<IUserRepository>(
+        SERVICE_TOKENS.USER_REPOSITORY
+      );
+      return new CalculateUserStatisticsUseCase(typingRepo, userRepo);
+    }
+  );
 }
 
 export function registerInfrastructureServices(): void {
   // Infrastructure services using mock implementations for development
-  container.registerSingleton(SERVICE_TOKENS.TEXT_GENERATOR_SERVICE, () => new MockTextGenerationService());
-
-  // TODO: Implement remaining infrastructure services
-  container.registerSingleton(SERVICE_TOKENS.PERFORMANCE_TRACKER_SERVICE, () => {
-    throw new Error('PerformanceTrackerService not implemented yet');
-  });
-
-  container.registerSingleton(SERVICE_TOKENS.NOTIFICATION_SERVICE, () => {
-    throw new Error('NotificationService not implemented yet');
-  });
+  container.registerSingleton(
+    SERVICE_TOKENS.TEXT_GENERATOR_SERVICE,
+    () => new MockTextGenerationService()
+  );
+  container.registerSingleton(
+    SERVICE_TOKENS.PERFORMANCE_TRACKER_SERVICE,
+    () => new MockPerformanceTrackerService()
+  );
+  container.registerSingleton(
+    SERVICE_TOKENS.NOTIFICATION_SERVICE,
+    () => new MockNotificationService()
+  );
 }
 
 export function registerKeyboardLayoutServices(): void {
@@ -212,31 +306,32 @@ export function registerKeyboardLayoutServices(): void {
     return new LayoutManagerService();
   });
 
-  container.registerSingleton(SERVICE_TOKENS.LAYOUT_VALIDATOR_SERVICE, () => {
-    throw new Error('LayoutValidatorService not implemented yet');
-  });
+  container.registerSingleton(
+    SERVICE_TOKENS.LAYOUT_VALIDATOR_SERVICE,
+    () => new MockLayoutValidatorService()
+  );
 }
 
 export function registerExternalServices(): void {
   // External service integrations
-
-  container.registerSingleton(SERVICE_TOKENS.APPWRITE_CLIENT_SERVICE, () => {
-    throw new Error('AppwriteClientService not implemented yet');
-  });
-
-  container.registerSingleton(SERVICE_TOKENS.STORAGE_SERVICE, () => {
-    throw new Error('StorageService not implemented yet');
-  });
-
-  container.registerSingleton(SERVICE_TOKENS.ANALYTICS_SERVICE, () => {
-    throw new Error('AnalyticsService not implemented yet');
-  });
+  container.registerSingleton(
+    SERVICE_TOKENS.APPWRITE_CLIENT_SERVICE,
+    () => new MockAppwriteClientService()
+  );
+  container.registerSingleton(
+    SERVICE_TOKENS.STORAGE_SERVICE,
+    () => new MockStorageService()
+  );
+  container.registerSingleton(
+    SERVICE_TOKENS.ANALYTICS_SERVICE,
+    () => new MockAnalyticsService()
+  );
 }
 
 // Helper functions to create default configurations
 function createEnvironmentConfig(): EnvironmentConfig {
-  const isDevelopment = process.env.NODE_ENV === 'development';
-  const isProduction = process.env.NODE_ENV === 'production';
+  const isDevelopment = process.env.NODE_ENV === "development";
+  const isProduction = process.env.NODE_ENV === "production";
 
   return {
     isDevelopment,
@@ -246,20 +341,20 @@ function createEnvironmentConfig(): EnvironmentConfig {
     appwriteDatabaseId: process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
     enableOfflineMode: !isProduction, // Enable offline mode in development by default
     enableAnalytics: isProduction, // Enable analytics only in production
-    debugLevel: isDevelopment ? 'debug' : 'error'
+    debugLevel: isDevelopment ? "debug" : "error",
   };
 }
 
 function createFeatureFlags(): FeatureFlags {
-  const isDevelopment = process.env.NODE_ENV === 'development';
+  const isDevelopment = process.env.NODE_ENV === "development";
 
   return {
     enableMultipleLayouts: true, // Core feature
     enableCustomLayouts: isDevelopment, // Development feature for now
     enableCompetitionMode: false, // Future feature
-    enableAnalytics: process.env.NODE_ENV === 'production',
+    enableAnalytics: process.env.NODE_ENV === "production",
     enableOfflineSync: true, // Core feature
-    enableKeyboardPreview: true // Core feature
+    enableKeyboardPreview: true, // Core feature
   };
 }
 

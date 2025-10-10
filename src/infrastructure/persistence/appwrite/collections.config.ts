@@ -1,13 +1,13 @@
 // Collection IDs and schema definitions for Appwrite
 export const COLLECTIONS = {
-  USERS: 'users',
-  TYPING_TESTS: 'typing_tests',  
-  LEADERBOARDS: 'leaderboards',
-  USER_SETTINGS: 'user_settings',
-  COMPETITIONS: 'competitions',
-  COMPETITION_ENTRIES: 'competition_entries',
-  KEYBOARD_LAYOUTS: 'keyboard_layouts',
-  USER_PREFERENCES: 'user_preferences'
+  USERS: "users",
+  TYPING_TESTS: "typing_tests",
+  LEADERBOARDS: "leaderboards",
+  USER_SETTINGS: "user_settings",
+  COMPETITIONS: "competitions",
+  COMPETITION_ENTRIES: "competition_entries",
+  KEYBOARD_LAYOUTS: "keyboard_layouts",
+  USER_PREFERENCES: "user_preferences",
 } as const;
 
 // Appwrite document interfaces that match database schema
@@ -64,7 +64,7 @@ export interface AppwriteCompetitionDocument {
   title: string;
   description: string;
   start_date: string; // ISO date string
-  end_date: string;   // ISO date string  
+  end_date: string; // ISO date string
   text_content: string;
   language: string;
   allowed_layouts: string; // JSON stringified string[]
@@ -98,7 +98,6 @@ export interface AppwriteKeyboardLayoutDocument {
   name: string;
   display_name: string;
   language: string;
-  layout_type: string;
   variant: string;
   key_mappings: string; // JSON stringified KeyMapping[]
   metadata: string; // JSON stringified LayoutMetadata

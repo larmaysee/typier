@@ -2,10 +2,11 @@
  * Factory for creating KeyboardLayout domain entities from language definitions
  */
 
-import { KeyboardLayout, KeyMapping, KeyPosition } from "../../domain/entities/keyboard-layout";
-import { FingerAssignment } from "../../domain/enums/keyboard-layouts";
-import { DifficultyLevel } from "../../domain/enums/typing-mode";
-import { LanguageLayoutDefinition, LanguageLayoutFactory } from "../../domain/interfaces/language-layout-definition";
+import { KeyboardLayout, KeyMapping, KeyPosition } from "@/domain/entities/keyboard-layout";
+import { FingerAssignment, LayoutVariant } from "@/domain/enums/keyboard-layouts";
+import { LanguageCode } from "@/domain/enums/languages";
+import { DifficultyLevel } from "@/domain/enums/typing-mode";
+import { LanguageLayoutDefinition, LanguageLayoutFactory } from "@/domain/interfaces/language-layout-definition";
 
 export class KeyboardLayoutFactory implements LanguageLayoutFactory {
   /**
@@ -20,13 +21,13 @@ export class KeyboardLayoutFactory implements LanguageLayoutFactory {
       description: definition.metadata.description,
       author: definition.metadata.author,
       version: definition.metadata.version,
-      compatibility: ['web', 'desktop'], // Default compatibility
+      compatibility: ["web", "desktop"], // Default compatibility
       tags: definition.metadata.tags,
       difficulty: this.convertDifficulty(definition.metadata.difficulty),
       popularity: 0, // Start with 0 popularity
       dateCreated: Date.parse(definition.metadata.dateCreated),
       lastModified: Date.parse(definition.metadata.lastModified),
-      optimizedFor: ['typing', 'accuracy'], // Default optimization
+      optimizedFor: ["typing", "accuracy"], // Default optimization
     };
 
     return KeyboardLayout.create({
@@ -34,9 +35,7 @@ export class KeyboardLayoutFactory implements LanguageLayoutFactory {
       name: definition.metadata.name,
       displayName: definition.metadata.displayName,
       language: definition.language,
-      layoutType: definition.type,
       variant: definition.variant,
-      inputMethod: definition.inputMethod,
       keyMappings,
       metadata,
       isCustom: definition.metadata.isCustom,
@@ -53,7 +52,7 @@ export class KeyboardLayoutFactory implements LanguageLayoutFactory {
   validateDefinition(definition: LanguageLayoutDefinition): boolean {
     try {
       // Basic structure validation
-      if (!definition.language || !definition.type || !definition.variant) {
+      if (!definition.language || !definition.variant) {
         return false;
       }
 
@@ -80,7 +79,7 @@ export class KeyboardLayoutFactory implements LanguageLayoutFactory {
 
       return true;
     } catch (error) {
-      console.error('Validation error:', error);
+      console.error("Validation error:", error);
       return false;
     }
   }
@@ -88,8 +87,8 @@ export class KeyboardLayoutFactory implements LanguageLayoutFactory {
   /**
    * Parse legacy layout format to new definition (delegated to parser)
    */
-  parseLegacyLayout(legacyLayout: any, language: any): LanguageLayoutDefinition {
-    throw new Error('This method should be called on LanguageLayoutParser instead');
+  parseLegacyLayout(legacyLayout: any, language: LanguageCode): LanguageLayoutDefinition {
+    throw new Error("This method should be called on LanguageLayoutParser instead");
   }
 
   /**
@@ -138,11 +137,11 @@ export class KeyboardLayoutFactory implements LanguageLayoutFactory {
    */
   private convertDifficulty(difficulty: string): DifficultyLevel {
     switch (difficulty.toLowerCase()) {
-      case 'easy':
+      case "easy":
         return DifficultyLevel.EASY;
-      case 'medium':
+      case "medium":
         return DifficultyLevel.MEDIUM;
-      case 'hard':
+      case "hard":
         return DifficultyLevel.HARD;
       default:
         return DifficultyLevel.MEDIUM;
@@ -168,28 +167,25 @@ export class KeyboardLayoutFactory implements LanguageLayoutFactory {
    * Create a new custom layout template
    */
   createCustomLayoutTemplate(
-    language: any,
-    layoutType: any,
-    variant: any,
+    language: LanguageCode,
+    variant: LayoutVariant,
     name: string,
     author: string
   ): LanguageLayoutDefinition {
     return {
       language,
-      type: layoutType,
       variant,
-      inputMethod: 'direct' as any,
       metadata: {
         id: `custom_${Date.now()}`,
         name,
         displayName: name,
         description: `Custom ${name} layout`,
         author,
-        version: '1.0.0',
+        version: "1.0.0",
         dateCreated: new Date().toISOString(),
         lastModified: new Date().toISOString(),
-        tags: ['custom', language, layoutType],
-        difficulty: 'medium',
+        tags: ["custom"],
+        difficulty: "medium",
         isCustom: true,
         isPublic: false,
       },
@@ -210,11 +206,7 @@ export class KeyboardLayoutFactory implements LanguageLayoutFactory {
   /**
    * Clone an existing layout definition for customization
    */
-  cloneLayoutDefinition(
-    source: LanguageLayoutDefinition,
-    newName: string,
-    author: string
-  ): LanguageLayoutDefinition {
+  cloneLayoutDefinition(source: LanguageLayoutDefinition, newName: string, author: string): LanguageLayoutDefinition {
     return {
       ...source,
       metadata: {
@@ -224,10 +216,10 @@ export class KeyboardLayoutFactory implements LanguageLayoutFactory {
         displayName: `${newName} (Custom)`,
         description: `Custom layout based on ${source.metadata.name}`,
         author,
-        version: '1.0.0',
+        version: "1.0.0",
         dateCreated: new Date().toISOString(),
         lastModified: new Date().toISOString(),
-        tags: [...source.metadata.tags, 'custom'],
+        tags: [...source.metadata.tags, "custom"],
         isCustom: true,
         isPublic: false,
       },

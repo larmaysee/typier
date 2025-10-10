@@ -1,9 +1,6 @@
-import {
-  ITextGenerationService,
-  TextGenerationConfig,
-  GeneratedText
-} from "@/domain/interfaces";
-import { LanguageCode, TextType } from "@/domain/enums";
+import { LanguageCode } from "@/domain";
+import { TextType } from "@/domain/enums";
+import { GeneratedText, ITextGenerationService, TextGenerationConfig } from "@/domain/interfaces";
 import { EnglishTextService } from "./english-text.service";
 import { LisuTextService } from "./lisu-text.service";
 import { MyanmarTextService } from "./myanmar-text.service";
@@ -26,7 +23,7 @@ export class TextGeneratorService implements ITextGenerationService {
 
   async generate(config: TextGenerationConfig): Promise<GeneratedText> {
     const provider = this.providers.get(config.language);
-    
+
     if (!provider) {
       throw new Error(`Text generation not supported for language: ${config.language}`);
     }
@@ -36,7 +33,7 @@ export class TextGeneratorService implements ITextGenerationService {
 
     try {
       const result = await provider.generate(config);
-      
+
       // Validate the generated content
       const isValid = await this.validateContent(result.content, config);
       if (!isValid) {

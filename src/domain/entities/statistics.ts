@@ -1,9 +1,9 @@
+import { LanguageCode } from "@/domain";
 /**
  * Domain entities for statistics and leaderboard management
  * Contains statistical analysis and ranking logic
  */
-import { TypingMode } from '@/domain/enums/typing-mode';
-import { LanguageCode } from '@/enums/site-config';
+import { TypingMode } from "@/domain/enums/typing-mode";
 
 export interface StatisticsTimeFrame {
   readonly startDate: number;
@@ -42,23 +42,24 @@ export class TypingStatistics {
     public readonly performanceTrends: PerformanceTrend[],
     public readonly lastUpdated: number
   ) {
-    if (!userId.trim()) throw new Error('User ID cannot be empty');
-    if (totalTests < 0) throw new Error('Total tests cannot be negative');
-    if (averageWPM < 0) throw new Error('Average WPM cannot be negative');
-    if (bestWPM < 0) throw new Error('Best WPM cannot be negative');
-    if (worstWPM < 0) throw new Error('Worst WPM cannot be negative');
-    if (averageAccuracy < 0 || averageAccuracy > 100) throw new Error('Average accuracy must be between 0-100');
-    if (bestAccuracy < 0 || bestAccuracy > 100) throw new Error('Best accuracy must be between 0-100');
-    if (worstAccuracy < 0 || worstAccuracy > 100) throw new Error('Worst accuracy must be between 0-100');
-    if (totalTimeTyped < 0) throw new Error('Total time typed cannot be negative');
-    if (totalCharactersTyped < 0) throw new Error('Total characters typed cannot be negative');
-    if (totalWordsTyped < 0) throw new Error('Total words typed cannot be negative');
-    if (totalErrors < 0) throw new Error('Total errors cannot be negative');
-    if (consistencyScore < 0 || consistencyScore > 100) throw new Error('Consistency score must be between 0-100');
-    if (preferredTimeOfDay < 0 || preferredTimeOfDay > 23) throw new Error('Preferred time of day must be between 0-23');
-    if (streak < 0) throw new Error('Streak cannot be negative');
-    if (longestStreak < 0) throw new Error('Longest streak cannot be negative');
-    if (lastUpdated <= 0) throw new Error('Last updated timestamp must be positive');
+    if (!userId.trim()) throw new Error("User ID cannot be empty");
+    if (totalTests < 0) throw new Error("Total tests cannot be negative");
+    if (averageWPM < 0) throw new Error("Average WPM cannot be negative");
+    if (bestWPM < 0) throw new Error("Best WPM cannot be negative");
+    if (worstWPM < 0) throw new Error("Worst WPM cannot be negative");
+    if (averageAccuracy < 0 || averageAccuracy > 100) throw new Error("Average accuracy must be between 0-100");
+    if (bestAccuracy < 0 || bestAccuracy > 100) throw new Error("Best accuracy must be between 0-100");
+    if (worstAccuracy < 0 || worstAccuracy > 100) throw new Error("Worst accuracy must be between 0-100");
+    if (totalTimeTyped < 0) throw new Error("Total time typed cannot be negative");
+    if (totalCharactersTyped < 0) throw new Error("Total characters typed cannot be negative");
+    if (totalWordsTyped < 0) throw new Error("Total words typed cannot be negative");
+    if (totalErrors < 0) throw new Error("Total errors cannot be negative");
+    if (consistencyScore < 0 || consistencyScore > 100) throw new Error("Consistency score must be between 0-100");
+    if (preferredTimeOfDay < 0 || preferredTimeOfDay > 23)
+      throw new Error("Preferred time of day must be between 0-23");
+    if (streak < 0) throw new Error("Streak cannot be negative");
+    if (longestStreak < 0) throw new Error("Longest streak cannot be negative");
+    if (lastUpdated <= 0) throw new Error("Last updated timestamp must be positive");
   }
 
   static create(data: {
@@ -109,7 +110,13 @@ export class TypingStatistics {
     );
   }
 
-  addTestResult(wpm: number, accuracy: number, duration: number, charactersTyped: number, errors: number): TypingStatistics {
+  addTestResult(
+    wpm: number,
+    accuracy: number,
+    duration: number,
+    charactersTyped: number,
+    errors: number
+  ): TypingStatistics {
     const newTotalTests = this.totalTests + 1;
     const newTotalTime = this.totalTimeTyped + duration;
     const newTotalCharacters = this.totalCharactersTyped + charactersTyped;
@@ -128,14 +135,14 @@ export class TypingStatistics {
 
     // Calculate consistency score (lower variance = higher consistency)
     const wpmVariance = this.calculateWPMVariance(wpm, newAverageWPM, newTotalTests);
-    const newConsistencyScore = Math.max(0, 100 - (wpmVariance * 2));
+    const newConsistencyScore = Math.max(0, 100 - wpmVariance * 2);
 
     // Update performance trends (keep last 30 entries)
     const newTrend: PerformanceTrend = {
       date: Date.now(),
       wpm,
       accuracy,
-      consistency: newConsistencyScore
+      consistency: newConsistencyScore,
     };
     const updatedTrends = [...this.performanceTrends, newTrend].slice(-30);
 
@@ -172,7 +179,7 @@ export class TypingStatistics {
 
     // Simple variance estimation
     const deviation = Math.abs(newWPM - averageWPM);
-    return Math.min(deviation / averageWPM * 100, 50); // Cap at 50% variance
+    return Math.min((deviation / averageWPM) * 100, 50); // Cap at 50% variance
   }
 
   private calculateImprovementRate(trends: PerformanceTrend[]): number {
@@ -197,7 +204,8 @@ export class TypingStatistics {
     let newStreak = this.streak;
     let newLongestStreak = this.longestStreak;
 
-    if (isNewTest && testAccuracy >= 85) { // Require 85%+ accuracy to maintain streak
+    if (isNewTest && testAccuracy >= 85) {
+      // Require 85%+ accuracy to maintain streak
       newStreak++;
       newLongestStreak = Math.max(newLongestStreak, newStreak);
     } else if (isNewTest && testAccuracy < 85) {
@@ -234,54 +242,59 @@ export class TypingStatistics {
     return (this.totalErrors / this.totalCharactersTyped) * 100;
   }
 
-  getTypingSpeed(): 'slow' | 'average' | 'fast' | 'very_fast' {
-    if (this.averageWPM < 20) return 'slow';
-    if (this.averageWPM < 40) return 'average';
-    if (this.averageWPM < 70) return 'fast';
-    return 'very_fast';
+  getTypingSpeed(): "slow" | "average" | "fast" | "very_fast" {
+    if (this.averageWPM < 20) return "slow";
+    if (this.averageWPM < 40) return "average";
+    if (this.averageWPM < 70) return "fast";
+    return "very_fast";
   }
 
-  getAccuracyLevel(): 'poor' | 'fair' | 'good' | 'excellent' {
-    if (this.averageAccuracy < 70) return 'poor';
-    if (this.averageAccuracy < 85) return 'fair';
-    if (this.averageAccuracy < 95) return 'good';
-    return 'excellent';
+  getAccuracyLevel(): "poor" | "fair" | "good" | "excellent" {
+    if (this.averageAccuracy < 70) return "poor";
+    if (this.averageAccuracy < 85) return "fair";
+    if (this.averageAccuracy < 95) return "good";
+    return "excellent";
   }
 
-  getImprovementTrend(): 'declining' | 'stable' | 'improving' {
-    if (this.improvementRate < -1) return 'declining';
-    if (this.improvementRate < 1) return 'stable';
-    return 'improving';
+  getImprovementTrend(): "declining" | "stable" | "improving" {
+    if (this.improvementRate < -1) return "declining";
+    if (this.improvementRate < 1) return "stable";
+    return "improving";
   }
 
   getRecentPerformance(days: number = 7): PerformanceTrend[] {
-    const cutoffDate = Date.now() - (days * 24 * 60 * 60 * 1000);
-    return this.performanceTrends.filter(trend => trend.date >= cutoffDate);
+    const cutoffDate = Date.now() - days * 24 * 60 * 60 * 1000;
+    return this.performanceTrends.filter((trend) => trend.date >= cutoffDate);
   }
 
   isValid(): boolean {
-    return this.userId.trim().length > 0 &&
+    return (
+      this.userId.trim().length > 0 &&
       this.totalTests >= 0 &&
       this.averageWPM >= 0 &&
       this.bestWPM >= 0 &&
       this.worstWPM >= 0 &&
-      this.averageAccuracy >= 0 && this.averageAccuracy <= 100 &&
-      this.bestAccuracy >= 0 && this.bestAccuracy <= 100 &&
-      this.worstAccuracy >= 0 && this.worstAccuracy <= 100 &&
+      this.averageAccuracy >= 0 &&
+      this.averageAccuracy <= 100 &&
+      this.bestAccuracy >= 0 &&
+      this.bestAccuracy <= 100 &&
+      this.worstAccuracy >= 0 &&
+      this.worstAccuracy <= 100 &&
       this.totalTimeTyped >= 0 &&
       this.totalCharactersTyped >= 0 &&
       this.totalErrors >= 0 &&
-      this.consistencyScore >= 0 && this.consistencyScore <= 100 &&
-      this.preferredTimeOfDay >= 0 && this.preferredTimeOfDay <= 23 &&
+      this.consistencyScore >= 0 &&
+      this.consistencyScore <= 100 &&
+      this.preferredTimeOfDay >= 0 &&
+      this.preferredTimeOfDay <= 23 &&
       this.streak >= 0 &&
       this.longestStreak >= 0 &&
-      this.lastUpdated > 0;
+      this.lastUpdated > 0
+    );
   }
 
   equals(other: TypingStatistics): boolean {
-    return this.userId === other.userId &&
-      this.language === other.language &&
-      this.mode === other.mode;
+    return this.userId === other.userId && this.language === other.language && this.mode === other.mode;
   }
 }
 
@@ -303,14 +316,14 @@ export class LeaderboardEntry {
     public readonly keyboardLayout?: string, // Optional keyboard layout ID for layout-specific leaderboards
     public readonly timestamp?: number // Optional timestamp for when this entry was last updated
   ) {
-    if (!userId.trim()) throw new Error('User ID cannot be empty');
-    if (!username.trim()) throw new Error('Username cannot be empty');
-    if (bestWPM < 0) throw new Error('Best WPM cannot be negative');
-    if (averageAccuracy < 0 || averageAccuracy > 100) throw new Error('Average accuracy must be between 0-100');
-    if (rank < 1) throw new Error('Rank must be positive');
-    if (score < 0) throw new Error('Score cannot be negative');
-    if (totalTests < 0) throw new Error('Total tests cannot be negative');
-    if (lastImproved <= 0) throw new Error('Last improved timestamp must be positive');
+    if (!userId.trim()) throw new Error("User ID cannot be empty");
+    if (!username.trim()) throw new Error("Username cannot be empty");
+    if (bestWPM < 0) throw new Error("Best WPM cannot be negative");
+    if (averageAccuracy < 0 || averageAccuracy > 100) throw new Error("Average accuracy must be between 0-100");
+    if (rank < 1) throw new Error("Rank must be positive");
+    if (score < 0) throw new Error("Score cannot be negative");
+    if (totalTests < 0) throw new Error("Total tests cannot be negative");
+    if (lastImproved <= 0) throw new Error("Last improved timestamp must be positive");
   }
 
   // Backwards compatibility getters
@@ -456,19 +469,19 @@ export class LeaderboardEntry {
     );
   }
 
-  getRankCategory(): 'top_10' | 'top_100' | 'top_1000' | 'other' {
-    if (this.rank <= 10) return 'top_10';
-    if (this.rank <= 100) return 'top_100';
-    if (this.rank <= 1000) return 'top_1000';
-    return 'other';
+  getRankCategory(): "top_10" | "top_100" | "top_1000" | "other" {
+    if (this.rank <= 10) return "top_10";
+    if (this.rank <= 100) return "top_100";
+    if (this.rank <= 1000) return "top_1000";
+    return "other";
   }
 
-  getPerformanceLevel(): 'beginner' | 'intermediate' | 'advanced' | 'expert' | 'master' {
-    if (this.bestWPM < 30) return 'beginner';
-    if (this.bestWPM < 50) return 'intermediate';
-    if (this.bestWPM < 70) return 'advanced';
-    if (this.bestWPM < 100) return 'expert';
-    return 'master';
+  getPerformanceLevel(): "beginner" | "intermediate" | "advanced" | "expert" | "master" {
+    if (this.bestWPM < 30) return "beginner";
+    if (this.bestWPM < 50) return "intermediate";
+    if (this.bestWPM < 70) return "advanced";
+    if (this.bestWPM < 100) return "expert";
+    return "master";
   }
 
   getDaysLastActive(): number {
@@ -482,20 +495,21 @@ export class LeaderboardEntry {
   }
 
   isValid(): boolean {
-    return this.userId.trim().length > 0 &&
+    return (
+      this.userId.trim().length > 0 &&
       this.username.trim().length > 0 &&
       this.displayName.trim().length > 0 &&
       this.bestWPM >= 0 &&
-      this.averageAccuracy >= 0 && this.averageAccuracy <= 100 &&
+      this.averageAccuracy >= 0 &&
+      this.averageAccuracy <= 100 &&
       this.rank >= 1 &&
       this.score >= 0 &&
       this.totalTests >= 0 &&
-      this.lastImproved > 0;
+      this.lastImproved > 0
+    );
   }
 
   equals(other: LeaderboardEntry): boolean {
-    return this.userId === other.userId &&
-      this.language === other.language &&
-      this.mode === other.mode;
+    return this.userId === other.userId && this.language === other.language && this.mode === other.mode;
   }
 }

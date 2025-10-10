@@ -2,11 +2,11 @@
  * Mock implementation of IKeyboardLayoutRepository for development and testing
  */
 
-import { IKeyboardLayoutRepository, ValidationResult } from "../../../domain/interfaces/repositories";
-import { KeyboardLayout } from "../../../domain/entities/keyboard-layout";
-import { LayoutType, LayoutVariant, InputMethod, FingerAssignment } from "../../../domain/enums/keyboard-layouts";
-import { DifficultyLevel } from "../../../domain/enums/typing-mode";
 import { LanguageCode } from "@/domain";
+import { KeyboardLayout } from "@/domain/entities/keyboard-layout";
+import { FingerAssignment, LayoutVariant } from "@/domain/enums/keyboard-layouts";
+import { DifficultyLevel } from "@/domain/enums/typing-mode";
+import { IKeyboardLayoutRepository, ValidationResult } from "@/domain/interfaces/repositories";
 
 export class MockKeyboardLayoutRepository implements IKeyboardLayoutRepository {
   private layouts: Map<string, KeyboardLayout> = new Map();
@@ -23,9 +23,7 @@ export class MockKeyboardLayoutRepository implements IKeyboardLayoutRepository {
       name: "QWERTY US",
       displayName: "QWERTY (US)",
       language: LanguageCode.EN,
-      layoutType: LayoutType.QWERTY,
       variant: LayoutVariant.US,
-      inputMethod: InputMethod.DIRECT,
       keyMappings: this.getQwertyUSMappings(),
       metadata: {
         description: "Standard US QWERTY keyboard layout",
@@ -36,12 +34,12 @@ export class MockKeyboardLayoutRepository implements IKeyboardLayoutRepository {
         difficulty: DifficultyLevel.EASY,
         popularity: 95,
         dateCreated: Date.now(),
-        lastModified: Date.now()
+        lastModified: Date.now(),
       },
       isCustom: false,
       createdBy: "system",
       createdAt: Date.now(),
-      updatedAt: Date.now()
+      updatedAt: Date.now(),
     });
 
     const dvorak = KeyboardLayout.create({
@@ -49,9 +47,7 @@ export class MockKeyboardLayoutRepository implements IKeyboardLayoutRepository {
       name: "Dvorak",
       displayName: "Dvorak",
       language: LanguageCode.EN,
-      layoutType: LayoutType.DVORAK,
       variant: LayoutVariant.US,
-      inputMethod: InputMethod.DIRECT,
       keyMappings: this.getDvorakMappings(),
       metadata: {
         description: "Dvorak keyboard layout for improved typing efficiency",
@@ -62,12 +58,12 @@ export class MockKeyboardLayoutRepository implements IKeyboardLayoutRepository {
         difficulty: DifficultyLevel.HARD,
         popularity: 15,
         dateCreated: Date.now(),
-        lastModified: Date.now()
+        lastModified: Date.now(),
       },
       isCustom: false,
       createdBy: "system",
       createdAt: Date.now(),
-      updatedAt: Date.now()
+      updatedAt: Date.now(),
     });
 
     // Lisu layouts
@@ -76,9 +72,7 @@ export class MockKeyboardLayoutRepository implements IKeyboardLayoutRepository {
       name: "SIL Basic",
       displayName: "Lisu (SIL Basic)",
       language: LanguageCode.LI,
-      layoutType: LayoutType.CUSTOM,
       variant: LayoutVariant.SIL_BASIC,
-      inputMethod: InputMethod.DIRECT,
       keyMappings: this.getLisuSILBasicMappings(),
       metadata: {
         description: "Basic SIL keyboard layout for Lisu script",
@@ -89,12 +83,12 @@ export class MockKeyboardLayoutRepository implements IKeyboardLayoutRepository {
         difficulty: DifficultyLevel.MEDIUM,
         popularity: 80,
         dateCreated: Date.now(),
-        lastModified: Date.now()
+        lastModified: Date.now(),
       },
       isCustom: false,
       createdBy: "system",
       createdAt: Date.now(),
-      updatedAt: Date.now()
+      updatedAt: Date.now(),
     });
 
     // Myanmar layouts
@@ -103,9 +97,7 @@ export class MockKeyboardLayoutRepository implements IKeyboardLayoutRepository {
       name: "Myanmar3",
       displayName: "Myanmar3",
       language: LanguageCode.MY,
-      layoutType: LayoutType.CUSTOM,
-      variant: LayoutVariant.MYANMAR3,
-      inputMethod: InputMethod.DIRECT,
+      variant: LayoutVariant.UNICODE_MYANMAR,
       keyMappings: this.getMyanmar3Mappings(),
       metadata: {
         description: "Myanmar3 keyboard layout for Myanmar script",
@@ -116,12 +108,12 @@ export class MockKeyboardLayoutRepository implements IKeyboardLayoutRepository {
         difficulty: DifficultyLevel.MEDIUM,
         popularity: 85,
         dateCreated: Date.now(),
-        lastModified: Date.now()
+        lastModified: Date.now(),
       },
       isCustom: false,
       createdBy: "system",
       createdAt: Date.now(),
-      updatedAt: Date.now()
+      updatedAt: Date.now(),
     });
 
     this.layouts.set(qwertyUS.id, qwertyUS);
@@ -132,7 +124,7 @@ export class MockKeyboardLayoutRepository implements IKeyboardLayoutRepository {
 
   async getAvailableLayouts(language: LanguageCode): Promise<KeyboardLayout[]> {
     const allLayouts = Array.from(this.layouts.values());
-    return allLayouts.filter(layout => layout.language === language);
+    return allLayouts.filter((layout) => layout.language === language);
   }
 
   async findById(layoutId: string): Promise<KeyboardLayout | null> {
@@ -189,55 +181,143 @@ export class MockKeyboardLayoutRepository implements IKeyboardLayoutRepository {
     return {
       isValid: errors.length === 0,
       errors,
-      warnings
+      warnings,
     };
   }
 
   async getPopularLayouts(language: LanguageCode, limit: number = 5): Promise<KeyboardLayout[]> {
     const languageLayouts = await this.getAvailableLayouts(language);
-    return languageLayouts
-      .sort((a, b) => b.metadata.popularity - a.metadata.popularity)
-      .slice(0, limit);
+    return languageLayouts.sort((a, b) => b.metadata.popularity - a.metadata.popularity).slice(0, limit);
   }
 
   // Mock key mappings - simplified for demo
   private getQwertyUSMappings() {
     return [
-      { key: 'q', character: 'q', shiftCharacter: 'Q', position: { row: 1, column: 1, finger: FingerAssignment.LEFT_PINKY, hand: 'left' as const } },
-      { key: 'w', character: 'w', shiftCharacter: 'W', position: { row: 1, column: 2, finger: FingerAssignment.LEFT_RING, hand: 'left' as const } },
-      { key: 'e', character: 'e', shiftCharacter: 'E', position: { row: 1, column: 3, finger: FingerAssignment.LEFT_MIDDLE, hand: 'left' as const } },
-      { key: 'r', character: 'r', shiftCharacter: 'R', position: { row: 1, column: 4, finger: FingerAssignment.LEFT_INDEX, hand: 'left' as const } },
-      { key: 't', character: 't', shiftCharacter: 'T', position: { row: 1, column: 5, finger: FingerAssignment.LEFT_INDEX, hand: 'left' as const } },
+      {
+        key: "q",
+        character: "q",
+        shiftCharacter: "Q",
+        position: { row: 1, column: 1, finger: FingerAssignment.LEFT_PINKY, hand: "left" as const },
+      },
+      {
+        key: "w",
+        character: "w",
+        shiftCharacter: "W",
+        position: { row: 1, column: 2, finger: FingerAssignment.LEFT_RING, hand: "left" as const },
+      },
+      {
+        key: "e",
+        character: "e",
+        shiftCharacter: "E",
+        position: { row: 1, column: 3, finger: FingerAssignment.LEFT_MIDDLE, hand: "left" as const },
+      },
+      {
+        key: "r",
+        character: "r",
+        shiftCharacter: "R",
+        position: { row: 1, column: 4, finger: FingerAssignment.LEFT_INDEX, hand: "left" as const },
+      },
+      {
+        key: "t",
+        character: "t",
+        shiftCharacter: "T",
+        position: { row: 1, column: 5, finger: FingerAssignment.LEFT_INDEX, hand: "left" as const },
+      },
     ];
   }
 
   private getDvorakMappings() {
     return [
-      { key: 'q', character: "'", shiftCharacter: '"', position: { row: 1, column: 1, finger: FingerAssignment.LEFT_PINKY, hand: 'left' as const } },
-      { key: 'w', character: ',', shiftCharacter: '<', position: { row: 1, column: 2, finger: FingerAssignment.LEFT_RING, hand: 'left' as const } },
-      { key: 'e', character: '.', shiftCharacter: '>', position: { row: 1, column: 3, finger: FingerAssignment.LEFT_MIDDLE, hand: 'left' as const } },
-      { key: 'r', character: 'p', shiftCharacter: 'P', position: { row: 1, column: 4, finger: FingerAssignment.LEFT_INDEX, hand: 'left' as const } },
-      { key: 't', character: 'y', shiftCharacter: 'Y', position: { row: 1, column: 5, finger: FingerAssignment.LEFT_INDEX, hand: 'left' as const } },
+      {
+        key: "q",
+        character: "'",
+        shiftCharacter: '"',
+        position: { row: 1, column: 1, finger: FingerAssignment.LEFT_PINKY, hand: "left" as const },
+      },
+      {
+        key: "w",
+        character: ",",
+        shiftCharacter: "<",
+        position: { row: 1, column: 2, finger: FingerAssignment.LEFT_RING, hand: "left" as const },
+      },
+      {
+        key: "e",
+        character: ".",
+        shiftCharacter: ">",
+        position: { row: 1, column: 3, finger: FingerAssignment.LEFT_MIDDLE, hand: "left" as const },
+      },
+      {
+        key: "r",
+        character: "p",
+        shiftCharacter: "P",
+        position: { row: 1, column: 4, finger: FingerAssignment.LEFT_INDEX, hand: "left" as const },
+      },
+      {
+        key: "t",
+        character: "y",
+        shiftCharacter: "Y",
+        position: { row: 1, column: 5, finger: FingerAssignment.LEFT_INDEX, hand: "left" as const },
+      },
     ];
   }
 
   private getLisuSILBasicMappings() {
     return [
-      { key: 'q', character: 'ꓕ', position: { row: 1, column: 1, finger: FingerAssignment.LEFT_PINKY, hand: 'left' as const } },
-      { key: 'w', character: 'ꓪ', position: { row: 1, column: 2, finger: FingerAssignment.LEFT_RING, hand: 'left' as const } },
-      { key: 'e', character: 'ꓱ', position: { row: 1, column: 3, finger: FingerAssignment.LEFT_MIDDLE, hand: 'left' as const } },
-      { key: 'r', character: 'ꓣ', position: { row: 1, column: 4, finger: FingerAssignment.LEFT_INDEX, hand: 'left' as const } },
-      { key: 't', character: 'ꓔ', position: { row: 1, column: 5, finger: FingerAssignment.LEFT_INDEX, hand: 'left' as const } },
+      {
+        key: "q",
+        character: "ꓕ",
+        position: { row: 1, column: 1, finger: FingerAssignment.LEFT_PINKY, hand: "left" as const },
+      },
+      {
+        key: "w",
+        character: "ꓪ",
+        position: { row: 1, column: 2, finger: FingerAssignment.LEFT_RING, hand: "left" as const },
+      },
+      {
+        key: "e",
+        character: "ꓱ",
+        position: { row: 1, column: 3, finger: FingerAssignment.LEFT_MIDDLE, hand: "left" as const },
+      },
+      {
+        key: "r",
+        character: "ꓣ",
+        position: { row: 1, column: 4, finger: FingerAssignment.LEFT_INDEX, hand: "left" as const },
+      },
+      {
+        key: "t",
+        character: "ꓔ",
+        position: { row: 1, column: 5, finger: FingerAssignment.LEFT_INDEX, hand: "left" as const },
+      },
     ];
   }
 
   private getMyanmar3Mappings() {
     return [
-      { key: 'q', character: 'ဆ', position: { row: 1, column: 1, finger: FingerAssignment.LEFT_PINKY, hand: 'left' as const } },
-      { key: 'w', character: 'တ', position: { row: 1, column: 2, finger: FingerAssignment.LEFT_RING, hand: 'left' as const } },
-      { key: 'e', character: 'န', position: { row: 1, column: 3, finger: FingerAssignment.LEFT_MIDDLE, hand: 'left' as const } },
-      { key: 'r', character: 'မ', position: { row: 1, column: 4, finger: FingerAssignment.LEFT_INDEX, hand: 'left' as const } },
-      { key: 't', character: 'အ', position: { row: 1, column: 5, finger: FingerAssignment.LEFT_INDEX, hand: 'left' as const } },
+      {
+        key: "q",
+        character: "ဆ",
+        position: { row: 1, column: 1, finger: FingerAssignment.LEFT_PINKY, hand: "left" as const },
+      },
+      {
+        key: "w",
+        character: "တ",
+        position: { row: 1, column: 2, finger: FingerAssignment.LEFT_RING, hand: "left" as const },
+      },
+      {
+        key: "e",
+        character: "န",
+        position: { row: 1, column: 3, finger: FingerAssignment.LEFT_MIDDLE, hand: "left" as const },
+      },
+      {
+        key: "r",
+        character: "မ",
+        position: { row: 1, column: 4, finger: FingerAssignment.LEFT_INDEX, hand: "left" as const },
+      },
+      {
+        key: "t",
+        character: "အ",
+        position: { row: 1, column: 5, finger: FingerAssignment.LEFT_INDEX, hand: "left" as const },
+      },
     ];
   }
 }

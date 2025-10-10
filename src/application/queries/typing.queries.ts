@@ -1,4 +1,4 @@
-import { LanguageCode } from '@/enums/site-config';
+import { LanguageCode } from "@/domain/enums/languages";
 
 export interface GetLayoutsQuery {
   language: LanguageCode;
@@ -16,7 +16,7 @@ export interface ValidateLayoutCompatibilityQuery {
 
 export interface GetUserStatsQuery {
   userId: string;
-  timeRange?: 'week' | 'month' | 'quarter' | 'year';
+  timeRange?: "week" | "month" | "quarter" | "year";
   language?: LanguageCode;
   layoutId?: string;
 }
@@ -25,12 +25,12 @@ export interface GetLeaderboardQuery {
   language?: LanguageCode;
   mode?: string;
   keyboardLayout?: string;
-  timeRange?: 'day' | 'week' | 'month' | 'all';
+  timeRange?: "day" | "week" | "month" | "all";
   limit?: number;
   offset?: number;
 }
 
 export interface GetImprovementAnalysisQuery {
   userId: string;
-  timeRange: 'week' | 'month' | 'quarter' | 'year';
+  timeRange: "week" | "month" | "quarter" | "year";
 }

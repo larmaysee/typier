@@ -1,14 +1,6 @@
-import {
-  CompetitionCategory,
-  CompetitionType,
-  DifficultyLevel,
-  LanguageCode,
-  LayoutVariant,
-} from "@/domain/enums";
-import {
-  Competition,
-  CompetitionMetadata,
-} from "@/domain/entities/competition";
+import { Competition, CompetitionMetadata } from "@/domain/entities/competition";
+import { CompetitionCategory, CompetitionType, DifficultyLevel, LayoutVariant } from "@/domain/enums";
+import { LanguageCode } from "@/domain/enums/languages";
 import { ICompetitionRepository } from "@/domain/interfaces/competition-repository.interface";
 
 export interface CreateCompetitionCommand {
@@ -25,7 +17,7 @@ export interface CreateCompetitionCommand {
 }
 
 export class CreateCompetitionUseCase {
-  constructor(private competitionRepository: ICompetitionRepository) { }
+  constructor(private competitionRepository: ICompetitionRepository) {}
 
   async execute(command: CreateCompetitionCommand): Promise<Competition> {
     // Validate competition dates
@@ -44,14 +36,10 @@ export class CreateCompetitionUseCase {
 
     // Validate allowed layouts for language
     const validLayouts = this.getValidLayoutsForLanguage(command.language);
-    const invalidLayouts = command.allowedLayouts.filter(
-      (layout) => !validLayouts.includes(layout)
-    );
+    const invalidLayouts = command.allowedLayouts.filter((layout) => !validLayouts.includes(layout));
 
     if (invalidLayouts.length > 0) {
-      throw new Error(
-        `Invalid layouts for ${command.language}: ${invalidLayouts.join(", ")}`
-      );
+      throw new Error(`Invalid layouts for ${command.language}: ${invalidLayouts.join(", ")}`);
     }
 
     // Generate competition ID
@@ -105,11 +93,7 @@ export class CreateCompetitionUseCase {
 
   private getValidLayoutsForLanguage(language: LanguageCode): LayoutVariant[] {
     const layoutMap = {
-      [LanguageCode.EN]: [
-        LayoutVariant.US,
-        LayoutVariant.UK,
-        LayoutVariant.INTERNATIONAL,
-      ],
+      [LanguageCode.EN]: [LayoutVariant.US, LayoutVariant.UK, LayoutVariant.INTERNATIONAL],
       [LanguageCode.LI]: [
         LayoutVariant.SIL_BASIC,
         LayoutVariant.SIL_STANDARD,

@@ -1,4 +1,4 @@
-import { LanguageCode, TypingMode, DifficultyLevel, TextType } from "../enums";
+import { DifficultyLevel, LanguageCode, TextType, TypingMode } from "@/domain";
 
 /**
  * Configuration for text generation

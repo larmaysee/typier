@@ -1,8 +1,9 @@
+import { LanguageCode, LayoutVariant } from "@/domain";
 import { KeyboardLayout } from "@/domain/entities/keyboard-layout";
 import { TypingAnalytics } from "@/domain/entities/typing-analytics";
-import { IKeyboardLayoutRepository } from "@/domain/interfaces/keyboard-layout-repository.interface";
+import { DifficultyLevel } from "@/domain/enums/typing-mode";
 import { IAnalyticsRepository } from "@/domain/interfaces/analytics-repository.interface";
-import { LanguageCode, LayoutVariant, LayoutType } from "@/domain";
+import { IKeyboardLayoutRepository } from "@/domain/interfaces/keyboard-layout-repository.interface";
 
 export interface RecommendOptimalLayoutCommand {
   userId: string;
@@ -13,16 +14,16 @@ export interface RecommendOptimalLayoutCommand {
 }
 
 export interface TypingGoal {
-  type: 'speed' | 'accuracy' | 'comfort' | 'learning';
-  priority: 'high' | 'medium' | 'low';
+  type: "speed" | "accuracy" | "comfort" | "learning";
+  priority: "high" | "medium" | "low";
   targetValue?: number;
 }
 
 export interface PhysicalConstraint {
-  type: 'hand_size' | 'finger_reach' | 'injury' | 'preference';
+  type: "hand_size" | "finger_reach" | "injury" | "preference";
   description: string;
   affectedFingers?: string[];
-  severity: 'mild' | 'moderate' | 'severe';
+  severity: "mild" | "moderate" | "severe";
 }
 
 export interface LayoutRecommendationResult {
@@ -44,13 +45,13 @@ export interface LayoutRecommendation {
 
 export interface ReasoningPoint {
   factor: string;
-  impact: 'positive' | 'negative' | 'neutral';
+  impact: "positive" | "negative" | "neutral";
   weight: number; // 0-1
   explanation: string;
 }
 
 export interface ExpectedOutcome {
-  metric: 'wpm' | 'accuracy' | 'comfort' | 'learning_time';
+  metric: "wpm" | "accuracy" | "comfort" | "learning_time";
   currentValue?: number;
   expectedValue: number;
   timeToAchieve: string; // e.g., "2-3 weeks"
@@ -58,7 +59,7 @@ export interface ExpectedOutcome {
 }
 
 export interface LearningCurve {
-  difficulty: 'easy' | 'moderate' | 'hard';
+  difficulty: "easy" | "moderate" | "hard";
   estimatedTimeWeeks: number;
   keyMilestones: string[];
   dropInPerformance: number; // Initial % drop expected
@@ -89,7 +90,7 @@ export interface CustomLayoutSuggestion {
 }
 
 export interface LayoutModification {
-  type: 'move_key' | 'swap_keys' | 'add_shortcut';
+  type: "move_key" | "swap_keys" | "add_shortcut";
   description: string;
   from?: string;
   to?: string;
@@ -100,7 +101,7 @@ export class RecommendOptimalLayoutUseCase {
   constructor(
     private keyboardLayoutRepository: IKeyboardLayoutRepository,
     private analyticsRepository: IAnalyticsRepository
-  ) { }
+  ) {}
 
   async execute(command: RecommendOptimalLayoutCommand): Promise<LayoutRecommendationResult> {
     // Get user's current performance data
@@ -112,7 +113,7 @@ export class RecommendOptimalLayoutUseCase {
 
     // Score each layout based on user profile
     const scoredLayouts = await Promise.all(
-      availableLayouts.map(layout => this.scoreLayout(layout, command, currentPerformance))
+      availableLayouts.map((layout) => this.scoreLayout(layout, command, currentPerformance))
     );
 
     // Sort by suitability score
@@ -140,7 +141,7 @@ export class RecommendOptimalLayoutUseCase {
       primaryRecommendation,
       alternativeRecommendations,
       migrationPlan,
-      customLayoutSuggestion
+      customLayoutSuggestion,
     };
   }
 
@@ -150,11 +151,11 @@ export class RecommendOptimalLayoutUseCase {
         averageWpm: 0,
         averageAccuracy: 0,
         consistency: 0,
-        experienceLevel: 'beginner',
+        experienceLevel: "beginner",
         strongFingers: [],
         weakFingers: [],
         problemKeys: [],
-        typingStyle: 'hunt-peck'
+        typingStyle: "hunt-peck",
       };
     }
 
@@ -163,32 +164,32 @@ export class RecommendOptimalLayoutUseCase {
     const averageAccuracy = recentAnalytics.reduce((sum, a) => sum + a.data.accuracy, 0) / recentAnalytics.length;
 
     // Calculate consistency (inverse of coefficient of variation)
-    const wpmValues = recentAnalytics.map(a => a.data.averageWpm);
+    const wpmValues = recentAnalytics.map((a) => a.data.averageWpm);
     const mean = averageWpm;
     const stdDev = Math.sqrt(wpmValues.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / wpmValues.length);
     const consistency = mean > 0 ? Math.max(0, 100 - (stdDev / mean) * 100) : 0;
 
     // Determine experience level
-    let experienceLevel: 'beginner' | 'intermediate' | 'advanced';
+    let experienceLevel: "beginner" | "intermediate" | "advanced";
     if (averageWpm < 25 || averageAccuracy < 85) {
-      experienceLevel = 'beginner';
+      experienceLevel = "beginner";
     } else if (averageWpm < 50 || averageAccuracy < 95) {
-      experienceLevel = 'intermediate';
+      experienceLevel = "intermediate";
     } else {
-      experienceLevel = 'advanced';
+      experienceLevel = "advanced";
     }
 
     // Analyze finger usage and problem keys
-    const keystrokeData = recentAnalytics.flatMap(a => a.data.keystrokePattern || []);
+    const keystrokeData = recentAnalytics.flatMap((a) => a.data.keystrokePattern || []);
     const fingerUsage = this.analyzeFingerUsage(keystrokeData);
     const problemKeys = keystrokeData
-      .filter(k => k.errorRate > 10)
-      .map(k => k.key)
+      .filter((k) => k.errorRate > 10)
+      .map((k) => k.key)
       .slice(0, 5);
 
     // Determine typing style based on finger usage
-    const typingStyle = fingerUsage.activeFingersCount >= 8 ? 'touch' :
-      fingerUsage.activeFingersCount >= 4 ? 'hybrid' : 'hunt-peck';
+    const typingStyle =
+      fingerUsage.activeFingersCount >= 8 ? "touch" : fingerUsage.activeFingersCount >= 4 ? "hybrid" : "hunt-peck";
 
     return {
       averageWpm,
@@ -198,7 +199,7 @@ export class RecommendOptimalLayoutUseCase {
       strongFingers: fingerUsage.strongFingers,
       weakFingers: fingerUsage.weakFingers,
       problemKeys,
-      typingStyle
+      typingStyle,
     };
   }
 
@@ -214,16 +215,16 @@ export class RecommendOptimalLayoutUseCase {
     // Goal alignment scoring
     for (const goal of command.userGoals) {
       const goalScore = this.scoreLayoutForGoal(layout, goal, currentPerformance);
-      const weight = goal.priority === 'high' ? 1.0 : goal.priority === 'medium' ? 0.7 : 0.4;
+      const weight = goal.priority === "high" ? 1.0 : goal.priority === "medium" ? 0.7 : 0.4;
 
       totalScore += goalScore * weight;
       totalWeight += weight;
 
       reasoningPoints.push({
         factor: `${goal.type}_goal`,
-        impact: goalScore > 70 ? 'positive' : goalScore < 40 ? 'negative' : 'neutral',
+        impact: goalScore > 70 ? "positive" : goalScore < 40 ? "negative" : "neutral",
         weight,
-        explanation: this.generateGoalExplanation(layout, goal, goalScore)
+        explanation: this.generateGoalExplanation(layout, goal, goalScore),
       });
     }
 
@@ -231,16 +232,16 @@ export class RecommendOptimalLayoutUseCase {
     if (command.physicalConstraints) {
       for (const constraint of command.physicalConstraints) {
         const constraintScore = this.scoreLayoutForConstraint(layout, constraint);
-        const weight = constraint.severity === 'severe' ? 0.9 : constraint.severity === 'moderate' ? 0.6 : 0.3;
+        const weight = constraint.severity === "severe" ? 0.9 : constraint.severity === "moderate" ? 0.6 : 0.3;
 
         totalScore += constraintScore * weight;
         totalWeight += weight;
 
         reasoningPoints.push({
           factor: `${constraint.type}_constraint`,
-          impact: constraintScore > 70 ? 'positive' : constraintScore < 40 ? 'negative' : 'neutral',
+          impact: constraintScore > 70 ? "positive" : constraintScore < 40 ? "negative" : "neutral",
           weight,
-          explanation: this.generateConstraintExplanation(layout, constraint, constraintScore)
+          explanation: this.generateConstraintExplanation(layout, constraint, constraintScore),
         });
       }
     }
@@ -271,19 +272,19 @@ export class RecommendOptimalLayoutUseCase {
       expectedOutcomes,
       learningCurve,
       pros,
-      cons
+      cons,
     };
   }
 
   private scoreLayoutForGoal(layout: KeyboardLayout, goal: TypingGoal, performance: UserPerformanceProfile): number {
     switch (goal.type) {
-      case 'speed':
+      case "speed":
         return this.scoreLayoutForSpeed(layout, performance);
-      case 'accuracy':
+      case "accuracy":
         return this.scoreLayoutForAccuracy(layout, performance);
-      case 'comfort':
+      case "comfort":
         return this.scoreLayoutForComfort(layout, performance);
-      case 'learning':
+      case "learning":
         return this.scoreLayoutForLearning(layout, performance);
       default:
         return 50; // Neutral score
@@ -293,14 +294,16 @@ export class RecommendOptimalLayoutUseCase {
   private scoreLayoutForSpeed(layout: KeyboardLayout, performance: UserPerformanceProfile): number {
     let score = 50; // Base score
 
-    // Favor layouts optimized for common keys
-    if (layout.layoutType === LayoutType.DVORAK) score += 20;
-    if (layout.layoutType === LayoutType.COLEMAK) score += 15;
+    // Score based on layout variant - some variants are optimized for speed
+    // Note: This is a simplified approach, real optimization would depend on language-specific analysis
+    if (layout.metadata.optimizedFor?.includes("speed")) {
+      score += 20;
+    }
 
     // Consider user's current speed
     if (performance.averageWpm > 40) {
       // Advanced users might benefit from optimized layouts
-      if (layout.layoutType === LayoutType.DVORAK || layout.layoutType === LayoutType.COLEMAK) {
+      if (layout.metadata.optimizedFor?.includes("speed") || layout.metadata.difficulty === DifficultyLevel.HARD) {
         score += 15;
       }
     }
@@ -315,7 +318,7 @@ export class RecommendOptimalLayoutUseCase {
     if (layout.variant === LayoutVariant.US) score += 15;
 
     // Custom layouts can be optimized for accuracy
-    if (layout.isCustom && layout.metadata.optimizedFor?.includes('accuracy')) score += 20;
+    if (layout.isCustom && layout.metadata.optimizedFor?.includes("accuracy")) score += 20;
 
     // Consider problem keys
     if (performance.problemKeys.length > 0) {
@@ -330,9 +333,10 @@ export class RecommendOptimalLayoutUseCase {
   private scoreLayoutForComfort(layout: KeyboardLayout, performance: UserPerformanceProfile): number {
     let score = 50;
 
-    // Ergonomic layouts score higher for comfort
-    if (layout.layoutType === LayoutType.DVORAK) score += 25;
-    if (layout.layoutType === LayoutType.COLEMAK) score += 20;
+    // Score based on layout metadata and optimization
+    if (layout.metadata.optimizedFor?.includes("comfort")) {
+      score += 25;
+    }
 
     // Consider user's finger strength/weakness
     const layoutMatchesFingerStrength = this.layoutMatchesFingerProfile(layout, performance);
@@ -345,17 +349,17 @@ export class RecommendOptimalLayoutUseCase {
     let score = 50;
 
     // Beginners benefit from standard layouts
-    if (performance.experienceLevel === 'beginner') {
+    if (performance.experienceLevel === "beginner") {
       if (layout.variant === LayoutVariant.US) score += 20;
     }
 
     // Intermediate users can handle some complexity
-    if (performance.experienceLevel === 'intermediate') {
-      if (layout.layoutType === LayoutType.COLEMAK) score += 15;
+    if (performance.experienceLevel === "intermediate") {
+      if (layout.metadata.difficulty === DifficultyLevel.MEDIUM) score += 15;
     }
 
     // Advanced users can tackle any layout
-    if (performance.experienceLevel === 'advanced') {
+    if (performance.experienceLevel === "advanced") {
       score += 10; // All layouts are viable
     }
 
@@ -366,56 +370,67 @@ export class RecommendOptimalLayoutUseCase {
     let score = 50;
 
     switch (constraint.type) {
-      case 'hand_size':
+      case "hand_size":
         // Smaller hands might prefer more compact layouts
         score += this.layoutSuitableForHandSize(layout, constraint.description) ? 20 : -15;
         break;
-      case 'finger_reach':
+      case "finger_reach":
         // Limited reach prefers layouts with better key positioning
         score += this.layoutSuitableForReach(layout, constraint.affectedFingers || []) ? 25 : -20;
         break;
-      case 'injury':
+      case "injury":
         // Injury considerations are critical
         score += this.layoutSuitableForInjury(layout, constraint) ? 30 : -30;
         break;
-      case 'preference':
+      case "preference":
         // User preferences are important but less critical
-        score += constraint.description.includes('prefer') ? 10 : 0;
+        score += constraint.description.includes("prefer") ? 10 : 0;
         break;
     }
 
     return Math.max(0, Math.min(100, score));
   }
 
-  private scoreLayoutForExperience(layout: KeyboardLayout, experience: 'beginner' | 'intermediate' | 'advanced'): number {
-    // Create a unique key combining layout type and variant
-    const layoutKey = `${layout.layoutType}_${layout.variant}`;
-
+  private scoreLayoutForExperience(
+    layout: KeyboardLayout,
+    experience: "beginner" | "intermediate" | "advanced"
+  ): number {
+    // Score based on layout variant and difficulty
     const experienceScores: Record<string, Record<string, number>> = {
       beginner: {
-        [`${LayoutType.QWERTY}_${LayoutVariant.US}`]: 90,
-        [`${LayoutType.QWERTY}_${LayoutVariant.UK}`]: 85,
-        [`${LayoutType.QWERTY}_${LayoutVariant.INTERNATIONAL}`]: 80,
-        [`${LayoutType.DVORAK}_${LayoutVariant.US}`]: 30,
-        [`${LayoutType.COLEMAK}_${LayoutVariant.US}`]: 40
+        [LayoutVariant.US]: 90,
+        [LayoutVariant.UK]: 85,
+        [LayoutVariant.INTERNATIONAL]: 80,
+        // Other variants get lower scores for beginners
       },
       intermediate: {
-        [`${LayoutType.QWERTY}_${LayoutVariant.US}`]: 80,
-        [`${LayoutType.QWERTY}_${LayoutVariant.UK}`]: 75,
-        [`${LayoutType.QWERTY}_${LayoutVariant.INTERNATIONAL}`]: 70,
-        [`${LayoutType.DVORAK}_${LayoutVariant.US}`]: 60,
-        [`${LayoutType.COLEMAK}_${LayoutVariant.US}`]: 70
+        [LayoutVariant.US]: 80,
+        [LayoutVariant.UK]: 75,
+        [LayoutVariant.INTERNATIONAL]: 70,
+        [LayoutVariant.SIL_STANDARD]: 70,
+        [LayoutVariant.MYANMAR3]: 70,
       },
       advanced: {
-        [`${LayoutType.QWERTY}_${LayoutVariant.US}`]: 70,
-        [`${LayoutType.QWERTY}_${LayoutVariant.UK}`]: 65,
-        [`${LayoutType.QWERTY}_${LayoutVariant.INTERNATIONAL}`]: 60,
-        [`${LayoutType.DVORAK}_${LayoutVariant.US}`]: 85,
-        [`${LayoutType.COLEMAK}_${LayoutVariant.US}`]: 90
-      }
+        [LayoutVariant.US]: 70,
+        [LayoutVariant.UK]: 65,
+        [LayoutVariant.INTERNATIONAL]: 60,
+        [LayoutVariant.SIL_STANDARD]: 85,
+        [LayoutVariant.UNICODE_STANDARD]: 90,
+        [LayoutVariant.MYANMAR3]: 85,
+      },
     };
 
-    return experienceScores[experience][layoutKey] || 50;
+    const baseScore = experienceScores[experience][layout.variant] || 50;
+
+    // Adjust based on layout difficulty
+    if (layout.metadata.difficulty === DifficultyLevel.EASY && experience === "beginner") {
+      return Math.min(100, baseScore + 10);
+    }
+    if (layout.metadata.difficulty === DifficultyLevel.HARD && experience === "advanced") {
+      return Math.min(100, baseScore + 15);
+    }
+
+    return baseScore;
   }
 
   // Helper methods continue...
@@ -427,36 +442,36 @@ export class RecommendOptimalLayoutUseCase {
     const phases: MigrationPhase[] = [
       {
         phase: 1,
-        name: 'Foundation',
-        duration: '1-2 weeks',
-        focusAreas: ['Basic key positions', 'Home row mastery'],
-        practiceRecommendations: ['15 minutes daily', 'Focus on accuracy over speed'],
-        successCriteria: ['Can type alphabet without looking', '70% of original speed']
+        name: "Foundation",
+        duration: "1-2 weeks",
+        focusAreas: ["Basic key positions", "Home row mastery"],
+        practiceRecommendations: ["15 minutes daily", "Focus on accuracy over speed"],
+        successCriteria: ["Can type alphabet without looking", "70% of original speed"],
       },
       {
         phase: 2,
-        name: 'Building Speed',
-        duration: '2-3 weeks',
-        focusAreas: ['Common words', 'Letter combinations'],
-        practiceRecommendations: ['20 minutes daily', 'Gradually increase speed'],
-        successCriteria: ['80% of original speed', 'Comfortable with common words']
+        name: "Building Speed",
+        duration: "2-3 weeks",
+        focusAreas: ["Common words", "Letter combinations"],
+        practiceRecommendations: ["20 minutes daily", "Gradually increase speed"],
+        successCriteria: ["80% of original speed", "Comfortable with common words"],
       },
       {
         phase: 3,
-        name: 'Mastery',
-        duration: '3-4 weeks',
-        focusAreas: ['Numbers and symbols', 'Complex texts'],
-        practiceRecommendations: ['25 minutes daily', 'Challenge yourself'],
-        successCriteria: ['Exceed original performance', 'Comfortable with all keys']
-      }
+        name: "Mastery",
+        duration: "3-4 weeks",
+        focusAreas: ["Numbers and symbols", "Complex texts"],
+        practiceRecommendations: ["25 minutes daily", "Challenge yourself"],
+        successCriteria: ["Exceed original performance", "Comfortable with all keys"],
+      },
     ];
 
     return {
       fromLayout,
       toLayout,
       phases,
-      totalDuration: '6-9 weeks',
-      progressMetrics: ['WPM recovery', 'Accuracy maintenance', 'Comfort level']
+      totalDuration: "6-9 weeks",
+      progressMetrics: ["WPM recovery", "Accuracy maintenance", "Comfort level"],
     };
   }
 
@@ -466,75 +481,76 @@ export class RecommendOptimalLayoutUseCase {
     // Speed outcome
     const speedImprovement = this.estimateSpeedImprovement(layout, performance);
     outcomes.push({
-      metric: 'wpm',
+      metric: "wpm",
       currentValue: performance.averageWpm,
       expectedValue: performance.averageWpm + speedImprovement,
-      timeToAchieve: speedImprovement > 10 ? '8-12 weeks' : '4-6 weeks',
-      confidence: speedImprovement > 0 ? 0.8 : 0.6
+      timeToAchieve: speedImprovement > 10 ? "8-12 weeks" : "4-6 weeks",
+      confidence: speedImprovement > 0 ? 0.8 : 0.6,
     });
 
     // Accuracy outcome
     const accuracyImprovement = this.estimateAccuracyImprovement(layout, performance);
     outcomes.push({
-      metric: 'accuracy',
+      metric: "accuracy",
       currentValue: performance.averageAccuracy,
       expectedValue: Math.min(100, performance.averageAccuracy + accuracyImprovement),
-      timeToAchieve: '2-4 weeks',
-      confidence: 0.7
+      timeToAchieve: "2-4 weeks",
+      confidence: 0.7,
     });
 
     return outcomes;
   }
 
   private calculateLearningCurve(layout: KeyboardLayout, performance: UserPerformanceProfile): LearningCurve {
-    const isStandardLayout = [
-      LayoutVariant.US,
-      LayoutVariant.UK,
-      LayoutVariant.INTERNATIONAL
-    ].includes(layout.variant);
+    const isStandardLayout = [LayoutVariant.US, LayoutVariant.UK, LayoutVariant.INTERNATIONAL].includes(layout.variant);
 
-    if (isStandardLayout && performance.typingStyle !== 'touch') {
+    if (isStandardLayout && performance.typingStyle !== "touch") {
       return {
-        difficulty: 'easy',
+        difficulty: "easy",
         estimatedTimeWeeks: 4,
-        keyMilestones: ['Learn home row', 'Basic words', 'Full speed'],
-        dropInPerformance: 10
+        keyMilestones: ["Learn home row", "Basic words", "Full speed"],
+        dropInPerformance: 10,
       };
     }
 
-    if (layout.layoutType === LayoutType.COLEMAK) {
+    // Use layout metadata to determine learning curve
+    if (layout.metadata.difficulty === DifficultyLevel.MEDIUM) {
       return {
-        difficulty: 'moderate',
+        difficulty: "moderate",
         estimatedTimeWeeks: 8,
-        keyMilestones: ['Home row transition', 'Common keys', 'Full layout', 'Speed recovery'],
-        dropInPerformance: 40
+        keyMilestones: ["Home row transition", "Common keys", "Full layout", "Speed recovery"],
+        dropInPerformance: 40,
       };
     }
 
-    if (layout.layoutType === LayoutType.DVORAK) {
+    if (layout.metadata.difficulty === DifficultyLevel.HARD) {
       return {
-        difficulty: 'hard',
+        difficulty: "hard",
         estimatedTimeWeeks: 12,
-        keyMilestones: ['Complete relearning', 'Basic proficiency', 'Speed building', 'Mastery'],
-        dropInPerformance: 60
+        keyMilestones: ["Complete relearning", "Basic proficiency", "Speed building", "Mastery"],
+        dropInPerformance: 60,
       };
     }
 
     return {
-      difficulty: 'moderate',
+      difficulty: "moderate",
       estimatedTimeWeeks: 6,
-      keyMilestones: ['Adaptation', 'Proficiency', 'Optimization'],
-      dropInPerformance: 30
+      keyMilestones: ["Adaptation", "Proficiency", "Optimization"],
+      dropInPerformance: 30,
     };
   }
 
   // Additional helper methods would be implemented here...
-  private analyzeFingerUsage(keystrokeData: any[]): { activeFingersCount: number, strongFingers: string[], weakFingers: string[] } {
+  private analyzeFingerUsage(keystrokeData: any[]): {
+    activeFingersCount: number;
+    strongFingers: string[];
+    weakFingers: string[];
+  } {
     // Simplified implementation
     return {
       activeFingersCount: 8,
-      strongFingers: ['left-index', 'right-index'],
-      weakFingers: ['left-pinky', 'right-pinky']
+      strongFingers: ["left-index", "right-index"],
+      weakFingers: ["left-pinky", "right-pinky"],
     };
   }
 
@@ -566,9 +582,10 @@ export class RecommendOptimalLayoutUseCase {
     return Math.random() > 0.5; // Simplified
   }
 
-  private estimateSpeedImprovement(layout: KeyboardLayout, performance: UserPerformanceProfile): number {
-    if (layout.layoutType === LayoutType.DVORAK) return 8;
-    if (layout.layoutType === LayoutType.COLEMAK) return 5;
+  private estimateSpeedImprovement(layout: KeyboardLayout, _performance: UserPerformanceProfile): number {
+    // Base improvement on layout optimization and difficulty
+    if (layout.metadata.optimizedFor?.includes("speed")) return 8;
+    if (layout.metadata.difficulty === DifficultyLevel.MEDIUM) return 5;
     return 2;
   }
 
@@ -576,43 +593,56 @@ export class RecommendOptimalLayoutUseCase {
     return Math.max(0, 95 - performance.averageAccuracy) * 0.3;
   }
 
-  private generatePros(layout: KeyboardLayout, performance: UserPerformanceProfile): string[] {
+  private generatePros(layout: KeyboardLayout, _performance: UserPerformanceProfile): string[] {
     const pros = [];
-    if (layout.layoutType === LayoutType.DVORAK) {
-      pros.push('Optimized for English letter frequency');
-      pros.push('Reduces finger travel distance');
+    if (layout.metadata.optimizedFor?.includes("speed")) {
+      pros.push("Optimized for typing speed");
+      pros.push("Reduces finger travel distance");
+    }
+    if (layout.metadata.optimizedFor?.includes("accuracy")) {
+      pros.push("Designed for typing accuracy");
+    }
+    if (layout.metadata.optimizedFor?.includes("comfort")) {
+      pros.push("Ergonomic design for comfort");
     }
     return pros;
   }
 
-  private generateCons(layout: KeyboardLayout, performance: UserPerformanceProfile): string[] {
+  private generateCons(layout: KeyboardLayout, _performance: UserPerformanceProfile): string[] {
     const cons = [];
     if (layout.variant !== LayoutVariant.US) {
-      cons.push('Learning curve required');
-      cons.push('Less universal compatibility');
+      cons.push("Learning curve required");
+      cons.push("Less universal compatibility");
+    }
+    if (layout.metadata.difficulty === DifficultyLevel.HARD) {
+      cons.push("Steep learning curve");
+      cons.push("Initial performance drop expected");
     }
     return cons;
   }
 
-  private shouldSuggestCustomLayout(command: RecommendOptimalLayoutCommand, performance: UserPerformanceProfile): boolean {
-    return performance.experienceLevel === 'advanced' && performance.problemKeys.length > 3;
+  private shouldSuggestCustomLayout(
+    _command: RecommendOptimalLayoutCommand,
+    performance: UserPerformanceProfile
+  ): boolean {
+    return performance.experienceLevel === "advanced" && performance.problemKeys.length > 3;
   }
 
   private generateCustomLayoutSuggestion(
-    command: RecommendOptimalLayoutCommand,
+    _command: RecommendOptimalLayoutCommand,
     performance: UserPerformanceProfile
   ): CustomLayoutSuggestion {
     return {
       basedOn: LayoutVariant.US, // Base on US layout as most common foundation
       modifications: [
         {
-          type: 'move_key',
-          description: 'Move problematic keys to easier positions',
-          rationale: 'Based on your typing patterns'
-        }
+          type: "move_key",
+          description: `Move ${performance.problemKeys.slice(0, 3).join(", ")} keys to easier positions`,
+          rationale: "Based on your typing patterns and problem areas",
+        },
       ],
-      reasoning: 'Your typing patterns suggest specific optimizations',
-      expectedBenefit: 'Up to 15% improvement in problem areas'
+      reasoning: `Your typing patterns show ${performance.problemKeys.length} problem keys that could benefit from optimization`,
+      expectedBenefit: "Up to 15% improvement in problem areas",
     };
   }
 }
@@ -621,9 +651,9 @@ interface UserPerformanceProfile {
   averageWpm: number;
   averageAccuracy: number;
   consistency: number;
-  experienceLevel: 'beginner' | 'intermediate' | 'advanced';
+  experienceLevel: "beginner" | "intermediate" | "advanced";
   strongFingers: string[];
   weakFingers: string[];
   problemKeys: string[];
-  typingStyle: 'touch' | 'hybrid' | 'hunt-peck';
+  typingStyle: "touch" | "hybrid" | "hunt-peck";
 }

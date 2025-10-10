@@ -1,19 +1,16 @@
 import { LanguageCode } from "@/domain";
-import { IKeyboardLayoutRepository } from "@/domain/interfaces";
 import { KeyboardLayout } from "@/domain/entities";
-import { RepositoryError, NotFoundError } from "@/shared/errors";
-import { LocalStorageClient } from "../../persistence/local-storage/storage-client";
+import { IKeyboardLayoutRepository } from "@/domain/interfaces";
+import { NotFoundError, RepositoryError } from "@/shared/errors";
 import type { ILogger } from "@/shared/utils/logger";
+import { LocalStorageClient } from "../../persistence/local-storage/storage-client";
 
 export class LocalKeyboardLayoutRepository implements IKeyboardLayoutRepository {
-  private readonly LAYOUTS_KEY_PREFIX = 'keyboard_layouts';
-  private readonly USER_PREFERENCES_KEY_PREFIX = 'user_layout_preferences';
-  private readonly BUILT_IN_LAYOUTS_KEY = 'built_in_layouts';
+  private readonly LAYOUTS_KEY_PREFIX = "keyboard_layouts";
+  private readonly USER_PREFERENCES_KEY_PREFIX = "user_layout_preferences";
+  private readonly BUILT_IN_LAYOUTS_KEY = "built_in_layouts";
 
-  constructor(
-    private storage: LocalStorageClient,
-    private logger: ILogger
-  ) {
+  constructor(private storage: LocalStorageClient, private logger: ILogger) {
     // Initialize built-in layouts if they don't exist
     this.initializeBuiltInLayouts();
   }
@@ -29,7 +26,7 @@ export class LocalKeyboardLayoutRepository implements IKeyboardLayoutRepository 
       return allLayouts;
     } catch (error) {
       this.logger.error(`Failed to get available layouts for language: ${language}`, error as Error);
-      throw new RepositoryError('Failed to get available layouts', error as Error);
+      throw new RepositoryError("Failed to get available layouts", error as Error);
     }
   }
 
@@ -43,32 +40,34 @@ export class LocalKeyboardLayoutRepository implements IKeyboardLayoutRepository 
 
       // Then try built-in layouts
       const builtInLayouts = await this.getAllBuiltInLayouts();
-      return builtInLayouts.find(layout => layout.id === layoutId) || null;
+      return builtInLayouts.find((layout) => layout.id === layoutId) || null;
     } catch (error) {
       this.logger.error(`Failed to get layout: ${layoutId}`, error as Error);
-      throw new RepositoryError('Failed to get layout', error as Error);
+      throw new RepositoryError("Failed to get layout", error as Error);
     }
   }
 
   async saveCustomLayout(layout: KeyboardLayout): Promise<void> {
     try {
       if (!layout.isCustom) {
-        throw new RepositoryError('Cannot save built-in layout as custom');
+        throw new RepositoryError("Cannot save built-in layout as custom");
       }
 
       await this.storage.setItem(`${this.LAYOUTS_KEY_PREFIX}:${layout.id}`, layout);
       this.logger.info(`Saved custom layout: ${layout.id}`);
     } catch (error) {
-      this.logger.error('Failed to save custom layout', error as Error);
+      this.logger.error("Failed to save custom layout", error as Error);
       throw error instanceof RepositoryError
         ? error
-        : new RepositoryError('Failed to save custom layout', error as Error);
+        : new RepositoryError("Failed to save custom layout", error as Error);
     }
   }
 
   async getUserPreferredLayout(userId: string, language: LanguageCode): Promise<string | null> {
     try {
-      const preferences = await this.storage.getItem<Record<LanguageCode, string>>(`${this.USER_PREFERENCES_KEY_PREFIX}:${userId}`);
+      const preferences = await this.storage.getItem<Record<LanguageCode, string>>(
+        `${this.USER_PREFERENCES_KEY_PREFIX}:${userId}`
+      );
       return preferences?.[language] || null;
     } catch (error) {
       this.logger.error(`Failed to get user preferred layout for ${userId}, ${language}`, error as Error);
@@ -89,16 +88,18 @@ export class LocalKeyboardLayoutRepository implements IKeyboardLayoutRepository 
       }
 
       // Get existing preferences or create new
-      const preferences = await this.storage.getItem<Record<LanguageCode, string>>(`${this.USER_PREFERENCES_KEY_PREFIX}:${userId}`) || {} as Record<LanguageCode, string>;
+      const preferences =
+        (await this.storage.getItem<Record<LanguageCode, string>>(`${this.USER_PREFERENCES_KEY_PREFIX}:${userId}`)) ||
+        ({} as Record<LanguageCode, string>);
       preferences[language] = layoutId;
 
       await this.storage.setItem(`${this.USER_PREFERENCES_KEY_PREFIX}:${userId}`, preferences);
       this.logger.info(`Set preferred layout for user ${userId}, language ${language}: ${layoutId}`);
     } catch (error) {
-      this.logger.error('Failed to set user preferred layout', error as Error);
+      this.logger.error("Failed to set user preferred layout", error as Error);
       throw error instanceof NotFoundError || error instanceof RepositoryError
         ? error
-        : new RepositoryError('Failed to set user preferred layout', error as Error);
+        : new RepositoryError("Failed to set user preferred layout", error as Error);
     }
   }
 
@@ -112,11 +113,11 @@ export class LocalKeyboardLayoutRepository implements IKeyboardLayoutRepository 
       }
 
       if (!layout.isCustom) {
-        throw new RepositoryError('Cannot delete built-in layout');
+        throw new RepositoryError("Cannot delete built-in layout");
       }
 
       if (layout.createdBy !== userId) {
-        throw new RepositoryError('User does not have permission to delete this layout');
+        throw new RepositoryError("User does not have permission to delete this layout");
       }
 
       await this.storage.removeItem(`${this.LAYOUTS_KEY_PREFIX}:${layoutId}`);
@@ -126,14 +127,14 @@ export class LocalKeyboardLayoutRepository implements IKeyboardLayoutRepository 
         throw error;
       }
       this.logger.error(`Failed to delete custom layout: ${layoutId}`, error as Error);
-      throw new RepositoryError('Failed to delete custom layout', error as Error);
+      throw new RepositoryError("Failed to delete custom layout", error as Error);
     }
   }
 
   async getAllCustomLayouts(userId: string): Promise<KeyboardLayout[]> {
     try {
       const allKeys = await this.storage.getAllKeys();
-      const layoutKeys = allKeys.filter(key => key.startsWith(this.LAYOUTS_KEY_PREFIX));
+      const layoutKeys = allKeys.filter((key) => key.startsWith(this.LAYOUTS_KEY_PREFIX));
       const customLayouts: KeyboardLayout[] = [];
 
       for (const key of layoutKeys) {
@@ -147,7 +148,7 @@ export class LocalKeyboardLayoutRepository implements IKeyboardLayoutRepository 
       return customLayouts;
     } catch (error) {
       this.logger.error(`Failed to get custom layouts for user: ${userId}`, error as Error);
-      throw new RepositoryError('Failed to get custom layouts', error as Error);
+      throw new RepositoryError("Failed to get custom layouts", error as Error);
     }
   }
 
@@ -157,10 +158,10 @@ export class LocalKeyboardLayoutRepository implements IKeyboardLayoutRepository 
       if (!existing) {
         const builtInLayouts = this.createBuiltInLayouts();
         await this.storage.setItem(this.BUILT_IN_LAYOUTS_KEY, builtInLayouts);
-        this.logger.info('Initialized built-in keyboard layouts');
+        this.logger.info("Initialized built-in keyboard layouts");
       }
     } catch (error) {
-      this.logger.error('Failed to initialize built-in layouts', error as Error);
+      this.logger.error("Failed to initialize built-in layouts", error as Error);
     }
   }
 
@@ -171,13 +172,13 @@ export class LocalKeyboardLayoutRepository implements IKeyboardLayoutRepository 
 
   private async getBuiltInLayouts(language: LanguageCode): Promise<KeyboardLayout[]> {
     const allLayouts = await this.getAllBuiltInLayouts();
-    return allLayouts.filter(layout => layout.language === language);
+    return allLayouts.filter((layout) => layout.language === language);
   }
 
   private async getCustomLayouts(language: LanguageCode): Promise<KeyboardLayout[]> {
     try {
       const allKeys = await this.storage.getAllKeys();
-      const layoutKeys = allKeys.filter(key => key.startsWith(this.LAYOUTS_KEY_PREFIX));
+      const layoutKeys = allKeys.filter((key) => key.startsWith(this.LAYOUTS_KEY_PREFIX));
       const customLayouts: KeyboardLayout[] = [];
 
       for (const key of layoutKeys) {
@@ -199,66 +200,62 @@ export class LocalKeyboardLayoutRepository implements IKeyboardLayoutRepository 
     return [
       // English layouts
       KeyboardLayout.create({
-        id: 'en_qwerty_us',
-        name: 'QWERTY US',
-        displayName: 'QWERTY (US)',
+        id: "en_qwerty_us",
+        name: "QWERTY US",
+        displayName: "QWERTY (US)",
         language: LanguageCode.EN,
-        layoutType: 'qwerty' as any,
-        variant: 'us' as any,
-        inputMethod: 'keyboard' as any,
+        variant: "us" as any,
         keyMappings: this.createQwertyUSMappings(),
         metadata: {
-          description: 'Standard US QWERTY keyboard layout',
-          author: 'System',
-          version: '1.0',
+          description: "Standard US QWERTY keyboard layout",
+          author: "System",
+          version: "1.0",
           dateCreated: Date.now(),
           lastModified: Date.now(),
-          compatibility: ['Windows', 'macOS', 'Linux', 'Web'],
-          tags: ['standard', 'qwerty', 'english'],
-          difficulty: 'easy' as any,
-          popularity: 100
+          compatibility: ["Windows", "macOS", "Linux", "Web"],
+          tags: ["standard", "qwerty", "english"],
+          difficulty: "easy" as any,
+          popularity: 100,
         },
         isCustom: false,
         isPublic: true,
-        createdBy: 'system',
+        createdBy: "system",
         createdAt: Date.now(),
-        updatedAt: Date.now()
+        updatedAt: Date.now(),
       }),
-      // Lisu layouts  
+      // Lisu layouts
       KeyboardLayout.create({
-        id: 'li_sil_basic',
-        name: 'SIL Basic',
-        displayName: 'SIL Basic',
+        id: "li_sil_basic",
+        name: "SIL Basic",
+        displayName: "SIL Basic",
         language: LanguageCode.LI,
-        layoutType: 'custom' as any,
-        variant: 'sil_basic' as any,
-        inputMethod: 'keyboard' as any,
+        variant: "sil_basic" as any,
         keyMappings: this.createSILBasicMappings(),
         metadata: {
-          description: 'SIL Basic keyboard layout for Lisu',
-          author: 'SIL International',
-          version: '1.0',
+          description: "SIL Basic keyboard layout for Lisu",
+          author: "SIL International",
+          version: "1.0",
           dateCreated: Date.now(),
           lastModified: Date.now(),
-          compatibility: ['Windows', 'macOS', 'Linux', 'Web'],
-          tags: ['sil', 'basic', 'lisu'],
-          difficulty: 'medium' as any,
-          popularity: 80
+          compatibility: ["Windows", "macOS", "Linux", "Web"],
+          tags: ["sil", "basic", "lisu"],
+          difficulty: "medium" as any,
+          popularity: 80,
         },
         isCustom: false,
         isPublic: true,
-        createdBy: 'system',
+        createdBy: "system",
         createdAt: Date.now(),
-        updatedAt: Date.now()
-      })
+        updatedAt: Date.now(),
+      }),
     ];
   }
 
   private createQwertyUSMappings(): any[] {
     // Simplified mapping for demonstration
     return [
-      { key: 'q', character: 'q', position: { row: 1, column: 1, finger: 'pinky' as const, hand: 'left' as const } },
-      { key: 'w', character: 'w', position: { row: 1, column: 2, finger: 'ring' as const, hand: 'left' as const } },
+      { key: "q", character: "q", position: { row: 1, column: 1, finger: "pinky" as const, hand: "left" as const } },
+      { key: "w", character: "w", position: { row: 1, column: 2, finger: "ring" as const, hand: "left" as const } },
       // ... more mappings would be added here
     ];
   }
@@ -266,8 +263,8 @@ export class LocalKeyboardLayoutRepository implements IKeyboardLayoutRepository 
   private createSILBasicMappings(): any[] {
     // Simplified mapping for demonstration
     return [
-      { key: 'q', character: 'ꓕ', position: { row: 1, column: 1, finger: 'pinky' as const, hand: 'left' as const } },
-      { key: 'w', character: 'ꓪ', position: { row: 1, column: 2, finger: 'ring' as const, hand: 'left' as const } },
+      { key: "q", character: "ꓕ", position: { row: 1, column: 1, finger: "pinky" as const, hand: "left" as const } },
+      { key: "w", character: "ꓪ", position: { row: 1, column: 2, finger: "ring" as const, hand: "left" as const } },
       // ... more mappings would be added here
     ];
   }

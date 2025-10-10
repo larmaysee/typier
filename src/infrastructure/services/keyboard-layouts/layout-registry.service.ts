@@ -1,9 +1,6 @@
-import {
-  ILayoutRegistryService,
-  LayoutSearchCriteria
-} from "@/domain/interfaces";
-import { KeyboardLayout } from "@/domain/entities";
 import { LanguageCode } from "@/domain";
+import { KeyboardLayout } from "@/domain/entities";
+import { ILayoutRegistryService, LayoutSearchCriteria } from "@/domain/interfaces";
 
 /**
  * Dynamic keyboard layout registration service
@@ -83,23 +80,22 @@ export class LayoutRegistryService implements ILayoutRegistryService {
 
     // Apply filters
     if (criteria.language) {
-      layouts = layouts.filter(layout => layout.language === criteria.language);
+      layouts = layouts.filter((layout) => layout.language === criteria.language);
     }
 
     if (criteria.namePattern) {
       const pattern = criteria.namePattern.toLowerCase();
-      layouts = layouts.filter(layout =>
-        layout.name.toLowerCase().includes(pattern) ||
-        layout.displayName.toLowerCase().includes(pattern)
+      layouts = layouts.filter(
+        (layout) => layout.name.toLowerCase().includes(pattern) || layout.displayName.toLowerCase().includes(pattern)
       );
     }
 
-    if (criteria.layoutType) {
-      layouts = layouts.filter(layout => layout.layoutType === criteria.layoutType);
+    if (criteria.variant) {
+      layouts = layouts.filter((layout) => layout.variant === criteria.variant);
     }
 
     if (criteria.isCustom !== undefined) {
-      layouts = layouts.filter(layout => layout.isCustom === criteria.isCustom);
+      layouts = layouts.filter((layout) => layout.isCustom === criteria.isCustom);
     }
 
     if (criteria.tags && criteria.tags.length > 0) {
@@ -145,7 +141,7 @@ export class LayoutRegistryService implements ILayoutRegistryService {
     return {
       totalLayouts: layouts.length,
       layoutsByLanguage,
-      customLayouts
+      customLayouts,
     };
   }
 
@@ -193,7 +189,7 @@ export class LayoutRegistryService implements ILayoutRegistryService {
     let layouts = Array.from(this.registeredLayouts.values());
 
     if (language) {
-      layouts = layouts.filter(layout => layout.language === language);
+      layouts = layouts.filter((layout) => layout.language === language);
     }
 
     return layouts; // Return the layout instances directly
