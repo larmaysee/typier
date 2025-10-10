@@ -1,9 +1,9 @@
 "use client";
 
-import { cn } from "@/lib/utils";
-import { Input } from "@/components/ui/input";
-import { TypingSessionState } from "@/presentation/hooks/typing/use-typing-session";
 import { useSiteConfig } from "@/components/site-config";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
+import { TypingSessionState } from "@/presentation/hooks/typing/use-typing-session";
 import { useEffect, useRef } from "react";
 
 interface TypingDisplayProps {
@@ -27,7 +27,7 @@ export default function TypingDisplay({
   onInput,
   onFocus,
   onBlur,
-  onKeyDown
+  onKeyDown,
 }: TypingDisplayProps) {
   const { config } = useSiteConfig();
   const textContainerRef = useRef<HTMLDivElement>(null);
@@ -139,12 +139,12 @@ export default function TypingDisplay({
   };
 
   return (
-    <div className="relative w-full">
+    <div className="relative w-full space-y-4">
       {/* Text display area */}
       <div
         className={cn(
-          "databox-wrapper bg-card rounded-lg border-2 h-[300px] cursor-text transition-all duration-200 p-4 relative",
-          isFocused ? "border-primary shadow-lg shadow-primary/20 focus" : "border-border",
+          "databox-wrapper bg-card rounded-lg border border-dashed w-full cursor-text transition-all duration-200 p-4 relative",
+          isFocused ? "shadow-lg shadow-primary/20 focus" : "",
           testCompleted && "opacity-50 pointer-events-none"
         )}
         onClick={handleClickToFocus}
@@ -161,7 +161,7 @@ export default function TypingDisplay({
 
         <div
           className={cn(
-            "databox h-[120px] relative focus-visible:border-primary overflow-hidden"
+            "databox relative focus-visible:border-primary overflow-hidden"
           )}
         >
           {config.difficultyMode === "chars" ? (
@@ -257,28 +257,31 @@ export default function TypingDisplay({
             <div className="text-center space-y-2">
               <div className="text-4xl">🎉</div>
               <div className="text-xl font-semibold">Test Completed!</div>
-              <div className="text-sm text-muted-foreground">Check your results above</div>
+              <div className="text-sm text-muted-foreground">
+                Check your results above
+              </div>
             </div>
           </div>
         )}
       </div>
-
-      {/* Hidden input for typing */}
-      <Input
-        ref={inputRef}
-        type="text"
-        value={session.typedText}
-        onChange={onInput}
-        onFocus={onFocus}
-        onBlur={onBlur}
-        onKeyDown={onKeyDown}
-        className="opacity-0 absolute left-0"
-        disabled={testCompleted}
-        autoFocus
-        autoComplete="off"
-        autoCorrect="off"
-        spellCheck={false}
-      />
+      <div>
+        {/* Hidden input for typing */}
+        <Input
+          ref={inputRef}
+          type="text"
+          value={session.typedText}
+          onChange={onInput}
+          onFocus={onFocus}
+          onBlur={onBlur}
+          onKeyDown={onKeyDown}
+          className=""
+          disabled={testCompleted}
+          autoFocus
+          autoComplete="off"
+          autoCorrect="off"
+          spellCheck={false}
+        />
+      </div>
     </div>
   );
 }

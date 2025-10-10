@@ -1,16 +1,20 @@
 "use client";
 
 import { FocusOverlay } from "@/components/focus-overlay";
-import { ResultsModal } from "@/components/results-modal";
-import { useSessionControls } from "@/presentation/hooks/typing/use-session-controls";
-import { useTypingSession } from "@/presentation/hooks/typing/use-typing-session";
-import { ErrorBoundary } from "./error-boundary";
-import { LoadingSpinner } from "./loading-spinner";
-import { TypingControls } from "./typing-controls/typing-controls";
-import TypingDisplay from "./typing-display/typing-display";
-import TypingStats from "./typing-stats/typing-stats";
 import ModernKeyboard from "@/components/modern-keyboard";
 import { PracticeModeProvider } from "@/components/pratice-mode";
+import { ResultsModal } from "@/components/results-modal";
+import { useSiteConfig } from "@/components/site-config";
+import { KeyboardLayout } from "@/domain";
+import { ILayoutManagerService } from "@/domain/interfaces";
+import { useDependencyInjection } from "@/presentation";
+import { useSessionControls } from "@/presentation/hooks/typing/use-session-controls";
+import { useTypingSession } from "@/presentation/hooks/typing/use-typing-session";
+import { useCallback, useEffect, useState } from "react";
+import { TypingControlPanel } from "./controls/typing-control-panel";
+import { ErrorBoundary } from "./error-boundary";
+import { LoadingSpinner } from "./loading-spinner";
+import TypingDisplay from "./typing-display/typing-display";
 
 export function TypingContainer() {
   return (
@@ -61,12 +65,62 @@ function TypingContainerInner() {
   };
 
   const handleCloseResults = () => {
-    setState(prev => ({ ...prev, showResults: false }));
+    setState((prev) => ({ ...prev, showResults: false }));
   };
 
   const handleStartNewTest = () => {
     handleRefresh();
   };
+
+  const { resolve, serviceTokens } = useDependencyInjection();
+  const { config } = useSiteConfig();
+  const [currentLayout, setCurrentLayout] = useState<KeyboardLayout | null>(
+    null
+  );
+  const loadInitialLayout = useCallback(async () => {
+    try {
+      const layoutManager = resolve<ILayoutManagerService>(
+        serviceTokens.LAYOUT_MANAGER_SERVICE
+      );
+
+      // Get all layouts for current language
+      const layouts = await layoutManager.getLayoutsForLanguage(
+        config.language.code
+      );
+
+      if (layouts.length > 0) {
+        // Try to get the default layout for this language or first available
+        const defaultLayout = layouts[0];
+        setCurrentLayout(defaultLayout);
+      }
+    } catch (err) {
+      console.error("Failed to load initial keyboard layout:", err);
+    }
+  }, [resolve, serviceTokens, config.language.code]);
+
+  // Load initial layout when language changes
+  useEffect(() => {
+    loadInitialLayout();
+  }, [config.language.code, loadInitialLayout]);
+
+  // Load layout when it changes from selector
+  const handleLayoutChange = useCallback(
+    async (layoutId: string) => {
+      try {
+        const layoutManager = resolve<ILayoutManagerService>(
+          serviceTokens.LAYOUT_MANAGER_SERVICE
+        );
+
+        const layout = await layoutManager.getLayoutById(layoutId);
+        if (layout) {
+          setCurrentLayout(layout);
+        }
+      } catch (err) {
+        console.error("Failed to load keyboard layout:", err);
+      }
+    },
+    [resolve, serviceTokens]
+  );
 
   if (error) {
     return (
@@ -118,7 +172,14 @@ function TypingContainerInner() {
       </div>
 
       {/* Modern Keyboard Component */}
-      <div className="mt-6">
+      <div className="mt-6 space-y-4">
+        <TypingControlPanel
+          session={session}
+          testCompleted={session.testCompleted}
+          onRefresh={handleRefresh}
+          onTimeChange={setSelectedTime}
+          onLayoutChange={handleLayoutChange}
+        />
         <ModernKeyboard />
       </div>
     </div>

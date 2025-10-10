@@ -126,7 +126,7 @@ export function useTypingSession() {
         mode: getTypingMode(),
         difficulty: getDifficultyLevel(),
         language: config.language.code as LanguageCode,
-        duration: state.selectedTime,
+        duration: selectedTimeRef.current,
         textType: getTextType(),
       };
 
@@ -137,7 +137,7 @@ export function useTypingSession() {
         sessionId: response.session.id,
         currentData: response.textContent,
         language: config.language.code,
-        timeLeft: state.selectedTime,
+        timeLeft: response.session.timeLeft, // Use the session's timeLeft from response
         typedText: "",
         correctWords: 0,
         incorrectWords: 0,
@@ -163,8 +163,7 @@ export function useTypingSession() {
     config.language.code,
     config.practiceMode,
     config.difficultyMode,
-    state.selectedTime,
-    // getTypingMode, getDifficultyLevel, getTextType are stable functions
+    // selectedTime now uses ref, getTypingMode, getDifficultyLevel, getTextType are stable functions
   ]);
 
   // Use ref to track the latest session ID without causing re-renders
@@ -224,6 +223,7 @@ export function useTypingSession() {
   // Use refs to track state values without causing dependency updates
   const typedTextRef = useRef<string>("");
   const languageRef = useRef<string>(config.language.code);
+  const selectedTimeRef = useRef<number>(initialState.selectedTime);
 
   useEffect(() => {
     typedTextRef.current = state.typedText;
@@ -232,6 +232,10 @@ export function useTypingSession() {
   useEffect(() => {
     languageRef.current = config.language.code;
   }, [config.language.code]);
+
+  useEffect(() => {
+    selectedTimeRef.current = state.selectedTime;
+  }, [state.selectedTime]);
 
   // Complete session
   const completeSession = useCallback(async () => {
@@ -358,7 +362,9 @@ export function useTypingSession() {
     if (state.timeLeft === 0 && !state.testCompleted && state.sessionId) {
       completeSession();
     }
-  }, [state.timeLeft, state.testCompleted, state.sessionId, completeSession]);
+    // completeSession is stable, doesn't need to be in deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.timeLeft, state.testCompleted, state.sessionId]);
 
   return {
     session: state,

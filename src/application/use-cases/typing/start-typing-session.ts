@@ -1,8 +1,18 @@
-import { TypingSession, TypingTest, TypingResults, TypingMode, SessionStatus } from '@/domain/entities';
-import { ISessionRepository, IUserRepository, IKeyboardLayoutRepository } from '@/domain/interfaces/repositories';
-import { ITextGenerationService } from '@/domain/interfaces/services';
-import { StartSessionCommand } from '@/application/commands/session.commands';
-import { StartSessionResponseDto } from '@/application/dto/typing-session.dto';
+import { StartSessionCommand } from "@/application/commands/session.commands";
+import { StartSessionResponseDto } from "@/application/dto/typing-session.dto";
+import {
+  SessionStatus,
+  TypingMode,
+  TypingResults,
+  TypingSession,
+  TypingTest,
+} from "@/domain/entities";
+import {
+  IKeyboardLayoutRepository,
+  ISessionRepository,
+  IUserRepository,
+} from "@/domain/interfaces/repositories";
+import { ITextGenerationService } from "@/domain/interfaces/services";
 
 export class StartTypingSessionUseCase {
   constructor(
@@ -10,14 +20,22 @@ export class StartTypingSessionUseCase {
     private userRepository: IUserRepository,
     private layoutRepository: IKeyboardLayoutRepository,
     private textGenerationService: ITextGenerationService
-  ) { }
+  ) {}
 
-  async execute(command: StartSessionCommand): Promise<StartSessionResponseDto> {
+  async execute(
+    command: StartSessionCommand
+  ): Promise<StartSessionResponseDto> {
     // 1. Validate user exists (except for practice mode and anonymous users)
-    if (command.mode !== TypingMode.PRACTICE && command.userId && command.userId !== 'anonymous') {
+    if (
+      command.mode !== TypingMode.PRACTICE &&
+      command.userId &&
+      command.userId !== "anonymous"
+    ) {
       const user = await this.userRepository.findById(command.userId);
       if (!user) {
-        console.warn(`User not found: ${command.userId}, proceeding with anonymous session`);
+        console.warn(
+          `User not found: ${command.userId}, proceeding with anonymous session`
+        );
         // Don't throw error, just log warning and proceed with anonymous
       }
     }
@@ -25,18 +43,26 @@ export class StartTypingSessionUseCase {
     // 2. Determine keyboard layout
     let layoutId = command.keyboardLayoutId;
     if (!layoutId && command.userId) {
-      const preferredLayoutId = await this.layoutRepository.getUserPreferredLayout(command.userId, command.language);
+      const preferredLayoutId =
+        await this.layoutRepository.getUserPreferredLayout(
+          command.userId,
+          command.language
+        );
       layoutId = preferredLayoutId || undefined;
     }
 
-    const availableLayouts = await this.layoutRepository.getAvailableLayouts(command.language);
+    const availableLayouts = await this.layoutRepository.getAvailableLayouts(
+      command.language
+    );
     if (!layoutId && availableLayouts.length > 0) {
       // Use first available layout as default
       layoutId = availableLayouts[0].id;
     }
 
     if (!layoutId) {
-      throw new Error(`No keyboard layout available for language: ${command.language}`);
+      throw new Error(
+        `No keyboard layout available for language: ${command.language}`
+      );
     }
 
     const activeLayout = await this.layoutRepository.findById(layoutId);
@@ -51,13 +77,13 @@ export class StartTypingSessionUseCase {
       textType: command.textType,
       length: command.duration,
       layoutId,
-      userId: command.userId
+      userId: command.userId,
     });
 
     // 4. Create typing test
     const test = TypingTest.create({
       id: `test_${Date.now()}_${Math.random().toString(36).substring(7)}`,
-      userId: command.userId || 'anonymous',
+      userId: command.userId || "anonymous",
       mode: command.mode,
       difficulty: command.difficulty,
       language: command.language,
@@ -68,26 +94,29 @@ export class StartTypingSessionUseCase {
         accuracy: 0,
         correctWords: 0,
         incorrectWords: 0,
-        duration: 0.01, // Small positive value to avoid validation error
+        duration: command.duration, // Use the actual session duration from command
         charactersTyped: 0,
         correctChars: 0,
         errors: 0,
         consistency: 0,
-        fingerUtilization: {}
+        fingerUtilization: {},
       }),
       timestamp: Date.now(),
-      competitionId: command.mode === TypingMode.COMPETITION ? `comp_${Date.now()}` : undefined
+      competitionId:
+        command.mode === TypingMode.COMPETITION
+          ? `comp_${Date.now()}`
+          : undefined,
     });
 
     // 5. Create typing session
     const session = TypingSession.create({
       id: `session_${Date.now()}_${Math.random().toString(36).substring(7)}`,
       test,
-      currentInput: '',
+      currentInput: "",
       startTime: null,
       timeLeft: command.duration,
       status: SessionStatus.IDLE,
-      activeLayout
+      activeLayout,
     });
 
     // 6. Save session
@@ -97,7 +126,7 @@ export class StartTypingSessionUseCase {
     return {
       session: this.mapSessionToDto(session),
       textContent,
-      activeLayout
+      activeLayout,
     };
   }
 
@@ -106,7 +135,7 @@ export class StartTypingSessionUseCase {
   }
 
   private generateCompetitionId(): string {
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toISOString().split("T")[0];
     return `competition_${today}`;
   }
 
@@ -129,7 +158,7 @@ export class StartTypingSessionUseCase {
       currentWPM: session.liveStats.currentWPM,
       currentAccuracy: session.liveStats.currentAccuracy,
       progress: 0, // Initial progress
-      isActive: session.status === SessionStatus.ACTIVE
+      isActive: session.status === SessionStatus.ACTIVE,
     };
   }
 }

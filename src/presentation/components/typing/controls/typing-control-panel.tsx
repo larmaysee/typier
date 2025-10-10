@@ -1,16 +1,15 @@
 "use client";
 
-import { memo } from "react";
+import TimerOptions from "@/components/time-options";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { RefreshButton } from "./refresh-button";
-import { LanguageSelector } from "./language-selector";
-import { DifficultySelector } from "./difficulty-selector";
-import { PracticeModeToggle } from "./practice-mode-toggle";
-import { KeyboardLayoutSelector } from "../keyboard-layouts/keyboard-layout-selector";
-import TimerOptions from "@/components/time-options";
-import DataMode from "@/components/data-mode";
 import { TypingSessionState } from "@/presentation/hooks/typing/use-typing-session";
+import { memo } from "react";
+import { KeyboardLayoutSelector } from "../keyboard-layouts/keyboard-layout-selector";
+import { DifficultySelector } from "./difficulty-selector";
+import { LanguageSelector } from "./language-selector";
+import { PracticeModeToggle } from "./practice-mode-toggle";
+import { RefreshButton } from "./refresh-button";
 
 interface TypingControlPanelProps {
   session: TypingSessionState;
@@ -28,7 +27,7 @@ export const TypingControlPanel = memo(function TypingControlPanel({
   onLayoutChange,
 }: TypingControlPanelProps) {
   return (
-    <Card className="p-3">
+    <Card className="border-0 shadow-none">
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         {/* Left Section - Test Controls */}
         <div className="flex flex-wrap items-center gap-2">
@@ -44,16 +43,14 @@ export const TypingControlPanel = memo(function TypingControlPanel({
 
           <LanguageSelector disabled={testCompleted} />
 
-          <DataMode />
-
           <DifficultySelector disabled={testCompleted} />
         </div>
 
         {/* Right Section - Layout & Mode Settings */}
         <div className="flex flex-wrap items-center gap-2">
           <KeyboardLayoutSelector
-            compact={false}
-            showLayoutInfo={false}
+            compact={true}
+            showLayoutInfo={true}
             onLayoutChange={onLayoutChange}
           />
 

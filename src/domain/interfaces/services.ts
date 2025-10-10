@@ -1,9 +1,9 @@
 import { LanguageCode } from "@/domain/enums/languages";
-import { KeyboardLayout, KeyMapping, KeyPosition } from "../entities/keyboard-layout";
-import { LayoutType, LayoutVariant } from "../enums/keyboard-layouts";
 import { CompetitionRules } from "../entities/competition";
-import { ValidationResult } from "./repositories";
+import { KeyboardLayout } from "../entities/keyboard-layout";
 import { DifficultyLevel, TextType } from "../enums";
+import { LayoutType } from "../enums/keyboard-layouts";
+import { ValidationResult } from "./repositories";
 
 export interface ITextGenerationService {
   generate(config: TextGenerationConfig): Promise<string>;
@@ -14,19 +14,36 @@ export interface ITextGenerationService {
 export interface ILayoutManagerService {
   getLayoutsForLanguage(language: LanguageCode): Promise<KeyboardLayout[]>;
   validateLayout(layout: KeyboardLayout): Promise<ValidationResult>;
-  createCustomLayout(baseLayout: KeyboardLayout, modifications: KeyboardModification[]): Promise<KeyboardLayout>;
-  optimizeLayoutForUser(userId: string, language: LanguageCode): Promise<KeyboardLayout>;
+  createCustomLayout(
+    baseLayout: KeyboardLayout,
+    modifications: KeyboardModification[]
+  ): Promise<KeyboardLayout>;
+  optimizeLayoutForUser(
+    userId: string,
+    language: LanguageCode
+  ): Promise<KeyboardLayout>;
 }
 
 export interface IPerformanceAnalyzerService {
-  analyzeTypingPerformance(tests: any[], options?: AnalysisOptions): Promise<PerformanceAnalysis>;
-  calculateImprovement(oldStats: any, newStats: any): Promise<ImprovementMetrics>;
-  recommendPractice(analysis: PerformanceAnalysis): Promise<PracticeRecommendation[]>;
+  analyzeTypingPerformance(
+    tests: any[],
+    options?: AnalysisOptions
+  ): Promise<PerformanceAnalysis>;
+  calculateImprovement(
+    oldStats: any,
+    newStats: any
+  ): Promise<ImprovementMetrics>;
+  recommendPractice(
+    analysis: PerformanceAnalysis
+  ): Promise<PracticeRecommendation[]>;
 }
 
 export interface IEventBus {
   publish(event: DomainEvent): Promise<void>;
-  subscribe<T extends DomainEvent>(eventType: string, handler: (event: T) => Promise<void>): void;
+  subscribe<T extends DomainEvent>(
+    eventType: string,
+    handler: (event: T) => Promise<void>
+  ): void;
   unsubscribe(eventType: string, handler: (event: any) => Promise<void>): void;
 }
 
@@ -41,8 +58,6 @@ export interface TextGenerationConfig {
   customWords?: string[];
   avoidRecentWords?: boolean;
 }
-
-
 
 export interface KeyboardModification {
   key: string;
@@ -82,14 +97,14 @@ export interface ImprovementMetrics {
   accuracyImprovement: number;
   consistencyImprovement: number;
   timeToImprove: number;
-  trendDirection: 'improving' | 'stable' | 'declining';
+  trendDirection: "improving" | "stable" | "declining";
 }
 
 export interface PracticeRecommendation {
-  type: 'layout' | 'difficulty' | 'content' | 'timing';
+  type: "layout" | "difficulty" | "content" | "timing";
   title: string;
   description: string;
-  priority: 'high' | 'medium' | 'low';
+  priority: "high" | "medium" | "low";
   estimatedImpact: number;
   suggestedDuration: number;
 }
@@ -103,8 +118,8 @@ export interface ImprovementMetrics {
 }
 
 export interface TypingRecommendation {
-  type: 'practice' | 'layout' | 'technique' | 'timing';
-  priority: 'high' | 'medium' | 'low';
+  type: "practice" | "layout" | "technique" | "timing";
+  priority: "high" | "medium" | "low";
   title: string;
   description: string;
   actionItems: string[];
@@ -130,10 +145,6 @@ export interface CreateCompetitionData {
   maxParticipants?: number;
   rules: CompetitionRules;
 }
-
-
-
-
 
 export interface CustomLayoutConfig {
   name: string;
@@ -162,7 +173,7 @@ export interface CompetitionRanking {
 
 export interface Notification {
   id: string;
-  type: 'info' | 'success' | 'warning' | 'error';
+  type: "info" | "success" | "warning" | "error";
   title: string;
   message: string;
   timestamp: number;
@@ -172,7 +183,7 @@ export interface Notification {
 
 export interface ReminderData {
   userId: string;
-  type: 'practice' | 'competition' | 'achievement';
+  type: "practice" | "competition" | "achievement";
   scheduledFor: number;
   title: string;
   message: string;
@@ -191,6 +202,3 @@ export interface DomainEvent<T = any> {
 export interface EventHandler<T> {
   (event: DomainEvent<T>): Promise<void> | void;
 }
-
-
-

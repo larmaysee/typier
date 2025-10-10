@@ -1,13 +1,16 @@
-import { TypingSession, SessionStatus, TypingMistake, LiveTypingStats } from "@/domain/entities/typing";
-import { ISessionRepository } from "@/domain/interfaces/repositories";
 import { ProcessInputCommand } from "@/application/commands/typing-commands";
 import { TypingSessionDto } from "@/application/dto/typing-session.dto";
+import {
+  LiveTypingStats,
+  SessionStatus,
+  TypingMistake,
+  TypingSession,
+} from "@/domain/entities/typing";
+import { ISessionRepository } from "@/domain/interfaces/repositories";
 import { CursorPosition } from "@/domain/value-objects/cursor-position";
 
 export class ProcessTypingInputUseCase {
-  constructor(
-    private sessionRepository: ISessionRepository
-  ) { }
+  constructor(private sessionRepository: ISessionRepository) {}
 
   async execute(command: ProcessInputCommand): Promise<TypingSessionDto> {
     // 1. Get current session
@@ -17,8 +20,11 @@ export class ProcessTypingInputUseCase {
     }
 
     // 2. Validate session state
-    if (session.status === SessionStatus.COMPLETED || session.status === SessionStatus.PAUSED) {
-      throw new Error('Cannot process input for completed or paused session');
+    if (
+      session.status === SessionStatus.COMPLETED ||
+      session.status === SessionStatus.PAUSED
+    ) {
+      throw new Error("Cannot process input for completed or paused session");
     }
 
     // 3. Start session if this is the first input
@@ -29,23 +35,37 @@ export class ProcessTypingInputUseCase {
 
     // 4. Update current input
     const previousInput = updatedSession.currentInput;
-    const newCursorPosition = this.updateCursorPosition(updatedSession, command.input);
-    updatedSession = updatedSession.updateInput(command.input, newCursorPosition);
+    const newCursorPosition = this.updateCursorPosition(
+      updatedSession,
+      command.input
+    );
+    updatedSession = updatedSession.updateInput(
+      command.input,
+      newCursorPosition
+    );
 
     // 6. Detect and record mistakes
-    const newMistakes = this.detectMistakes(updatedSession, previousInput, command.timestamp);
+    const newMistakes = this.detectMistakes(
+      updatedSession,
+      previousInput,
+      command.timestamp
+    );
     for (const mistake of newMistakes) {
       updatedSession = updatedSession.addMistake(mistake);
     }
 
     // 7. Calculate live statistics
-    const newLiveStats = this.updateLiveStats(updatedSession, command.timestamp);
+    const newLiveStats = this.updateLiveStats(
+      updatedSession,
+      command.timestamp
+    );
     updatedSession = updatedSession.updateLiveStats(newLiveStats);
 
-    // 8. Update time left by creating new session with updated time
+    // 8. Update time left only if session has started
     if (updatedSession.startTime) {
       const timeElapsed = (command.timestamp - updatedSession.startTime) / 1000;
-      const newTimeLeft = Math.max(0, updatedSession.test.results.duration - timeElapsed);
+      const totalDuration = updatedSession.test.results.duration; // Now this has the correct duration
+      const newTimeLeft = Math.max(0, totalDuration - timeElapsed);
       // Use create method to build new session with updated time left
       updatedSession = TypingSession.create({
         id: updatedSession.id,
@@ -58,7 +78,7 @@ export class ProcessTypingInputUseCase {
         focusState: updatedSession.focusState,
         mistakes: updatedSession.mistakes,
         liveStats: updatedSession.liveStats,
-        activeLayout: updatedSession.activeLayout
+        activeLayout: updatedSession.activeLayout,
       });
     }
 
@@ -73,8 +93,11 @@ export class ProcessTypingInputUseCase {
     return this.mapSessionToDto(updatedSession);
   }
 
-  private updateCursorPosition(session: TypingSession, input: string): CursorPosition {
-    const words = session.test.textContent.split(' ');
+  private updateCursorPosition(
+    session: TypingSession,
+    input: string
+  ): CursorPosition {
+    const words = session.test.textContent.split(" ");
 
     let charCount = 0;
     let wordIndex = 0;
@@ -103,11 +126,15 @@ export class ProcessTypingInputUseCase {
       characterIndex: input.length,
       wordIndex: Math.min(wordIndex, words.length - 1),
       lineNumber: 0,
-      columnNumber: Math.max(0, charIndex)
+      columnNumber: Math.max(0, charIndex),
     };
   }
 
-  private detectMistakes(session: TypingSession, previousInput: string, timestamp: number): TypingMistake[] {
+  private detectMistakes(
+    session: TypingSession,
+    previousInput: string,
+    timestamp: number
+  ): TypingMistake[] {
     const targetText = session.test.textContent;
     const currentInput = session.currentInput;
     const mistakes: TypingMistake[] = [];
@@ -115,7 +142,11 @@ export class ProcessTypingInputUseCase {
     // Only check for new mistakes in the newly typed characters
     const startIndex = previousInput.length;
 
-    for (let i = startIndex; i < currentInput.length && i < targetText.length; i++) {
+    for (
+      let i = startIndex;
+      i < currentInput.length && i < targetText.length;
+      i++
+    ) {
       const expectedChar = targetText[i];
       const actualChar = currentInput[i];
 
@@ -125,7 +156,7 @@ export class ProcessTypingInputUseCase {
           expected: expectedChar,
           actual: actualChar,
           timestamp,
-          corrected: false
+          corrected: false,
         };
 
         mistakes.push(mistake);
@@ -135,7 +166,10 @@ export class ProcessTypingInputUseCase {
     return mistakes;
   }
 
-  private updateLiveStats(session: TypingSession, timestamp: number): LiveTypingStats {
+  private updateLiveStats(
+    session: TypingSession,
+    timestamp: number
+  ): LiveTypingStats {
     if (!session.startTime) return session.liveStats;
 
     const timeElapsed = (timestamp - session.startTime) / 1000; // seconds
@@ -144,11 +178,15 @@ export class ProcessTypingInputUseCase {
     // Calculate WPM (words per minute)
     const correctChars = this.countCorrectCharacters(session);
     const words = correctChars / 5; // Standard: 5 characters = 1 word
-    const currentWPM = timeElapsedMinutes > 0 ? Math.round(words / timeElapsedMinutes) : 0;
+    const currentWPM =
+      timeElapsedMinutes > 0 ? Math.round(words / timeElapsedMinutes) : 0;
 
     const totalTyped = session.currentInput.length;
     const errorCount = session.mistakes.length;
-    const currentAccuracy = totalTyped > 0 ? Math.round(((totalTyped - errorCount) / totalTyped) * 100) : 100;
+    const currentAccuracy =
+      totalTyped > 0
+        ? Math.round(((totalTyped - errorCount) / totalTyped) * 100)
+        : 100;
 
     const totalChars = session.test.textContent.length;
     const progress = totalChars > 0 ? (totalTyped / totalChars) * 100 : 0;
@@ -160,7 +198,7 @@ export class ProcessTypingInputUseCase {
       errorRate: errorCount / Math.max(totalTyped, 1),
       timeElapsed: Math.round(timeElapsed),
       elapsedTime: Math.round(timeElapsed),
-      progress: Math.min(progress, 100)
+      progress: Math.min(progress, 100),
     };
   }
 
@@ -191,8 +229,9 @@ export class ProcessTypingInputUseCase {
     const currentInput = session.currentInput;
 
     // Text must be complete in length AND correct
-    return currentInput.length >= targetText.length &&
-      currentInput === targetText;
+    return (
+      currentInput.length >= targetText.length && currentInput === targetText
+    );
   }
 
   private mapSessionToDto(session: TypingSession): TypingSessionDto {
@@ -202,7 +241,7 @@ export class ProcessTypingInputUseCase {
       mode: session.test.mode,
       difficulty: session.test.difficulty,
       language: session.test.language,
-      keyboardLayoutId: session.activeLayout?.id || '',
+      keyboardLayoutId: session.activeLayout?.id || "",
       textContent: session.test.textContent,
       currentInput: session.currentInput,
       startTime: session.startTime,
@@ -211,14 +250,14 @@ export class ProcessTypingInputUseCase {
       currentWPM: session.liveStats.currentWPM,
       currentAccuracy: session.liveStats.currentAccuracy,
       progress: session.liveStats.progress,
-      mistakes: session.mistakes.map(m => ({
+      mistakes: session.mistakes.map((m) => ({
         position: m.position,
         expected: m.expected,
         actual: m.actual,
         timestamp: m.timestamp,
-        corrected: m.corrected
+        corrected: m.corrected,
       })),
-      isActive: session.status === SessionStatus.ACTIVE
+      isActive: session.status === SessionStatus.ACTIVE,
     };
   }
 }
