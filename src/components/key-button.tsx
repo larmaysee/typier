@@ -10,42 +10,30 @@ export type KeyProps = {
   onClick?: () => void;
 };
 
-export default function KeyButton({
-  label,
-  value,
-  className,
-  shiftKey,
-  pressedKey,
-  onClick,
-}: KeyProps) {
-  const isPressed = pressedKey === label;
+export default function KeyButton({ label, value, className, shiftKey, pressedKey, onClick }: KeyProps) {
+  const isPressed = pressedKey === value;
   const isModifierKey = isModifier(value);
   const displayLabel = isModifierKey ? titlecase(label) : label;
+  const isEmpty = !displayLabel || displayLabel.trim() === "";
+
   return (
     <Button
       value={label}
-      variant={"outline"}
+      variant={"secondary"}
+      disabled={isEmpty}
       className={cn(
-        "key-button relative p-2",
+        "key-button relative p-2 border",
         `key-${keyname(value).toLowerCase()}`,
-        isPressed ? "bg-primary" : "",
+        isPressed ? "bg-primary text-primary-foreground" : "",
+        isEmpty && "opacity-30 cursor-not-allowed",
         className
       )}
-      onClick={onClick}
+      onClick={isEmpty ? undefined : onClick}
     >
       {shiftKey && label !== shiftKey && (
-        <span className="absolute top-1 right-1 animate text-muted-foreground text-xs">
-          {shiftKey}
-        </span>
+        <span className="absolute top-1 right-1 animate text-muted-foreground text-xs">{shiftKey}</span>
       )}
-      <span
-        className={cn(
-          "z-10 min-w-5",
-          isModifierKey ? "text-sm" : "font-medium text-lg"
-        )}
-      >
-        {displayLabel}
-      </span>
+      <span className={cn("z-10 min-w-5", isModifierKey ? "text-sm" : "font-medium text-lg")}>{displayLabel}</span>
     </Button>
   );
 }

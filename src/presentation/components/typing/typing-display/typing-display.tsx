@@ -1,5 +1,6 @@
 "use client";
 
+import { usePracticeMode } from "@/components/pratice-mode";
 import { useSiteConfig } from "@/components/site-config";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -30,7 +31,25 @@ export default function TypingDisplay({
   onKeyDown,
 }: TypingDisplayProps) {
   const { config } = useSiteConfig();
+  const { setActiveChar } = usePracticeMode();
   const textContainerRef = useRef<HTMLDivElement>(null);
+
+  // Track current character for practice mode
+  useEffect(() => {
+    if (!config.practiceMode || !textContent || testCompleted) {
+      setActiveChar(null);
+      return;
+    }
+
+    // Calculate the current character that needs to be typed
+    const currentIndex = session.typedText.length;
+    if (currentIndex < textContent.length) {
+      const currentChar = textContent[currentIndex];
+      setActiveChar(currentChar === " " ? "spacebar" : currentChar);
+    } else {
+      setActiveChar(null);
+    }
+  }, [config.practiceMode, textContent, session.typedText, testCompleted, setActiveChar]);
 
   // Global keyboard event listener to focus input when not focused
   useEffect(() => {
