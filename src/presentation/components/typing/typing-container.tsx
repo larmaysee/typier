@@ -43,14 +43,7 @@ function TypingContainerInner() {
     calculateWPM,
   } = useTypingSession();
 
-  const {
-    handleInput,
-    handleRefresh,
-    handleFocus,
-    handleBlur,
-    handleKeyDown,
-    setSelectedTime,
-  } = useSessionControls({
+  const { handleInput, handleRefresh, handleFocus, handleBlur, handleKeyDown, setSelectedTime } = useSessionControls({
     session,
     setState,
     inputRef,
@@ -74,19 +67,13 @@ function TypingContainerInner() {
 
   const { resolve, serviceTokens } = useDependencyInjection();
   const { config } = useSiteConfig();
-  const [currentLayout, setCurrentLayout] = useState<KeyboardLayout | null>(
-    null
-  );
+  const [currentLayout, setCurrentLayout] = useState<KeyboardLayout | null>(null);
   const loadInitialLayout = useCallback(async () => {
     try {
-      const layoutManager = resolve<ILayoutManagerService>(
-        serviceTokens.LAYOUT_MANAGER_SERVICE
-      );
+      const layoutManager = resolve<ILayoutManagerService>(serviceTokens.LAYOUT_MANAGER_SERVICE);
 
       // Get all layouts for current language
-      const layouts = await layoutManager.getLayoutsForLanguage(
-        config.language.code
-      );
+      const layouts = await layoutManager.getLayoutsForLanguage(config.language.code);
 
       if (layouts.length > 0) {
         // Try to get the default layout for this language or first available
@@ -107,9 +94,7 @@ function TypingContainerInner() {
   const handleLayoutChange = useCallback(
     async (layoutId: string) => {
       try {
-        const layoutManager = resolve<ILayoutManagerService>(
-          serviceTokens.LAYOUT_MANAGER_SERVICE
-        );
+        const layoutManager = resolve<ILayoutManagerService>(serviceTokens.LAYOUT_MANAGER_SERVICE);
 
         const layout = await layoutManager.getLayoutById(layoutId);
         if (layout) {
@@ -126,10 +111,7 @@ function TypingContainerInner() {
     return (
       <div className="text-center py-12">
         <div className="text-red-500 mb-2">⚠️ {error}</div>
-        <button
-          onClick={handleRefresh}
-          className="px-4 py-2 bg-primary text-primary-foreground rounded"
-        >
+        <button onClick={handleRefresh} className="px-4 py-2 bg-primary text-primary-foreground rounded">
           Try Again
         </button>
       </div>
@@ -153,10 +135,7 @@ function TypingContainerInner() {
       )}
 
       <div className="relative">
-        <FocusOverlay
-          isVisible={!isFocused && !testCompleted}
-          onClick={handleFocusOverlayClick}
-        />
+        <FocusOverlay isVisible={!isFocused && !testCompleted} onClick={handleFocusOverlayClick} />
 
         <TypingDisplay
           textContent={textContent}

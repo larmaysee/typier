@@ -178,7 +178,7 @@ export default function TypingDisplay({
                       "relative flex items-center justify-center min-w-[40px] h-[40px] rounded-md border text-xl font-medium transition-colors",
                       bgColor,
                       textColor,
-                      char === " " ? "min-w-[20px] bg-transparent border-dashed" : ""
+                      char === " " ? "min-w-[40px] bg-transparent border-dashed" : ""
                     )}
                   >
                     {char === " " ? "⎵" : char}
@@ -192,52 +192,52 @@ export default function TypingDisplay({
           ) : (
             // Sentence mode with original styling
             <div className="words flex flex-wrap relative leading-relaxed">
-              {textContent?.split(" ").map((word, wordIndex) => (
-                <div
-                  key={wordIndex}
-                  className={`word word-${wordIndex} h-[30px] flex items-baseline mr-2 ${getWordClass(wordIndex)}${
-                    getActiveWordIndex() === wordIndex ? " active" : ""
-                  }`}
-                >
-                  {word.split("").map((char, charIndex) => {
-                    const isCursorPosition =
-                      session.cursorPosition.wordIndex === wordIndex &&
-                      session.cursorPosition.charIndex === charIndex &&
-                      !session.cursorPosition.isSpacePosition;
+              {textContent?.split(" ").map((word, wordIndex) => {
+                // Calculate if this word should show any cursor
+                const isCurrentWord = session.cursorPosition.wordIndex === wordIndex;
+                const shouldShowSpaceCursor = isCurrentWord && session.cursorPosition.isSpacePosition;
+                const shouldShowEndOfWordCursor =
+                  isCurrentWord &&
+                  session.cursorPosition.charIndex === word.length &&
+                  !session.cursorPosition.isSpacePosition;
 
-                    return (
-                      <span
-                        key={charIndex}
-                        className={`letter letter-${charIndex} text-2xl relative ${getLetterClass(
-                          wordIndex,
-                          charIndex
-                        )}`}
-                      >
-                        {char}
-                        {isCursorPosition && isFocused && !testCompleted && (
-                          <span className="absolute left-0 top-0 w-0.5 h-full bg-primary animate-pulse" />
-                        )}
-                      </span>
-                    );
-                  })}
-                  {/* Space cursor - show when at end of current word and ready for space */}
-                  {session.cursorPosition.wordIndex === wordIndex &&
-                    session.cursorPosition.isSpacePosition &&
-                    isFocused &&
-                    !testCompleted && (
-                      <span className="relative ml-1">
-                        <span className="absolute left-0 top-0 w-0.5 h-full bg-primary animate-pulse" />
-                      </span>
-                    )}
-                  {/* Show cursor at start of word if we're positioned there */}
-                  {session.cursorPosition.wordIndex === wordIndex &&
-                    session.cursorPosition.charIndex === 0 &&
-                    !session.cursorPosition.isSpacePosition &&
-                    word.length > 0 &&
-                    isFocused &&
-                    !testCompleted && <span className="absolute left-1 top-0 w-0.5 h-full bg-primary animate-pulse" />}
-                </div>
-              ))}
+                console.log("isSpacePosition ", session.cursorPosition.isSpacePosition);
+
+                return (
+                  <div
+                    key={wordIndex}
+                    className={`word word-${wordIndex} h-[30px] flex items-baseline mr-2 ${getWordClass(wordIndex)}${
+                      getActiveWordIndex() === wordIndex ? " active" : ""
+                    }`}
+                  >
+                    {word.split("").map((char, charIndex) => {
+                      const isCursorPosition =
+                        isCurrentWord &&
+                        session.cursorPosition.charIndex === charIndex &&
+                        !session.cursorPosition.isSpacePosition;
+
+                      return (
+                        <span
+                          key={charIndex}
+                          className={`letter letter-${charIndex} text-2xl relative ${getLetterClass(
+                            wordIndex,
+                            charIndex
+                          )}`}
+                        >
+                          {char}
+                          {isCursorPosition && !testCompleted && (
+                            <span className="absolute left-0 top-0 w-0.5 h-full bg-primary animate-pulse" />
+                          )}
+
+                          {shouldShowSpaceCursor && charIndex === word.length - 1 && !testCompleted && (
+                            <span className="absolute right-0 top-0 w-0.5 h-full bg-primary animate-pulse" />
+                          )}
+                        </span>
+                      );
+                    })}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
