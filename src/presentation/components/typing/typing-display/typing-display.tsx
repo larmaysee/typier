@@ -3,6 +3,7 @@
 import { usePracticeMode } from "@/components/pratice-mode";
 import { useSiteConfig } from "@/components/site-config";
 import { Input } from "@/components/ui/input";
+import { TextType } from "@/domain";
 import { cn } from "@/lib/utils";
 import { TypingSessionState } from "@/presentation/hooks/typing/use-typing-session";
 import { useEffect, useRef } from "react";
@@ -12,6 +13,7 @@ interface TypingDisplayProps {
   session: TypingSessionState;
   isFocused: boolean;
   testCompleted: boolean;
+  showResults: boolean; // Add showResults prop
   inputRef: React.RefObject<HTMLInputElement>;
   onInput: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onFocus: () => void;
@@ -24,6 +26,7 @@ export default function TypingDisplay({
   session,
   isFocused,
   testCompleted,
+  showResults, // Use the new prop
   inputRef,
   onInput,
   onFocus,
@@ -169,7 +172,7 @@ export default function TypingDisplay({
         )}
 
         <div className={cn("databox relative focus-visible:border-primary overflow-hidden h-[150px]")}>
-          {config.difficultyMode === "chars" ? (
+          {config.textType === TextType.CHARS ? (
             // Character mode with special styling
             <div className="flex flex-wrap gap-2 p-2">
               {textContent?.split("").map((char, charIndex) => {
@@ -261,8 +264,8 @@ export default function TypingDisplay({
           )}
         </div>
 
-        {/* Completion message */}
-        {testCompleted && (
+        {/* Completion message - only show if results modal is not showing */}
+        {testCompleted && !showResults && (
           <div className="absolute inset-0 bg-background/80 backdrop-blur-sm rounded-lg flex items-center justify-center">
             <div className="text-center space-y-2">
               <div className="text-4xl">🎉</div>

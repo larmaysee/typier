@@ -15,6 +15,7 @@ export enum DifficultyLevel {
 
 export enum TextType {
   WORDS = "words",
+  NUMBERS = "numbers",
   SENTENCES = "sentences",
   PARAGRAPHS = "paragraphs",
   CHARS = "chars",

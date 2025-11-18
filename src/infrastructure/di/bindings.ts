@@ -12,11 +12,8 @@ import {
   ITypingRepository,
   IUserRepository,
 } from "../../domain/interfaces/repositories";
-import {
-  DomainEvent,
-  IEventBus,
-  ITextGenerationService,
-} from "../../domain/interfaces/services";
+import { DomainEvent, IEventBus } from "../../domain/interfaces/services";
+import { ITextGenerationService } from "../../domain/interfaces/text-generation.interface";
 
 // Import actual implementations
 import { GetAvailableLayoutsUseCase } from "../../application/use-cases/keyboard-layouts/get-available-layouts";
@@ -122,14 +119,10 @@ export interface FeatureFlags {
 // Service registration functions
 export function registerCoreServices(): void {
   // Environment Configuration
-  container.registerSingleton(SERVICE_TOKENS.ENVIRONMENT_CONFIG, () =>
-    createEnvironmentConfig()
-  );
+  container.registerSingleton(SERVICE_TOKENS.ENVIRONMENT_CONFIG, () => createEnvironmentConfig());
 
   // Feature Flags
-  container.registerSingleton(SERVICE_TOKENS.FEATURE_FLAGS, () =>
-    createFeatureFlags()
-  );
+  container.registerSingleton(SERVICE_TOKENS.FEATURE_FLAGS, () => createFeatureFlags());
 
   // Logger Service
   container.registerSingleton(SERVICE_TOKENS.LOGGER, () => createLogger());
@@ -137,150 +130,66 @@ export function registerCoreServices(): void {
 
 export function registerRepositories(): void {
   // Repository services using mock implementations for development
-  container.registerSingleton(
-    SERVICE_TOKENS.TYPING_REPOSITORY,
-    () => new MockTypingRepository()
-  );
-  container.registerSingleton(
-    SERVICE_TOKENS.KEYBOARD_LAYOUT_REPOSITORY,
-    () => new MockKeyboardLayoutRepository()
-  );
-  container.registerSingleton(
-    SERVICE_TOKENS.USER_REPOSITORY,
-    () => new MockUserRepository()
-  );
-  container.registerSingleton(
-    SERVICE_TOKENS.SESSION_REPOSITORY,
-    () => new MockSessionRepository()
-  );
-  container.registerSingleton(
-    SERVICE_TOKENS.STATISTICS_REPOSITORY,
-    () => new MockStatisticsRepository()
-  );
+  container.registerSingleton(SERVICE_TOKENS.TYPING_REPOSITORY, () => new MockTypingRepository());
+  container.registerSingleton(SERVICE_TOKENS.KEYBOARD_LAYOUT_REPOSITORY, () => new MockKeyboardLayoutRepository());
+  container.registerSingleton(SERVICE_TOKENS.USER_REPOSITORY, () => new MockUserRepository());
+  container.registerSingleton(SERVICE_TOKENS.SESSION_REPOSITORY, () => new MockSessionRepository());
+  container.registerSingleton(SERVICE_TOKENS.STATISTICS_REPOSITORY, () => new MockStatisticsRepository());
 }
 
 export function registerUseCases(): void {
   // Application use cases using dependency injection
-  container.registerTransient(
-    SERVICE_TOKENS.START_TYPING_SESSION_USE_CASE,
-    () => {
-      const sessionRepo = container.resolve<ISessionRepository>(
-        SERVICE_TOKENS.SESSION_REPOSITORY
-      );
-      const userRepo = container.resolve<IUserRepository>(
-        SERVICE_TOKENS.USER_REPOSITORY
-      );
-      const layoutRepo = container.resolve<IKeyboardLayoutRepository>(
-        SERVICE_TOKENS.KEYBOARD_LAYOUT_REPOSITORY
-      );
-      const textService = container.resolve<ITextGenerationService>(
-        SERVICE_TOKENS.TEXT_GENERATOR_SERVICE
-      );
-      return new StartTypingSessionUseCase(
-        sessionRepo,
-        userRepo,
-        layoutRepo,
-        textService
-      );
-    }
-  );
+  container.registerTransient(SERVICE_TOKENS.START_TYPING_SESSION_USE_CASE, () => {
+    const sessionRepo = container.resolve<ISessionRepository>(SERVICE_TOKENS.SESSION_REPOSITORY);
+    const userRepo = container.resolve<IUserRepository>(SERVICE_TOKENS.USER_REPOSITORY);
+    const layoutRepo = container.resolve<IKeyboardLayoutRepository>(SERVICE_TOKENS.KEYBOARD_LAYOUT_REPOSITORY);
+    const textService = container.resolve<ITextGenerationService>(SERVICE_TOKENS.TEXT_GENERATOR_SERVICE);
+    return new StartTypingSessionUseCase(sessionRepo, userRepo, layoutRepo, textService);
+  });
 
-  container.registerTransient(
-    SERVICE_TOKENS.PROCESS_TYPING_INPUT_USE_CASE,
-    () => {
-      const sessionRepo = container.resolve<ISessionRepository>(
-        SERVICE_TOKENS.SESSION_REPOSITORY
-      );
-      return new ProcessTypingInputUseCase(sessionRepo);
-    }
-  );
+  container.registerTransient(SERVICE_TOKENS.PROCESS_TYPING_INPUT_USE_CASE, () => {
+    const sessionRepo = container.resolve<ISessionRepository>(SERVICE_TOKENS.SESSION_REPOSITORY);
+    return new ProcessTypingInputUseCase(sessionRepo);
+  });
 
-  container.registerTransient(
-    SERVICE_TOKENS.COMPLETE_TYPING_SESSION_USE_CASE,
-    () => {
-      const sessionRepo = container.resolve<ISessionRepository>(
-        SERVICE_TOKENS.SESSION_REPOSITORY
-      );
-      const userRepo = container.resolve<IUserRepository>(
-        SERVICE_TOKENS.USER_REPOSITORY
-      );
-      const typingRepo = container.resolve<ITypingRepository>(
-        SERVICE_TOKENS.TYPING_REPOSITORY
-      );
-      return new CompleteTypingSessionUseCase(
-        sessionRepo,
-        typingRepo,
-        userRepo
-      );
-    }
-  );
+  container.registerTransient(SERVICE_TOKENS.COMPLETE_TYPING_SESSION_USE_CASE, () => {
+    const sessionRepo = container.resolve<ISessionRepository>(SERVICE_TOKENS.SESSION_REPOSITORY);
+    const userRepo = container.resolve<IUserRepository>(SERVICE_TOKENS.USER_REPOSITORY);
+    const typingRepo = container.resolve<ITypingRepository>(SERVICE_TOKENS.TYPING_REPOSITORY);
+    return new CompleteTypingSessionUseCase(sessionRepo, typingRepo, userRepo);
+  });
 
   // TODO: Add remaining use cases when their implementations are available
-  container.registerTransient(
-    SERVICE_TOKENS.GET_AVAILABLE_LAYOUTS_USE_CASE,
-    () => {
-      const layoutRepo = container.resolve<IKeyboardLayoutRepository>(
-        SERVICE_TOKENS.KEYBOARD_LAYOUT_REPOSITORY
-      );
-      const userRepo = container.resolve<IUserRepository>(
-        SERVICE_TOKENS.USER_REPOSITORY
-      );
-      return new GetAvailableLayoutsUseCase(layoutRepo, userRepo);
-    }
-  );
+  container.registerTransient(SERVICE_TOKENS.GET_AVAILABLE_LAYOUTS_USE_CASE, () => {
+    const layoutRepo = container.resolve<IKeyboardLayoutRepository>(SERVICE_TOKENS.KEYBOARD_LAYOUT_REPOSITORY);
+    const userRepo = container.resolve<IUserRepository>(SERVICE_TOKENS.USER_REPOSITORY);
+    return new GetAvailableLayoutsUseCase(layoutRepo, userRepo);
+  });
 
-  container.registerTransient(
-    SERVICE_TOKENS.SWITCH_KEYBOARD_LAYOUT_USE_CASE,
-    () => {
-      const layoutRepo = container.resolve<IKeyboardLayoutRepository>(
-        SERVICE_TOKENS.KEYBOARD_LAYOUT_REPOSITORY
-      );
-      const sessionRepo = container.resolve<ISessionRepository>(
-        SERVICE_TOKENS.SESSION_REPOSITORY
-      );
-      // For now, create a simple event bus that logs events
-      const mockEventBus: IEventBus = {
-        publish: async (event: DomainEvent) =>
-          console.log("Event published:", event),
-        subscribe: () => {},
-        unsubscribe: () => {},
-      };
-      return new SwitchKeyboardLayoutUseCase(
-        layoutRepo,
-        sessionRepo,
-        mockEventBus
-      );
-    }
-  );
+  container.registerTransient(SERVICE_TOKENS.SWITCH_KEYBOARD_LAYOUT_USE_CASE, () => {
+    const layoutRepo = container.resolve<IKeyboardLayoutRepository>(SERVICE_TOKENS.KEYBOARD_LAYOUT_REPOSITORY);
+    const sessionRepo = container.resolve<ISessionRepository>(SERVICE_TOKENS.SESSION_REPOSITORY);
+    // For now, create a simple event bus that logs events
+    const mockEventBus: IEventBus = {
+      publish: async (event: DomainEvent) => console.log("Event published:", event),
+      subscribe: () => {},
+      unsubscribe: () => {},
+    };
+    return new SwitchKeyboardLayoutUseCase(layoutRepo, sessionRepo, mockEventBus);
+  });
 
-  container.registerTransient(
-    SERVICE_TOKENS.CALCULATE_USER_STATISTICS_USE_CASE,
-    () => {
-      const typingRepo = container.resolve<ITypingRepository>(
-        SERVICE_TOKENS.TYPING_REPOSITORY
-      );
-      const userRepo = container.resolve<IUserRepository>(
-        SERVICE_TOKENS.USER_REPOSITORY
-      );
-      return new CalculateUserStatisticsUseCase(typingRepo, userRepo);
-    }
-  );
+  container.registerTransient(SERVICE_TOKENS.CALCULATE_USER_STATISTICS_USE_CASE, () => {
+    const typingRepo = container.resolve<ITypingRepository>(SERVICE_TOKENS.TYPING_REPOSITORY);
+    const userRepo = container.resolve<IUserRepository>(SERVICE_TOKENS.USER_REPOSITORY);
+    return new CalculateUserStatisticsUseCase(typingRepo, userRepo);
+  });
 }
 
 export function registerInfrastructureServices(): void {
   // Infrastructure services using mock implementations for development
-  container.registerSingleton(
-    SERVICE_TOKENS.TEXT_GENERATOR_SERVICE,
-    () => new MockTextGenerationService()
-  );
-  container.registerSingleton(
-    SERVICE_TOKENS.PERFORMANCE_TRACKER_SERVICE,
-    () => new MockPerformanceTrackerService()
-  );
-  container.registerSingleton(
-    SERVICE_TOKENS.NOTIFICATION_SERVICE,
-    () => new MockNotificationService()
-  );
+  container.registerSingleton(SERVICE_TOKENS.TEXT_GENERATOR_SERVICE, () => new MockTextGenerationService());
+  container.registerSingleton(SERVICE_TOKENS.PERFORMANCE_TRACKER_SERVICE, () => new MockPerformanceTrackerService());
+  container.registerSingleton(SERVICE_TOKENS.NOTIFICATION_SERVICE, () => new MockNotificationService());
 }
 
 export function registerKeyboardLayoutServices(): void {
@@ -306,26 +215,14 @@ export function registerKeyboardLayoutServices(): void {
     return new LayoutManagerService();
   });
 
-  container.registerSingleton(
-    SERVICE_TOKENS.LAYOUT_VALIDATOR_SERVICE,
-    () => new MockLayoutValidatorService()
-  );
+  container.registerSingleton(SERVICE_TOKENS.LAYOUT_VALIDATOR_SERVICE, () => new MockLayoutValidatorService());
 }
 
 export function registerExternalServices(): void {
   // External service integrations
-  container.registerSingleton(
-    SERVICE_TOKENS.APPWRITE_CLIENT_SERVICE,
-    () => new MockAppwriteClientService()
-  );
-  container.registerSingleton(
-    SERVICE_TOKENS.STORAGE_SERVICE,
-    () => new MockStorageService()
-  );
-  container.registerSingleton(
-    SERVICE_TOKENS.ANALYTICS_SERVICE,
-    () => new MockAnalyticsService()
-  );
+  container.registerSingleton(SERVICE_TOKENS.APPWRITE_CLIENT_SERVICE, () => new MockAppwriteClientService());
+  container.registerSingleton(SERVICE_TOKENS.STORAGE_SERVICE, () => new MockStorageService());
+  container.registerSingleton(SERVICE_TOKENS.ANALYTICS_SERVICE, () => new MockAnalyticsService());
 }
 
 // Helper functions to create default configurations

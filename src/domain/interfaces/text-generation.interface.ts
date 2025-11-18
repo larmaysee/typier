@@ -59,15 +59,21 @@ export interface ITextGenerationService {
   /**
    * Check if the service supports a specific language
    */
-  supportsLanguage(language: LanguageCode): boolean;
+  supportsLanguage(language: LanguageCode): Promise<boolean>;
 
   /**
    * Get available text types for a language
    */
-  getAvailableTextTypes(language: LanguageCode): TextType[];
+  getAvailableTextTypes(language: LanguageCode): Promise<TextType[]>;
 
   /**
    * Validate generated content
    */
   validateContent(content: string, config: TextGenerationConfig): Promise<boolean>;
+
+  /**
+   * Legacy methods for backward compatibility
+   */
+  validateText?(text: string, language: LanguageCode): Promise<boolean>;
+  getDifficultyScore?(text: string, language: LanguageCode): Promise<number>;
 }

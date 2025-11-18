@@ -1,4 +1,5 @@
 "use client";
+import AdsBlock from "@/components/ads-block";
 import { AuthProvider } from "@/components/auth-provider";
 import SettingsPage from "@/components/settings-page";
 import { SiteConfigProvider } from "@/components/site-config";
@@ -25,7 +26,7 @@ export default function Home() {
   }, []);
 
   if (!mounted) {
-    return null; // Prevent SSR/SSG rendering
+    return null;
   }
 
   return (
@@ -36,13 +37,8 @@ export default function Home() {
             <div className="grid grid-rows-[auto,1fr,auto] col-span-3 gap-2 min-h-screen">
               <SiteToolbox currentView={currentView} onViewChange={setCurrentView} />
 
-              <div
-                className={cn(
-                  "flex flex-col gap-4 w-full sm:p-4",
-                  currentView === "typing" ? "max-w-full px-4" : "md:max-w-[800px] md:m-auto"
-                )}
-              >
-                {/* <AdsBlock /> */}
+              <div className={cn("flex flex-col gap-4 flex-1 space-y-4 min-w-0 max-w-4xl mx-auto w-full")}>
+                <AdsBlock />
                 {currentView === "typing" ? (
                   <TypingWithKeyboard />
                 ) : currentView === "statistics" ? (

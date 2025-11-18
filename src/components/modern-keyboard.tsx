@@ -1,13 +1,15 @@
 /**
- * Modern Keyboard component using the new extensible layout system
+ * Modern Keyboard component using the Layout Manager Service
  */
 
 "use client";
 
-import { LanguageCode } from "@/domain";
+import { KeyboardLayout, LanguageCode } from "@/domain";
+import { ILayoutManagerService } from "@/domain/interfaces/keyboard-layout.interface";
 import { KeyDefinition, LanguageLayoutDefinition, ModifierState } from "@/domain/interfaces/language-layout-definition";
 import { keyboardLayoutRegistry } from "@/infrastructure/services/keyboard-layout-registry";
 import { cn, isModifier, keyname } from "@/lib/utils";
+import { useDependencyInjection } from "@/presentation/hooks/core/use-dependency-injection";
 import { useCallback, useEffect, useState } from "react";
 import KeyButton from "./key-button";
 import { usePracticeMode } from "./pratice-mode";
@@ -16,9 +18,11 @@ import { useSiteConfig } from "./site-config";
 export default function ModernKeyboard() {
   const { config } = useSiteConfig();
   const { activeChar, composekey } = usePracticeMode();
+  const { resolve, serviceTokens } = useDependencyInjection();
 
   // ===== STATE =====
   const [currentLayout, setCurrentLayout] = useState<LanguageLayoutDefinition | null>(null);
+  const [activeKeyboardLayout, setActiveKeyboardLayout] = useState<KeyboardLayout | null>(null);
   const [modifierState, setModifierState] = useState<ModifierState>({
     shift: false,
     alt: false,
@@ -30,7 +34,27 @@ export default function ModernKeyboard() {
 
   // ===== CHARACTER MAPPING UTILITIES =====
 
-  // Basic character finder for layout keys
+  // Find key for a character using Layout Manager Service
+  const findKeyForCharacterFromLayoutService = useCallback(
+    (character: string): string | null => {
+      if (!activeKeyboardLayout) return null;
+
+      for (const mapping of activeKeyboardLayout.keyMappings) {
+        if (
+          mapping.character === character ||
+          mapping.shiftCharacter === character ||
+          mapping.altCharacter === character ||
+          mapping.ctrlCharacter === character
+        ) {
+          return mapping.key;
+        }
+      }
+      return null;
+    },
+    [activeKeyboardLayout]
+  );
+
+  // Basic character finder for layout keys (legacy system for fallback)
   const findKeyForCharacter = useCallback(
     (character: string): KeyDefinition | null => {
       if (!currentLayout) return null;
@@ -52,91 +76,69 @@ export default function ModernKeyboard() {
     [currentLayout]
   );
 
-  // Lisu language character mapping (Latin to Lisu conversion)
-  const getListuCharacterMapping = useCallback((latinChar: string): string => {
-    const lisuMapping: Record<string, string> = {
-      // Lowercase letters
-      q: "q",
-      e: "ꓪ",
-      r: "ꓰ",
-      t: "ꓣ",
-      y: "ꓔ",
-      u: "ꓬ",
-      i: "ꓴ",
-      o: "ꓲ",
-      p: "ꓳ",
-      a: "ꓮ",
-      s: "ꓢ",
-      d: "ꓓ",
-      f: "ꓝ",
-      g: "ꓖ",
-      h: "ꓧ",
-      j: "ꓙ",
-      k: "ꓗ",
-      l: "ꓡ",
-      z: "ꓜ",
-      x: "ꓫ",
-      c: "ꓚ",
-      v: "ꓦ",
-      b: "ꓐ",
-      n: "ꓠ",
-      m: "ꓟ",
-
-      // Uppercase letters (shift variants)
-      E: "ꓱ",
-      R: "ꓤ",
-      T: "ꓕ",
-      Y: "ꓻ",
-      U: "ꓵ",
-      I: "꓾",
-      P: "ꓒ",
-      A: "ꓯ",
-      S: "ꓸꓼ",
-      D: "ꓷ",
-      F: "ꓞ",
-      G: "ꓨ",
-      H: "ꓺ",
-      J: "ꓩ",
-      K: "ꓘ",
-      L: "ꓶ",
-      C: "ꓛ",
-      V: "ꓥ",
-      B: "ꓭ",
-
-      // Special characters
-      "[": "ꓑ",
-      ";": "ꓼ",
-      "'": "ʼ",
-      ",": "ꓹ",
-      ".": "ꓸ",
-      ":": "ꓽ",
-    };
-
-    return lisuMapping[latinChar] || latinChar;
-  }, []);
-
-  // Enhanced character finder with Lisu support
+  // Enhanced character finder with Layout Manager Service support
   const findKeyForCharacterEnhanced = useCallback(
     (character: string): KeyDefinition | null => {
       if (!currentLayout) return null;
 
-      // Try direct character match first
-      let result = findKeyForCharacter(character);
-      if (result) return result;
-
-      // For Lisu language, try Latin-to-Lisu mapping
-      if (currentLayout.language === LanguageCode.LI) {
-        const lisuChar = getListuCharacterMapping(character);
-        if (lisuChar !== character) {
-          result = findKeyForCharacter(lisuChar);
-          if (result) return result;
+      // First, try to use the Layout Manager Service for accurate mapping
+      const keyFromService = findKeyForCharacterFromLayoutService(character);
+      if (keyFromService) {
+        // Find the corresponding key definition in the visual layout
+        for (const row of currentLayout.layout.rows) {
+          for (const key of row.keys) {
+            if (key.key === keyFromService) {
+              return key;
+            }
+          }
         }
       }
 
+      // Fallback to direct character match
+      const result = findKeyForCharacter(character);
+      if (result) return result;
+
       return null;
     },
-    [currentLayout, findKeyForCharacter, getListuCharacterMapping]
+    [currentLayout, findKeyForCharacter, findKeyForCharacterFromLayoutService]
   );
+
+  // ===== LAYOUT LOADING =====
+
+  // Load both visual layout and keyboard layout service
+  useEffect(() => {
+    const loadLayouts = async () => {
+      // Load visual layout from registry
+      await keyboardLayoutRegistry.ensureInitialized();
+      const layout = keyboardLayoutRegistry.getDefaultLayoutForLanguage(config.language.code as LanguageCode);
+
+      if (layout) {
+        setCurrentLayout(layout);
+        console.log(`Loaded visual layout: ${layout.metadata.name} for ${layout.language}`);
+      } else {
+        console.warn(`No visual layout found for language: ${config.language.code}`);
+      }
+
+      // Load keyboard layout from Layout Manager Service
+      try {
+        const layoutManager = resolve<ILayoutManagerService>(serviceTokens.LAYOUT_MANAGER_SERVICE);
+        const layouts = await layoutManager.getLayoutsForLanguage(config.language.code as LanguageCode);
+
+        if (layouts.length > 0) {
+          // Use the first available layout (or find SIL Basic for Lisu)
+          const lisuLayout = layouts.find((l) => l.id.includes("sil-basic")) || layouts[0];
+          setActiveKeyboardLayout(lisuLayout);
+          console.log(`Loaded keyboard layout: ${lisuLayout.name} (${lisuLayout.id})`);
+        } else {
+          console.warn(`No keyboard layouts found for language: ${config.language.code}`);
+        }
+      } catch (error) {
+        console.error("Failed to load keyboard layout from service:", error);
+      }
+    };
+
+    loadLayouts();
+  }, [config.language.code, resolve, serviceTokens]);
 
   // ===== MODIFIER & KEY STATE UTILITIES =====
 
@@ -239,23 +241,6 @@ export default function ModernKeyboard() {
   // ===== EFFECTS =====
 
   // ===== EFFECTS =====
-
-  // Load layout when language changes
-  useEffect(() => {
-    const loadLayout = async () => {
-      await keyboardLayoutRegistry.ensureInitialized();
-      const layout = keyboardLayoutRegistry.getDefaultLayoutForLanguage(config.language.code as LanguageCode);
-
-      if (layout) {
-        setCurrentLayout(layout);
-        console.log(`Loaded layout: ${layout.metadata.name} for ${layout.language}`);
-      } else {
-        console.warn(`No layout found for language: ${config.language.code}`);
-      }
-    };
-
-    loadLayout();
-  }, [config.language.code]);
 
   // Handle active character highlighting for practice mode
   useEffect(() => {

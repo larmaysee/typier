@@ -83,11 +83,10 @@ export function useTypingSession() {
   const processInputUseCase = resolve<ProcessTypingInputUseCase>(serviceTokens.PROCESS_TYPING_INPUT_USE_CASE);
   const completeSessionUseCase = resolve<CompleteTypingSessionUseCase>(serviceTokens.COMPLETE_TYPING_SESSION_USE_CASE);
 
-  // Map config difficulty mode to domain difficulty level
+  // Get difficulty level from config
   const getDifficultyLevel = useCallback((): DifficultyLevel => {
-    if (config.difficultyMode === "chars") return DifficultyLevel.EASY;
-    return DifficultyLevel.MEDIUM; // Default for sentence mode
-  }, [config.difficultyMode]);
+    return config.difficultyLevel;
+  }, [config.difficultyLevel]);
 
   // Map config to typing mode
   const getTypingMode = useCallback((): TypingMode => {
@@ -95,14 +94,22 @@ export function useTypingSession() {
     return TypingMode.NORMAL; // Default mode
   }, [config.practiceMode]);
 
-  // Map config difficulty mode to text type
+  // Get text type from config
   const getTextType = useCallback((): TextType => {
-    return config.difficultyMode === "chars" ? TextType.CHARS : TextType.SENTENCES;
-  }, [config.difficultyMode]);
+    return config.textType;
+  }, [config.textType]);
 
   // Start new session
   const startNewSession = useCallback(async () => {
     try {
+      console.log("🚀 [startNewSession] Starting new session with config:", {
+        language: config.language.code,
+        practiceMode: config.practiceMode,
+        textType: config.textType,
+        difficultyLevel: config.difficultyLevel,
+        selectedTime: selectedTimeRef.current,
+      });
+
       setIsLoading(true);
       setError(null);
 
@@ -115,7 +122,16 @@ export function useTypingSession() {
         textType: getTextType(),
       };
 
+      console.log("🚀 [startNewSession] Executing StartSessionCommand:", command);
+
       const response = await startSessionUseCase.execute(command);
+
+      console.log("✅ [startNewSession] Session started successfully:", {
+        sessionId: response.session.id,
+        textContentLength: response.textContent?.length,
+        textPreview: response.textContent?.substring(0, 100) + "...",
+        timeLeft: response.session.timeLeft,
+      });
 
       setState((prev) => ({
         ...prev,
@@ -134,10 +150,12 @@ export function useTypingSession() {
         progress: 0,
         cursorPosition: { wordIndex: 0, charIndex: 0, isSpacePosition: false },
       }));
+
+      console.log("✅ [startNewSession] State updated successfully");
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to start typing session";
       setError(errorMessage);
-      console.error("Error starting session:", err);
+      console.error("❌ [startNewSession] Error starting session:", err);
     } finally {
       setIsLoading(false);
     }
@@ -146,7 +164,8 @@ export function useTypingSession() {
     startSessionUseCase,
     config.language.code,
     config.practiceMode,
-    config.difficultyMode,
+    config.textType,
+    config.difficultyLevel,
     // selectedTime now uses ref, getTypingMode, getDifficultyLevel, getTextType are stable functions
   ]);
 
@@ -228,6 +247,15 @@ export function useTypingSession() {
         cursorPosition: calculateCursorPosition(sessionDto.currentInput, prev.currentData),
       }));
 
+      // If session just completed, trigger completion logic
+      if (sessionDto.status === "completed" && !state.testCompleted) {
+        console.log("🏁 Session completed during input processing, triggering completion...");
+        // Use setTimeout to ensure state update happens first
+        setTimeout(() => {
+          completeSession();
+        }, 0);
+      }
+
       // Ensure input field value is synchronized (for uncontrolled scenarios)
       if (inputRef.current && inputRef.current.value !== sessionDto.currentInput) {
         inputRef.current.value = sessionDto.currentInput;
@@ -261,18 +289,45 @@ export function useTypingSession() {
   // Complete session
   const completeSession = useCallback(async () => {
     const currentSessionId = sessionIdRef.current;
-    if (!currentSessionId) return;
+    if (!currentSessionId) {
+      console.log("❌ Complete session called but no session ID");
+      return;
+    }
 
     try {
-      const command: CompleteSessionCommandDTO = {
+      console.log("🏁 Starting session completion...", {
         sessionId: currentSessionId,
         finalInput: typedTextRef.current,
+        inputLength: typedTextRef.current.length,
+        stateTypedText: state.typedText,
+        currentData: state.currentData?.substring(0, 50) + "...",
+      });
+
+      // Use state.typedText as fallback if ref is empty
+      const finalInput = typedTextRef.current || state.typedText || "";
+
+      console.log("🔄 Using finalInput:", { finalInput, length: finalInput.length });
+
+      const command: CompleteSessionCommandDTO = {
+        sessionId: currentSessionId,
+        finalInput,
         completionTime: Date.now(),
         isManualCompletion: false,
       };
 
       const completedSession = await completeSessionUseCase.execute(command);
       const results = completedSession.test.results;
+
+      console.log("✅ Session completed successfully", {
+        wpm: results.wpm,
+        accuracy: results.accuracy,
+        correctWords: results.correctWords,
+        incorrectWords: results.incorrectWords,
+        duration: results.duration,
+        charactersTyped: results.charactersTyped,
+        errors: results.errors,
+        rawResults: results,
+      });
 
       // Calculate legacy format for existing components
       const totalWords = results.correctWords + results.incorrectWords;
@@ -288,19 +343,30 @@ export function useTypingSession() {
         errors: results.errors,
       };
 
+      console.log("📊 Test result calculated", testResult);
+
+      console.log("🔄 About to update state with:", {
+        showResults: true,
+        testCompleted: true,
+        lastTestResult: testResult,
+      });
+
       addTestResult(testResult);
 
       setState((prev) => ({
         ...prev,
         lastTestResult: testResult,
         showResults: true,
+        testCompleted: true,
         correctWords: results.correctWords,
         incorrectWords: results.incorrectWords,
       }));
+
+      console.log("✅ State updated - should show results modal now");
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to complete session";
       setError(errorMessage);
-      console.error("Error completing session:", err);
+      console.error("❌ Error completing session:", err);
     }
     // completeSessionUseCase and addTestResult are stable functions
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -319,29 +385,43 @@ export function useTypingSession() {
   // Use a ref to track if we need to start a new session
   const configRef = useRef({
     language: config.language.code,
-    difficultyMode: config.difficultyMode,
+    textType: config.textType,
+    difficultyLevel: config.difficultyLevel,
     practiceMode: config.practiceMode,
   });
 
   useEffect(() => {
     const hasConfigChanged =
       configRef.current.language !== config.language.code ||
-      configRef.current.difficultyMode !== config.difficultyMode ||
+      configRef.current.textType !== config.textType ||
+      configRef.current.difficultyLevel !== config.difficultyLevel ||
       configRef.current.practiceMode !== config.practiceMode;
 
     if (hasConfigChanged) {
       configRef.current = {
         language: config.language.code,
-        difficultyMode: config.difficultyMode,
+        textType: config.textType,
+        difficultyLevel: config.difficultyLevel,
         practiceMode: config.practiceMode,
       };
       startNewSession();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [config.language.code, config.difficultyMode, config.practiceMode]);
+  }, [config.language.code, config.textType, config.difficultyLevel, config.practiceMode]);
 
-  // Update time left
+  // Initialize session on initial mount
+  const hasMountedRef = useRef(false);
   useEffect(() => {
+    if (!hasMountedRef.current && !state.sessionId) {
+      console.log("🚀 Starting initial session on mount...");
+      hasMountedRef.current = true;
+      startNewSession();
+    }
+  }, [startNewSession, state.sessionId]);
+
+  // Update time left (in practice mode, time is optional)
+  useEffect(() => {
+    // In practice mode, we still track time but don't enforce limits
     setState((prev) => ({ ...prev, timeLeft: state.selectedTime }));
   }, [state.selectedTime]);
 
@@ -359,9 +439,12 @@ export function useTypingSession() {
     // Will be re-added when practice mode is refactored to clean architecture
   }, [config.practiceMode, state.currentData]);
 
-  // Timer countdown
+  // Timer countdown (optional in practice mode)
   useEffect(() => {
-    if (state.startTime !== null && state.timeLeft > 0 && !state.testCompleted) {
+    // Only run timer if not in practice mode, or if user has explicitly started timing
+    const shouldRunTimer = !config.practiceMode;
+
+    if (shouldRunTimer && state.startTime !== null && state.timeLeft > 0 && !state.testCompleted) {
       const timer = setInterval(() => {
         setState((prev) => ({
           ...prev,
@@ -371,16 +454,30 @@ export function useTypingSession() {
 
       return () => clearInterval(timer);
     }
-  }, [state.startTime, state.testCompleted, state.timeLeft]);
+  }, [state.startTime, state.testCompleted, state.timeLeft, config.practiceMode]);
 
-  // Auto-complete when time runs out
+  // Auto-complete when time runs out (not in practice mode)
   useEffect(() => {
-    if (state.timeLeft === 0 && !state.testCompleted && state.sessionId) {
+    const shouldAutoComplete = !config.practiceMode;
+
+    console.log("⏰ Timer check:", {
+      shouldAutoComplete,
+      timeLeft: state.timeLeft,
+      testCompleted: state.testCompleted,
+      sessionId: state.sessionId,
+      practiceMode: config.practiceMode,
+      showResults: state.showResults,
+      lastTestResult: !!state.lastTestResult,
+    });
+
+    // Auto-complete if timer runs out AND we haven't already processed results
+    if (shouldAutoComplete && state.timeLeft === 0 && !state.showResults && state.sessionId) {
+      console.log("🏁 Auto-completing session due to timer...");
       completeSession();
     }
     // completeSession is stable, doesn't need to be in deps
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.timeLeft, state.testCompleted, state.sessionId]);
+  }, [state.timeLeft, state.testCompleted, state.sessionId, state.showResults]);
 
   return {
     session: state,

@@ -1,35 +1,21 @@
 "use client";
 
-import { memo } from "react";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { RotateCcw } from "lucide-react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { memo } from "react";
 
 interface RefreshButtonProps {
   onRefresh: () => void;
   disabled?: boolean;
 }
 
-export const RefreshButton = memo(function RefreshButton({
-  onRefresh,
-  disabled = false,
-}: RefreshButtonProps) {
+export const RefreshButton = memo(function RefreshButton({ onRefresh, disabled = false }: RefreshButtonProps) {
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onRefresh}
-            disabled={disabled}
-            className="h-9"
-          >
+          <Button variant="outline" size="icon" onClick={onRefresh} disabled={disabled}>
             <RotateCcw className="h-4 w-4" />
           </Button>
         </TooltipTrigger>

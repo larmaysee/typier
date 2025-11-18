@@ -43,15 +43,13 @@ export class EnglishTextService implements ITextGenerationService {
     };
   }
 
-  supportsLanguage(language: LanguageCode): boolean {
+  async supportsLanguage(language: LanguageCode): Promise<boolean> {
     return language === LanguageCode.EN;
   }
 
-  getAvailableTextTypes(language: LanguageCode): TextType[] {
-    if (language !== LanguageCode.EN) {
-      return [];
-    }
-    return [TextType.CHARS, TextType.WORDS, TextType.SENTENCES, TextType.PARAGRAPHS];
+  async getAvailableTextTypes(language: LanguageCode): Promise<TextType[]> {
+    if (language !== LanguageCode.EN) return [];
+    return [TextType.CHARS, TextType.WORDS, TextType.NUMBERS, TextType.SENTENCES, TextType.PARAGRAPHS, TextType.CODE];
   }
 
   async validateContent(content: string, config: TextGenerationConfig): Promise<boolean> {

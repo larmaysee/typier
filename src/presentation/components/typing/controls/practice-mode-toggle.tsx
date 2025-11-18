@@ -1,23 +1,16 @@
 "use client";
 
-import { memo } from "react";
 import { useSiteConfig } from "@/components/site-config";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ToggleLeft, ToggleRight } from "lucide-react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { memo } from "react";
 
 interface PracticeModeToggleProps {
   disabled?: boolean;
 }
 
-export const PracticeModeToggle = memo(function PracticeModeToggle({
-  disabled = false,
-}: PracticeModeToggleProps) {
+export const PracticeModeToggle = memo(function PracticeModeToggle({ disabled = false }: PracticeModeToggleProps) {
   const { config, setConfig } = useSiteConfig();
 
   const handleToggle = async () => {
@@ -33,17 +26,12 @@ export const PracticeModeToggle = memo(function PracticeModeToggle({
         <TooltipTrigger asChild>
           <Button
             variant={config.practiceMode ? "default" : "outline"}
-            size="sm"
+            size="icon"
             onClick={handleToggle}
             disabled={disabled}
-            className="h-9 gap-2"
+            className="gap-2"
           >
-            {config.practiceMode ? (
-              <ToggleRight className="h-4 w-4" />
-            ) : (
-              <ToggleLeft className="h-4 w-4" />
-            )}
-            <span className="hidden md:inline">Practice</span>
+            {config.practiceMode ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
           </Button>
         </TooltipTrigger>
         <TooltipContent>

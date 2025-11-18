@@ -1,5 +1,5 @@
-import { Account, Client, Databases, ID, Query } from "appwrite";
 import { LanguageCode } from "@/domain";
+import { Account, Client, Databases, ID, Query } from "appwrite";
 
 const client = new Client();
 
@@ -8,23 +8,21 @@ const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT;
 const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID;
 
 if (endpoint && projectId) {
-  client
-    .setEndpoint(endpoint)
-    .setProject(projectId);
+  client.setEndpoint(endpoint).setProject(projectId);
 } else {
-  console.warn('Appwrite environment variables not configured properly');
+  console.warn("Appwrite environment variables not configured properly");
 }
 
 const account = new Account(client);
 const databases = new Databases(client);
 
 // Database configuration
-export const DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID || 'typoria-db';
+export const DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID || "typoria-db";
 export const COLLECTIONS = {
-  USERS: process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_USERS || 'users',
-  TYPING_TESTS: process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_TYPING_TESTS || 'typing_tests',
-  LEADERBOARDS: process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_LEADERBOARDS || 'leaderboards',
-  USER_SETTINGS: process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_USER_SETTINGS || 'user_settings'
+  USERS: process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_USERS || "users",
+  TYPING_TESTS: process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_TYPING_TESTS || "typing_tests",
+  LEADERBOARDS: process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_LEADERBOARDS || "leaderboards",
+  USER_SETTINGS: process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_USER_SETTINGS || "user_settings",
 } as const;
 
 // Type definitions for database documents
@@ -48,7 +46,7 @@ export interface TypingTestDocument {
   incorrect_words: number;
   total_words: number;
   duration: number;
-  language: 'english' | 'lisu' | 'myanmar';
+  language: "english" | "lisu" | "myanmar";
   characters_typed: number;
   errors: number;
   test_date: string;
@@ -61,8 +59,8 @@ export interface LeaderboardDocument {
   user_id: string;
   username: string;
   best_wpm: number;
-  language: 'english' | 'lisu' | 'myanmar';
-  duration_category: '15' | '30' | '60' | '120';
+  language: "english" | "lisu" | "myanmar";
+  duration_category: "15" | "30" | "60" | "120";
   $createdAt: string;
   $updatedAt: string;
 }
@@ -70,34 +68,43 @@ export interface LeaderboardDocument {
 export interface UserSettingsDocument {
   $id: string;
   user_id: string;
-  theme: 'light' | 'dark' | 'system';
-  preferred_language: 'english' | 'lisu' | 'myanmar';
+  theme: "light" | "dark" | "system";
+  preferred_language: "english" | "lisu" | "myanmar";
   default_test_duration: number;
   show_leaderboard: boolean;
   show_shift_label?: boolean;
   practice_mode?: boolean;
-  difficulty_mode?: 'chars' | 'syntaxs';
+  text_type?: "chars" | "words" | "numbers" | "sentences" | "paragraphs" | "code";
+  difficulty_level?: "easy" | "medium" | "hard";
   color_theme?: string;
   $createdAt: string;
   $updatedAt: string;
 }
 
 // Utility functions to convert between frontend and database formats
-export const languageCodeToDb = (code: LanguageCode): 'english' | 'lisu' | 'myanmar' => {
+export const languageCodeToDb = (code: LanguageCode): "english" | "lisu" | "myanmar" => {
   switch (code) {
-    case LanguageCode.EN: return 'english';
-    case LanguageCode.MY: return 'myanmar';
-    case LanguageCode.LI: return 'lisu';
-    default: return 'english';
+    case LanguageCode.EN:
+      return "english";
+    case LanguageCode.MY:
+      return "myanmar";
+    case LanguageCode.LI:
+      return "lisu";
+    default:
+      return "english";
   }
 };
 
-export const dbToLanguageCode = (dbLang: 'english' | 'lisu' | 'myanmar'): LanguageCode => {
+export const dbToLanguageCode = (dbLang: "english" | "lisu" | "myanmar"): LanguageCode => {
   switch (dbLang) {
-    case 'english': return LanguageCode.EN;
-    case 'myanmar': return LanguageCode.MY;
-    case 'lisu': return LanguageCode.LI;
-    default: return LanguageCode.EN;
+    case "english":
+      return LanguageCode.EN;
+    case "myanmar":
+      return LanguageCode.MY;
+    case "lisu":
+      return LanguageCode.LI;
+    default:
+      return LanguageCode.EN;
   }
 };
 
@@ -112,47 +119,43 @@ export const normalizeDurationCategory = (duration: number): 15 | 30 | 60 | 120 
 // Database service functions
 export class TypingDatabaseService {
   // User management
-  static async createUser(userData: {
-    username: string;
-    email: string;
-    userId: string;
-  }): Promise<UserDocument> {
+  static async createUser(userData: { username: string; email: string; userId: string }): Promise<UserDocument> {
     try {
-      return await databases.createDocument(
-        DATABASE_ID,
-        COLLECTIONS.USERS,
-        userData.userId,
-        {
-          username: userData.username,
-          email: userData.email,
-          total_tests: 0,
-          best_wpm: 0,
-          average_accuracy: 0
-        }
-      ) as unknown as UserDocument;
+      return (await databases.createDocument(DATABASE_ID, COLLECTIONS.USERS, userData.userId, {
+        username: userData.username,
+        email: userData.email,
+        total_tests: 0,
+        best_wpm: 0,
+        average_accuracy: 0,
+      })) as unknown as UserDocument;
     } catch (error) {
-      console.error('Error creating user:', error);
+      console.error("Error creating user:", error);
       throw error;
     }
   }
 
   static async getUser(userId: string): Promise<UserDocument | null> {
     try {
-      return await databases.getDocument(DATABASE_ID, COLLECTIONS.USERS, userId) as unknown as UserDocument;
+      return (await databases.getDocument(DATABASE_ID, COLLECTIONS.USERS, userId)) as unknown as UserDocument;
     } catch (error) {
       if ((error as { code?: number })?.code === 404) {
         return null;
       }
-      console.error('Error getting user:', error);
+      console.error("Error getting user:", error);
       throw error;
     }
   }
 
   static async updateUser(userId: string, userData: Partial<UserDocument>): Promise<UserDocument> {
     try {
-      return await databases.updateDocument(DATABASE_ID, COLLECTIONS.USERS, userId, userData) as unknown as UserDocument;
+      return (await databases.updateDocument(
+        DATABASE_ID,
+        COLLECTIONS.USERS,
+        userId,
+        userData
+      )) as unknown as UserDocument;
     } catch (error) {
-      console.error('Error updating user:', error);
+      console.error("Error updating user:", error);
       throw error;
     }
   }
@@ -171,26 +174,21 @@ export class TypingDatabaseService {
     errors: number;
   }): Promise<TypingTestDocument> {
     try {
-      return await databases.createDocument(
-        DATABASE_ID,
-        COLLECTIONS.TYPING_TESTS,
-        ID.unique(),
-        {
-          user_id: testData.userId,
-          wpm: testData.wpm,
-          accuracy: testData.accuracy,
-          correct_words: testData.correctWords,
-          incorrect_words: testData.incorrectWords,
-          total_words: testData.totalWords,
-          duration: testData.duration,
-          language: languageCodeToDb(testData.language),
-          characters_typed: testData.charactersTyped,
-          errors: testData.errors,
-          test_date: new Date().toISOString()
-        }
-      ) as unknown as TypingTestDocument;
+      return (await databases.createDocument(DATABASE_ID, COLLECTIONS.TYPING_TESTS, ID.unique(), {
+        user_id: testData.userId,
+        wpm: testData.wpm,
+        accuracy: testData.accuracy,
+        correct_words: testData.correctWords,
+        incorrect_words: testData.incorrectWords,
+        total_words: testData.totalWords,
+        duration: testData.duration,
+        language: languageCodeToDb(testData.language),
+        characters_typed: testData.charactersTyped,
+        errors: testData.errors,
+        test_date: new Date().toISOString(),
+      })) as unknown as TypingTestDocument;
     } catch (error) {
-      console.error('Error creating typing test:', error);
+      console.error("Error creating typing test:", error);
       throw error;
     }
   }
@@ -201,28 +199,21 @@ export class TypingDatabaseService {
     language?: LanguageCode
   ): Promise<TypingTestDocument[]> {
     try {
-      const queries = [
-        Query.equal('user_id', userId),
-        Query.orderDesc('test_date')
-      ];
+      const queries = [Query.equal("user_id", userId), Query.orderDesc("test_date")];
 
       if (language) {
-        queries.push(Query.equal('language', languageCodeToDb(language)));
+        queries.push(Query.equal("language", languageCodeToDb(language)));
       }
 
       if (limit) {
         queries.push(Query.limit(limit));
       }
 
-      const response = await databases.listDocuments(
-        DATABASE_ID,
-        COLLECTIONS.TYPING_TESTS,
-        queries
-      );
+      const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.TYPING_TESTS, queries);
 
       return response.documents as unknown as TypingTestDocument[];
     } catch (error) {
-      console.error('Error getting user typing tests:', error);
+      console.error("Error getting user typing tests:", error);
       throw error;
     }
   }
@@ -231,18 +222,16 @@ export class TypingDatabaseService {
     try {
       // Get all tests for the user and delete them individually
       // This avoids recursion by using listDocuments directly instead of getUserTypingTests
-      const response = await databases.listDocuments(
-        DATABASE_ID,
-        COLLECTIONS.TYPING_TESTS,
-        [Query.equal('user_id', userId)]
-      );
+      const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.TYPING_TESTS, [
+        Query.equal("user_id", userId),
+      ]);
 
-      const deletePromises = response.documents.map(test =>
+      const deletePromises = response.documents.map((test) =>
         databases.deleteDocument(DATABASE_ID, COLLECTIONS.TYPING_TESTS, test.$id)
       );
       await Promise.all(deletePromises);
     } catch (error) {
-      console.error('Error deleting user typing tests:', error);
+      console.error("Error deleting user typing tests:", error);
       throw error;
     }
   }
@@ -266,41 +255,31 @@ export class TypingDatabaseService {
     try {
       // Normalize duration to standard categories to match database enum
       const normalizedDuration = normalizeDurationCategory(durationCategory);
-      const durationStr = normalizedDuration.toString() as '15' | '30' | '60' | '120';
+      const durationStr = normalizedDuration.toString() as "15" | "30" | "60" | "120";
       const leaderboardId = `${userId}_${languageCodeToDb(language)}_${durationStr}`;
 
       // Try to update existing leaderboard entry
       try {
-        await databases.updateDocument(
-          DATABASE_ID,
-          COLLECTIONS.LEADERBOARDS,
-          leaderboardId,
-          {
-            username,
-            best_wpm: bestWpm
-          }
-        );
+        await databases.updateDocument(DATABASE_ID, COLLECTIONS.LEADERBOARDS, leaderboardId, {
+          username,
+          best_wpm: bestWpm,
+        });
       } catch (updateError) {
         // If entry doesn't exist, create new one
         if ((updateError as { code?: number })?.code === 404) {
-          await databases.createDocument(
-            DATABASE_ID,
-            COLLECTIONS.LEADERBOARDS,
-            leaderboardId,
-            {
-              user_id: userId,
-              username,
-              best_wpm: bestWpm,
-              language: languageCodeToDb(language),
-              duration_category: durationStr
-            }
-          );
+          await databases.createDocument(DATABASE_ID, COLLECTIONS.LEADERBOARDS, leaderboardId, {
+            user_id: userId,
+            username,
+            best_wpm: bestWpm,
+            language: languageCodeToDb(language),
+            duration_category: durationStr,
+          });
         } else {
           throw updateError;
         }
       }
     } catch (error) {
-      console.error('Error updating leaderboard:', error);
+      console.error("Error updating leaderboard:", error);
       throw error;
     }
   }
@@ -311,30 +290,23 @@ export class TypingDatabaseService {
     limit = 50
   ): Promise<LeaderboardDocument[]> {
     try {
-      const queries = [
-        Query.orderDesc('best_wpm'),
-        Query.limit(limit)
-      ];
+      const queries = [Query.orderDesc("best_wpm"), Query.limit(limit)];
 
       if (language) {
-        queries.push(Query.equal('language', languageCodeToDb(language)));
+        queries.push(Query.equal("language", languageCodeToDb(language)));
       }
 
       if (durationCategory) {
         // Normalize duration to standard categories
         const normalizedDuration = normalizeDurationCategory(durationCategory);
-        queries.push(Query.equal('duration_category', normalizedDuration.toString()));
+        queries.push(Query.equal("duration_category", normalizedDuration.toString()));
       }
 
-      const response = await databases.listDocuments(
-        DATABASE_ID,
-        COLLECTIONS.LEADERBOARDS,
-        queries
-      );
+      const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.LEADERBOARDS, queries);
 
       return response.documents as unknown as LeaderboardDocument[];
     } catch (error) {
-      console.error('Error getting leaderboard:', error);
+      console.error("Error getting leaderboard:", error);
       throw error;
     }
   }
@@ -342,50 +314,43 @@ export class TypingDatabaseService {
   // User settings management
   static async getUserSettings(userId: string): Promise<UserSettingsDocument | null> {
     try {
-      const response = await databases.listDocuments(
-        DATABASE_ID,
-        COLLECTIONS.USER_SETTINGS,
-        [Query.equal('user_id', userId)]
-      );
+      const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.USER_SETTINGS, [
+        Query.equal("user_id", userId),
+      ]);
 
-      return response.documents.length > 0 ? response.documents[0] as unknown as UserSettingsDocument : null;
+      return response.documents.length > 0 ? (response.documents[0] as unknown as UserSettingsDocument) : null;
     } catch (error) {
-      console.error('Error getting user settings:', error);
+      console.error("Error getting user settings:", error);
       return null;
     }
   }
 
   static async createOrUpdateUserSettings(
     userId: string,
-    settings: Partial<Omit<UserSettingsDocument, '$id' | 'user_id' | '$createdAt' | '$updatedAt'>>
+    settings: Partial<Omit<UserSettingsDocument, "$id" | "user_id" | "$createdAt" | "$updatedAt">>
   ): Promise<UserSettingsDocument> {
     try {
       const existingSettings = await this.getUserSettings(userId);
 
       if (existingSettings) {
-        return await databases.updateDocument(
+        return (await databases.updateDocument(
           DATABASE_ID,
           COLLECTIONS.USER_SETTINGS,
           existingSettings.$id,
           settings
-        ) as unknown as UserSettingsDocument;
+        )) as unknown as UserSettingsDocument;
       } else {
-        return await databases.createDocument(
-          DATABASE_ID,
-          COLLECTIONS.USER_SETTINGS,
-          ID.unique(),
-          {
-            user_id: userId,
-            theme: 'system',
-            preferred_language: 'english',
-            default_test_duration: 60,
-            show_leaderboard: true,
-            ...settings
-          }
-        ) as unknown as UserSettingsDocument;
+        return (await databases.createDocument(DATABASE_ID, COLLECTIONS.USER_SETTINGS, ID.unique(), {
+          user_id: userId,
+          theme: "system",
+          preferred_language: "english",
+          default_test_duration: 60,
+          show_leaderboard: true,
+          ...settings,
+        })) as unknown as UserSettingsDocument;
       }
     } catch (error) {
-      console.error('Error creating/updating user settings:', error);
+      console.error("Error creating/updating user settings:", error);
       throw error;
     }
   }
@@ -405,15 +370,15 @@ export class TypingDatabaseService {
           totalTimeTyped: 0,
           totalCharactersTyped: 0,
           totalErrors: 0,
-          improvementTrend: 0
+          improvementTrend: 0,
         };
       }
 
       const totalTests = tests.length;
       const averageWpm = Math.round(tests.reduce((sum, test) => sum + test.wpm, 0) / totalTests);
-      const bestWpm = Math.max(...tests.map(test => test.wpm));
+      const bestWpm = Math.max(...tests.map((test) => test.wpm));
       const averageAccuracy = Math.round(tests.reduce((sum, test) => sum + test.accuracy, 0) / totalTests);
-      const bestAccuracy = Math.max(...tests.map(test => test.accuracy));
+      const bestAccuracy = Math.max(...tests.map((test) => test.accuracy));
       const totalTimeTyped = tests.reduce((sum, test) => sum + test.duration, 0);
       const totalCharactersTyped = tests.reduce((sum, test) => sum + test.characters_typed, 0);
       const totalErrors = tests.reduce((sum, test) => sum + test.errors, 0);
@@ -440,10 +405,10 @@ export class TypingDatabaseService {
         totalTimeTyped,
         totalCharactersTyped,
         totalErrors,
-        improvementTrend
+        improvementTrend,
       };
     } catch (error) {
-      console.error('Error calculating user statistics:', error);
+      console.error("Error calculating user statistics:", error);
       throw error;
     }
   }

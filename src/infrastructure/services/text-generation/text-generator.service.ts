@@ -46,13 +46,13 @@ export class TextGeneratorService implements ITextGenerationService {
     }
   }
 
-  supportsLanguage(language: LanguageCode): boolean {
-    return this.providers.has(language);
+  async supportsLanguage(language: LanguageCode): Promise<boolean> {
+    return [LanguageCode.EN, LanguageCode.LI, LanguageCode.MY].includes(language);
   }
 
-  getAvailableTextTypes(language: LanguageCode): TextType[] {
+  async getAvailableTextTypes(language: LanguageCode): Promise<TextType[]> {
     const provider = this.providers.get(language);
-    return provider ? provider.getAvailableTextTypes(language) : [];
+    return provider ? await provider.getAvailableTextTypes(language) : [];
   }
 
   async validateContent(content: string, config: TextGenerationConfig): Promise<boolean> {
@@ -82,16 +82,13 @@ export class TextGeneratorService implements ITextGenerationService {
   }
 
   private async validateConfig(config: TextGenerationConfig): Promise<void> {
-    if (!config.language) {
-      throw new Error("Language is required");
+    if (!config) {
+      throw new Error("Configuration is required");
     }
 
-    if (!this.supportsLanguage(config.language)) {
+    const isSupported = await this.supportsLanguage(config.language);
+    if (!isSupported) {
       throw new Error(`Language ${config.language} is not supported`);
-    }
-
-    if (!config.textType) {
-      throw new Error("Text type is required");
     }
 
     if (!config.length || config.length <= 0) {
@@ -102,7 +99,7 @@ export class TextGeneratorService implements ITextGenerationService {
       throw new Error("Length cannot exceed 10000");
     }
 
-    const availableTypes = this.getAvailableTextTypes(config.language);
+    const availableTypes = await this.getAvailableTextTypes(config.language);
     if (!availableTypes.includes(config.textType)) {
       throw new Error(`Text type ${config.textType} not supported for language ${config.language}`);
     }

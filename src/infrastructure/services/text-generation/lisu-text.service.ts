@@ -43,11 +43,11 @@ export class LisuTextService implements ITextGenerationService {
     };
   }
 
-  supportsLanguage(language: LanguageCode): boolean {
+  async supportsLanguage(language: LanguageCode): Promise<boolean> {
     return language === LanguageCode.LI;
   }
 
-  getAvailableTextTypes(language: LanguageCode): TextType[] {
+  async getAvailableTextTypes(language: LanguageCode): Promise<TextType[]> {
     if (language !== LanguageCode.LI) {
       return [];
     }

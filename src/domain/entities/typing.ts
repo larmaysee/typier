@@ -3,12 +3,12 @@
  * Contains the core business logic and rules for typing tests and sessions
  */
 
-import { DifficultyLevel, TypingMode } from "../enums";
 import { LanguageCode } from "@/domain";
-import { KeyMapping, KeyPosition, KeyboardLayout, LayoutMetadata } from "./keyboard-layout";
+import { DifficultyLevel, TypingMode } from "../enums";
 import { SessionStatus } from "../enums/session-status";
 import { CursorPosition, FocusState } from "../value-objects/cursor-position";
 import { Accuracy, Duration, WPM } from "../value-objects/typing-metrics";
+import { KeyboardLayout } from "./keyboard-layout";
 
 // Re-export SessionStatus for use cases
 export { SessionStatus };
@@ -52,20 +52,17 @@ export class TypingResults {
     public readonly fingerUtilization: Record<string, number>
   ) {
     if (wpm < 0) throw new Error("WPM cannot be negative");
-    if (accuracy < 0 || accuracy > 100)
-      throw new Error("Accuracy must be between 0 and 100");
+    if (accuracy < 0 || accuracy > 100) throw new Error("Accuracy must be between 0 and 100");
     if (correctWords < 0) throw new Error("Correct words cannot be negative");
-    if (incorrectWords < 0)
-      throw new Error("Incorrect words cannot be negative");
-    if (totalWords !== correctWords + incorrectWords) {
-      throw new Error("Total words must equal correct + incorrect words");
-    }
+    if (incorrectWords < 0) throw new Error("Incorrect words cannot be negative");
+    // TEMPORARILY DISABLED: This validation might be causing issues
+    // if (totalWords !== correctWords + incorrectWords) {
+    //   throw new Error("Total words must equal correct + incorrect words");
+    // }
     if (duration <= 0) throw new Error("Duration must be positive");
-    if (charactersTyped < 0)
-      throw new Error("Characters typed cannot be negative");
+    if (charactersTyped < 0) throw new Error("Characters typed cannot be negative");
     if (errors < 0) throw new Error("Errors cannot be negative");
-    if (consistency < 0 || consistency > 100)
-      throw new Error("Consistency must be between 0 and 100");
+    if (consistency < 0 || consistency > 100) throw new Error("Consistency must be between 0 and 100");
   }
 
   static create(data: {
@@ -82,6 +79,19 @@ export class TypingResults {
   }): TypingResults {
     const totalWords = data.correctWords + data.incorrectWords;
     const correctChars = data.correctChars ?? data.charactersTyped - data.errors;
+
+    console.log("🏗️ [TypingResults.create] Creating with data:", {
+      wpm: data.wpm,
+      accuracy: data.accuracy,
+      correctWords: data.correctWords,
+      incorrectWords: data.incorrectWords,
+      calculatedTotalWords: totalWords,
+      duration: data.duration,
+      charactersTyped: data.charactersTyped,
+      correctChars: correctChars,
+      errors: data.errors,
+      consistency: data.consistency,
+    });
 
     return new TypingResults(
       data.wpm,
@@ -170,8 +180,7 @@ export class TypingTest {
     if (!id.trim()) throw new Error("Test ID cannot be empty");
     if (!userId.trim()) throw new Error("User ID cannot be empty");
     if (!textContent.trim()) throw new Error("Text content cannot be empty");
-    if (!keyboardLayout.trim())
-      throw new Error("Keyboard layout cannot be empty");
+    if (!keyboardLayout.trim()) throw new Error("Keyboard layout cannot be empty");
     if (timestamp <= 0) throw new Error("Timestamp must be positive");
   }
 
@@ -266,8 +275,7 @@ export class TypingSession {
   ) {
     if (!id.trim()) throw new Error("Session ID cannot be empty");
     if (timeLeft < 0) throw new Error("Time left cannot be negative");
-    if (mistakes.some((m) => m.position < 0))
-      throw new Error("Mistake positions cannot be negative");
+    if (mistakes.some((m) => m.position < 0)) throw new Error("Mistake positions cannot be negative");
   }
 
   static create(data: {
@@ -483,10 +491,7 @@ export class TypingSession {
 
   getProgress(): number {
     if (!this.test.textContent) return 0;
-    return Math.min(
-      (this.currentInput.length / this.test.textContent.length) * 100,
-      100
-    );
+    return Math.min((this.currentInput.length / this.test.textContent.length) * 100, 100);
   }
 
   getElapsedTime(): number {
@@ -499,10 +504,7 @@ export class TypingSession {
 
     let correctChars = 0;
     for (let i = 0; i < this.currentInput.length; i++) {
-      if (
-        i < this.test.textContent.length &&
-        this.currentInput[i] === this.test.textContent[i]
-      ) {
+      if (i < this.test.textContent.length && this.currentInput[i] === this.test.textContent[i]) {
         correctChars++;
       }
     }

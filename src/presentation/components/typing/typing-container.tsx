@@ -5,12 +5,8 @@ import ModernKeyboard from "@/components/modern-keyboard";
 import { PracticeModeProvider } from "@/components/pratice-mode";
 import { ResultsModal } from "@/components/results-modal";
 import { useSiteConfig } from "@/components/site-config";
-import { KeyboardLayout } from "@/domain";
-import { ILayoutManagerService } from "@/domain/interfaces";
-import { useDependencyInjection } from "@/presentation";
 import { useSessionControls } from "@/presentation/hooks/typing/use-session-controls";
 import { useTypingSession } from "@/presentation/hooks/typing/use-typing-session";
-import { useCallback, useEffect, useState } from "react";
 import { TypingControlPanel } from "./controls/typing-control-panel";
 import { ErrorBoundary } from "./error-boundary";
 import { LoadingSpinner } from "./loading-spinner";
@@ -27,6 +23,7 @@ export function TypingContainer() {
 }
 
 function TypingContainerInner() {
+  const { config } = useSiteConfig();
   const {
     session,
     textContent,
@@ -40,7 +37,7 @@ function TypingContainerInner() {
     getRandomData,
     setState,
     processInput,
-    calculateWPM,
+    completeSession,
   } = useTypingSession();
 
   const { handleInput, handleRefresh, handleFocus, handleBlur, handleKeyDown, setSelectedTime } = useSessionControls({
@@ -58,6 +55,7 @@ function TypingContainerInner() {
   };
 
   const handleCloseResults = () => {
+    console.log("🔄 [TypingContainer] Closing results modal...");
     setState((prev) => ({ ...prev, showResults: false }));
   };
 
@@ -65,47 +63,36 @@ function TypingContainerInner() {
     handleRefresh();
   };
 
-  const { resolve, serviceTokens } = useDependencyInjection();
-  const { config } = useSiteConfig();
-  const [currentLayout, setCurrentLayout] = useState<KeyboardLayout | null>(null);
-  const loadInitialLayout = useCallback(async () => {
-    try {
-      const layoutManager = resolve<ILayoutManagerService>(serviceTokens.LAYOUT_MANAGER_SERVICE);
+  // Debug function to create test result for testing modal
+  const createTestResult = () => {
+    const mockResult = {
+      wpm: 45,
+      accuracy: 92.5,
+      correctWords: 23,
+      incorrectWords: 2,
+      totalWords: 25,
+      testDuration: 30,
+      language: "en",
+      charactersTyped: 127,
+      errors: 5,
+    };
+    setState((prev) => ({
+      ...prev,
+      lastTestResult: mockResult,
+      showResults: true,
+    }));
+  };
 
-      // Get all layouts for current language
-      const layouts = await layoutManager.getLayoutsForLanguage(config.language.code);
-
-      if (layouts.length > 0) {
-        // Try to get the default layout for this language or first available
-        const defaultLayout = layouts[0];
-        setCurrentLayout(defaultLayout);
-      }
-    } catch (err) {
-      console.error("Failed to load initial keyboard layout:", err);
-    }
-  }, [resolve, serviceTokens, config.language.code]);
-
-  // Load initial layout when language changes
-  useEffect(() => {
-    loadInitialLayout();
-  }, [config.language.code, loadInitialLayout]);
-
-  // Load layout when it changes from selector
-  const handleLayoutChange = useCallback(
-    async (layoutId: string) => {
-      try {
-        const layoutManager = resolve<ILayoutManagerService>(serviceTokens.LAYOUT_MANAGER_SERVICE);
-
-        const layout = await layoutManager.getLayoutById(layoutId);
-        if (layout) {
-          setCurrentLayout(layout);
-        }
-      } catch (err) {
-        console.error("Failed to load keyboard layout:", err);
-      }
-    },
-    [resolve, serviceTokens]
-  );
+  // Debug logging for modal rendering
+  if (showResults && lastTestResult) {
+    console.log("🔄 [TypingContainer] Should render ResultsModal:", { showResults, lastTestResult: !!lastTestResult });
+  }
+  if (showResults && !lastTestResult) {
+    console.log("⚠️ [TypingContainer] showResults=true but no lastTestResult");
+  }
+  if (!showResults && lastTestResult) {
+    console.log("⚠️ [TypingContainer] lastTestResult exists but showResults=false");
+  }
 
   if (error) {
     return (
@@ -124,6 +111,49 @@ function TypingContainerInner() {
 
   return (
     <div className="space-y-4">
+      {/* Debug Info */}
+      {process.env.NODE_ENV === "development" && (
+        <div className="fixed top-2 right-2 bg-background border rounded p-2 text-xs z-50">
+          <div>showResults: {showResults ? "true" : "false"}</div>
+          <div>lastTestResult: {lastTestResult ? "exists" : "null"}</div>
+          <div>testCompleted: {testCompleted ? "true" : "false"}</div>
+          <div>sessionId: {session.sessionId || "null"}</div>
+          <div>practiceMode: {config.practiceMode ? "true" : "false"}</div>
+          <div>modalCondition: {showResults && lastTestResult ? "SHOULD SHOW" : "NOT SHOWING"}</div>
+          <div>overlayCondition: {testCompleted && !showResults ? "SHOWING OVERLAY" : "NOT SHOWING OVERLAY"}</div>
+          {/* Debug buttons */}
+          <div className="mt-2 space-x-1">
+            <button
+              onClick={() => setState((prev) => ({ ...prev, showResults: true }))}
+              className="bg-blue-500 text-white px-2 py-1 rounded text-xs"
+              disabled={!lastTestResult}
+            >
+              Force Show Results
+            </button>
+            <button
+              onClick={() => setState((prev) => ({ ...prev, showResults: false }))}
+              className="bg-red-500 text-white px-2 py-1 rounded text-xs"
+            >
+              Hide Results
+            </button>
+            <button onClick={createTestResult} className="bg-green-500 text-white px-2 py-1 rounded text-xs">
+              Create Test Result
+            </button>
+            <button
+              onClick={() => {
+                setState((prev) => ({ ...prev, typedText: "hello world test" }));
+                setTimeout(() => {
+                  completeSession();
+                }, 100);
+              }}
+              className="bg-purple-500 text-white px-2 py-1 rounded text-xs"
+            >
+              Complete With Text
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Results Modal */}
       {showResults && lastTestResult && (
         <ResultsModal
@@ -142,6 +172,7 @@ function TypingContainerInner() {
           session={session}
           isFocused={isFocused}
           testCompleted={testCompleted}
+          showResults={showResults}
           inputRef={inputRef}
           onInput={handleInput}
           onFocus={handleFocus}
@@ -157,7 +188,6 @@ function TypingContainerInner() {
           testCompleted={session.testCompleted}
           onRefresh={handleRefresh}
           onTimeChange={setSelectedTime}
-          onLayoutChange={handleLayoutChange}
         />
         <ModernKeyboard />
       </div>

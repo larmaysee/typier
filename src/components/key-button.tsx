@@ -26,6 +26,7 @@ export default function KeyButton({ label, value, className, shiftKey, pressedKe
         `key-${keyname(value).toLowerCase()}`,
         isPressed ? "bg-primary text-primary-foreground" : "",
         isEmpty && "opacity-30 cursor-not-allowed",
+        "hover:bg-primary/80 hover:text-primary-foreground transition-colors",
         className
       )}
       onClick={isEmpty ? undefined : onClick}

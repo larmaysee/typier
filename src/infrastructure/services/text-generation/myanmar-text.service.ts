@@ -47,15 +47,15 @@ export class MyanmarTextService implements ITextGenerationService {
     };
   }
 
-  supportsLanguage(language: LanguageCode): boolean {
+  async supportsLanguage(language: LanguageCode): Promise<boolean> {
     return language === LanguageCode.MY;
   }
 
-  getAvailableTextTypes(language: LanguageCode): TextType[] {
+  async getAvailableTextTypes(language: LanguageCode): Promise<TextType[]> {
     if (language !== LanguageCode.MY) {
       return [];
     }
-    return [TextType.CHARS, TextType.WORDS, TextType.SENTENCES, TextType.PARAGRAPHS];
+    return [TextType.CHARS, TextType.WORDS, TextType.SENTENCES];
   }
 
   async validateContent(content: string, config: TextGenerationConfig): Promise<boolean> {

@@ -1,7 +1,7 @@
 "use client";
 
 import themesConfig from "@/config/themes.json";
-import { LANGUAGE_DISPLAY_NAMES, LanguageCode } from "@/domain";
+import { DifficultyLevel, LANGUAGE_DISPLAY_NAMES, LanguageCode, TextType } from "@/domain";
 import { dbToLanguageCode, languageCodeToDb, TypingDatabaseService } from "@/lib/appwrite";
 import { applyThemeColors } from "@/lib/utils";
 import { useTheme } from "next-themes";
@@ -22,7 +22,8 @@ interface SiteConfig {
   };
   showShiftLabel?: boolean;
   practiceMode?: boolean;
-  difficultyMode: "chars" | "syntaxs"; // New property for difficulty mode
+  textType: TextType; // What type of content to generate
+  difficultyLevel: DifficultyLevel; // How difficult the content should be
   // Keyboard layout preferences per language
   preferredLayouts?: {
     [LanguageCode.EN]?: string;
@@ -50,7 +51,8 @@ const defaultConfig: SiteConfig = {
   },
   showShiftLabel: false,
   practiceMode: false,
-  difficultyMode: "syntaxs", // Default to syntax mode
+  textType: TextType.CHARS, // Default to characters
+  difficultyLevel: DifficultyLevel.EASY, // Default to easy difficulty
   preferredLayouts: {
     [LanguageCode.EN]: "en-us",
     [LanguageCode.LI]: "li-sil-basic",
@@ -110,7 +112,8 @@ export const SiteConfigProvider: React.FC<SiteConfigProviderProps> = ({ children
             },
             showShiftLabel: userSettings.show_shift_label ?? false,
             practiceMode: userSettings.practice_mode ?? false,
-            difficultyMode: userSettings.difficulty_mode ?? "syntaxs",
+            textType: (userSettings.text_type as TextType) ?? TextType.CHARS,
+            difficultyLevel: (userSettings.difficulty_level as DifficultyLevel) ?? DifficultyLevel.EASY,
           };
           setConfig(loadedConfig);
 
@@ -194,7 +197,8 @@ export const SiteConfigProvider: React.FC<SiteConfigProviderProps> = ({ children
           show_leaderboard: true, // Default value, could be made configurable
           show_shift_label: newConfig.showShiftLabel,
           practice_mode: newConfig.practiceMode,
-          difficulty_mode: newConfig.difficultyMode,
+          text_type: newConfig.textType,
+          difficulty_level: newConfig.difficultyLevel,
           color_theme: colorTheme,
         });
       }

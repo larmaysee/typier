@@ -1,8 +1,8 @@
 "use client";
+import { LanguageCode } from "@/domain";
+import { TypingDatabaseService, TypingTestDocument } from "@/lib/appwrite";
 import React, { createContext, ReactNode, useCallback, useContext, useEffect, useState } from "react";
 import { useAuth } from "./auth-provider";
-import { TypingDatabaseService, TypingTestDocument } from "@/lib/appwrite";
-import { LanguageCode } from "@/domain";
 
 export interface TypingTestResult {
   id: string;
@@ -12,7 +12,7 @@ export interface TypingTestResult {
   correctWords: number;
   incorrectWords: number;
   totalWords: number;
-  testDuration: number; // in seconds
+  testDuration: number;
   language: string;
   timestamp: number;
   charactersTyped: number;
@@ -35,7 +35,7 @@ export interface TypingStatistics {
 
 interface TypingStatisticsContextProps {
   statistics: TypingStatistics;
-  addTestResult: (result: Omit<TypingTestResult, 'id' | 'userId' | 'timestamp'>) => Promise<void>;
+  addTestResult: (result: Omit<TypingTestResult, "id" | "userId" | "timestamp">) => Promise<void>;
   getStatistics: () => TypingStatistics;
   clearStatistics: () => Promise<void>;
   getTestHistory: (limit?: number) => Promise<TypingTestResult[]>;
@@ -46,57 +46,57 @@ interface TypingStatisticsContextProps {
 
 const TypingStatisticsContext = createContext<TypingStatisticsContextProps | undefined>(undefined);
 
-const STORAGE_KEY = 'typoria_typing_statistics';
-const PENDING_SYNC_KEY = 'typoria_pending_sync';
-const DEFAULT_USER_ID = 'anonymous_user';
+const STORAGE_KEY = "typoria_typing_statistics";
+const PENDING_SYNC_KEY = "typoria_pending_sync";
+const DEFAULT_USER_ID = "anonymous_user";
 
 // Utility functions for local storage
 const getStoredData = (): TypingTestResult[] => {
-  if (typeof window === 'undefined') return [];
+  if (typeof window === "undefined") return [];
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     return stored ? JSON.parse(stored) : [];
   } catch (error) {
-    console.error('Error reading from localStorage:', error);
+    console.error("Error reading from localStorage:", error);
     return [];
   }
 };
 
 const saveToStorage = (data: TypingTestResult[]) => {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   } catch (error) {
-    console.error('Error saving to localStorage:', error);
+    console.error("Error saving to localStorage:", error);
   }
 };
 
 const getPendingSyncData = (): TypingTestResult[] => {
-  if (typeof window === 'undefined') return [];
+  if (typeof window === "undefined") return [];
   try {
     const stored = localStorage.getItem(PENDING_SYNC_KEY);
     return stored ? JSON.parse(stored) : [];
   } catch (error) {
-    console.error('Error reading pending sync data:', error);
+    console.error("Error reading pending sync data:", error);
     return [];
   }
 };
 
 const savePendingSyncData = (data: TypingTestResult[]) => {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
   try {
     localStorage.setItem(PENDING_SYNC_KEY, JSON.stringify(data));
   } catch (error) {
-    console.error('Error saving pending sync data:', error);
+    console.error("Error saving pending sync data:", error);
   }
 };
 
 const clearPendingSyncData = () => {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
   try {
     localStorage.removeItem(PENDING_SYNC_KEY);
   } catch (error) {
-    console.error('Error clearing pending sync data:', error);
+    console.error("Error clearing pending sync data:", error);
   }
 };
 
@@ -113,7 +113,7 @@ const dbDocumentToTypingTestResult = (doc: TypingTestDocument): TypingTestResult
   language: doc.language,
   timestamp: new Date(doc.test_date).getTime(),
   charactersTyped: doc.characters_typed,
-  errors: doc.errors
+  errors: doc.errors,
 });
 
 const calculateStatistics = (tests: TypingTestResult[]): TypingStatistics => {
@@ -129,15 +129,15 @@ const calculateStatistics = (tests: TypingTestResult[]): TypingStatistics => {
       totalWordsTyped: 0,
       totalErrors: 0,
       recentTests: [],
-      improvementTrend: 0
+      improvementTrend: 0,
     };
   }
 
   const totalTests = tests.length;
   const averageWpm = Math.round(tests.reduce((sum, test) => sum + test.wpm, 0) / totalTests);
-  const bestWpm = Math.max(...tests.map(test => test.wpm));
+  const bestWpm = Math.max(...tests.map((test) => test.wpm));
   const averageAccuracy = Math.round(tests.reduce((sum, test) => sum + test.accuracy, 0) / totalTests);
-  const bestAccuracy = Math.max(...tests.map(test => test.accuracy));
+  const bestAccuracy = Math.max(...tests.map((test) => test.accuracy));
   const totalTimeTyped = tests.reduce((sum, test) => sum + test.testDuration, 0);
   const totalCharactersTyped = tests.reduce((sum, test) => sum + test.charactersTyped, 0);
   const totalErrors = tests.reduce((sum, test) => sum + test.errors, 0);
@@ -183,7 +183,7 @@ export const TypingStatisticsProvider: React.FC<{ children: ReactNode }> = ({ ch
     totalWordsTyped: 0,
     totalErrors: 0,
     recentTests: [],
-    improvementTrend: 0
+    improvementTrend: 0,
   });
 
   const [isOnline, setIsOnline] = useState(true);
@@ -191,10 +191,13 @@ export const TypingStatisticsProvider: React.FC<{ children: ReactNode }> = ({ ch
 
   const getCurrentUserId = useCallback(() => user?.id || DEFAULT_USER_ID, [user]);
 
-  const getUserTests = useCallback((allTests: TypingTestResult[]) => {
-    const userId = getCurrentUserId();
-    return allTests.filter(test => test.userId === userId);
-  }, [getCurrentUserId]);
+  const getUserTests = useCallback(
+    (allTests: TypingTestResult[]) => {
+      const userId = getCurrentUserId();
+      return allTests.filter((test) => test.userId === userId);
+    },
+    [getCurrentUserId]
+  );
 
   // Check if Appwrite is available and user is authenticated
   const canUseDatabase = useCallback(() => {
@@ -211,7 +214,7 @@ export const TypingStatisticsProvider: React.FC<{ children: ReactNode }> = ({ ch
         setStatistics({
           ...dbStats,
           totalWordsTyped: 0, // Default value for new property
-          recentTests: dbTests.map(dbDocumentToTypingTestResult)
+          recentTests: dbTests.map(dbDocumentToTypingTestResult),
         });
       } else {
         // Fallback to localStorage
@@ -221,7 +224,7 @@ export const TypingStatisticsProvider: React.FC<{ children: ReactNode }> = ({ ch
         setStatistics(newStats);
       }
     } catch (error) {
-      console.error('Error updating statistics from database, falling back to localStorage:', error);
+      console.error("Error updating statistics from database, falling back to localStorage:", error);
       // Fallback to localStorage on error
       const allTests = getStoredData();
       const userTests = getUserTests(allTests);
@@ -248,10 +251,18 @@ export const TypingStatisticsProvider: React.FC<{ children: ReactNode }> = ({ ch
             // Convert language string to LanguageCode enum
             let languageCode: LanguageCode;
             switch (test.language) {
-              case 'english': languageCode = LanguageCode.EN; break;
-              case 'lisu': languageCode = LanguageCode.LI; break;
-              case 'myanmar': languageCode = LanguageCode.MY; break;
-              default: languageCode = LanguageCode.EN; break;
+              case "english":
+                languageCode = LanguageCode.EN;
+                break;
+              case "lisu":
+                languageCode = LanguageCode.LI;
+                break;
+              case "myanmar":
+                languageCode = LanguageCode.MY;
+                break;
+              default:
+                languageCode = LanguageCode.EN;
+                break;
             }
 
             await TypingDatabaseService.createTypingTest({
@@ -264,7 +275,7 @@ export const TypingStatisticsProvider: React.FC<{ children: ReactNode }> = ({ ch
               duration: test.testDuration,
               language: languageCode,
               charactersTyped: test.charactersTyped,
-              errors: test.errors
+              errors: test.errors,
             });
 
             // Update leaderboard if this is a personal best
@@ -272,14 +283,14 @@ export const TypingStatisticsProvider: React.FC<{ children: ReactNode }> = ({ ch
             if (test.wpm >= userStats.bestWpm) {
               await TypingDatabaseService.updateLeaderboard(
                 currentUserId,
-                user?.name || 'Anonymous',
+                user?.name || "Anonymous",
                 test.wpm,
                 languageCode,
                 test.testDuration
               );
             }
           } catch (syncError) {
-            console.error('Error syncing individual test:', syncError);
+            console.error("Error syncing individual test:", syncError);
           }
         }
 
@@ -288,14 +299,14 @@ export const TypingStatisticsProvider: React.FC<{ children: ReactNode }> = ({ ch
 
         // Remove synced data from localStorage
         const allTests = getStoredData();
-        const otherUserTests = allTests.filter(test => test.userId !== currentUserId);
+        const otherUserTests = allTests.filter((test) => test.userId !== currentUserId);
         saveToStorage(otherUserTests);
       }
 
       setIsOnline(true);
       await updateStatistics();
     } catch (error) {
-      console.error('Error syncing with database:', error);
+      console.error("Error syncing with database:", error);
       setIsOnline(false);
     } finally {
       setIsSyncing(false);
@@ -329,17 +340,17 @@ export const TypingStatisticsProvider: React.FC<{ children: ReactNode }> = ({ ch
       setIsOnline(false);
     };
 
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
 
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty deps - handlers are stable
 
-  const addTestResult = async (result: Omit<TypingTestResult, 'id' | 'userId' | 'timestamp'>) => {
+  const addTestResult = async (result: Omit<TypingTestResult, "id" | "userId" | "timestamp">) => {
     const newResult: TypingTestResult = {
       ...result,
       id: `test_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -355,10 +366,18 @@ export const TypingStatisticsProvider: React.FC<{ children: ReactNode }> = ({ ch
         // Convert language string to LanguageCode enum
         let languageCode: LanguageCode;
         switch (result.language) {
-          case 'english': languageCode = LanguageCode.EN; break;
-          case 'lisu': languageCode = LanguageCode.LI; break;
-          case 'myanmar': languageCode = LanguageCode.MY; break;
-          default: languageCode = LanguageCode.EN; break;
+          case "english":
+            languageCode = LanguageCode.EN;
+            break;
+          case "lisu":
+            languageCode = LanguageCode.LI;
+            break;
+          case "myanmar":
+            languageCode = LanguageCode.MY;
+            break;
+          default:
+            languageCode = LanguageCode.EN;
+            break;
         }
 
         await TypingDatabaseService.createTypingTest({
@@ -371,7 +390,7 @@ export const TypingStatisticsProvider: React.FC<{ children: ReactNode }> = ({ ch
           duration: result.testDuration,
           language: languageCode,
           charactersTyped: result.charactersTyped,
-          errors: result.errors
+          errors: result.errors,
         });
 
         // Update leaderboard if this is a personal best
@@ -379,7 +398,7 @@ export const TypingStatisticsProvider: React.FC<{ children: ReactNode }> = ({ ch
         if (result.wpm >= userStats.bestWpm) {
           await TypingDatabaseService.updateLeaderboard(
             currentUserId,
-            user?.name || 'Anonymous',
+            user?.name || "Anonymous",
             result.wpm,
             languageCode,
             result.testDuration
@@ -401,12 +420,12 @@ export const TypingStatisticsProvider: React.FC<{ children: ReactNode }> = ({ ch
 
         // Update local statistics
         const currentUserId = getCurrentUserId();
-        const userTests = updatedTests.filter(test => test.userId === currentUserId);
+        const userTests = updatedTests.filter((test) => test.userId === currentUserId);
         const newStats = calculateStatistics(userTests);
         setStatistics(newStats);
       }
     } catch (error) {
-      console.error('Error saving test result:', error);
+      console.error("Error saving test result:", error);
       // Fallback to localStorage
       const allTests = getStoredData();
       const updatedTests = [...allTests, newResult];
@@ -428,22 +447,22 @@ export const TypingStatisticsProvider: React.FC<{ children: ReactNode }> = ({ ch
         // Clear from localStorage
         const allTests = getStoredData();
         const currentUserId = getCurrentUserId();
-        const otherUserTests = allTests.filter(test => test.userId !== currentUserId);
+        const otherUserTests = allTests.filter((test) => test.userId !== currentUserId);
         saveToStorage(otherUserTests);
 
         // Clear pending sync data for this user
         const pendingTests = getPendingSyncData();
-        const otherUserPendingTests = pendingTests.filter(test => test.userId !== currentUserId);
+        const otherUserPendingTests = pendingTests.filter((test) => test.userId !== currentUserId);
         savePendingSyncData(otherUserPendingTests);
 
         updateStatistics();
       }
     } catch (error) {
-      console.error('Error clearing statistics:', error);
+      console.error("Error clearing statistics:", error);
       // Fallback to localStorage
       const allTests = getStoredData();
       const currentUserId = getCurrentUserId();
-      const otherUserTests = allTests.filter(test => test.userId !== currentUserId);
+      const otherUserTests = allTests.filter((test) => test.userId !== currentUserId);
       saveToStorage(otherUserTests);
       updateStatistics();
     }
@@ -462,7 +481,7 @@ export const TypingStatisticsProvider: React.FC<{ children: ReactNode }> = ({ ch
         return limit ? sortedTests.slice(0, limit) : sortedTests;
       }
     } catch (error) {
-      console.error('Error getting test history:', error);
+      console.error("Error getting test history:", error);
       // Fallback to localStorage
       const allTests = getStoredData();
       const userTests = getUserTests(allTests);
@@ -492,7 +511,7 @@ export const TypingStatisticsProvider: React.FC<{ children: ReactNode }> = ({ ch
 export const useTypingStatistics = (): TypingStatisticsContextProps => {
   const context = useContext(TypingStatisticsContext);
   if (!context) {
-    throw new Error('useTypingStatistics must be used within a TypingStatisticsProvider');
+    throw new Error("useTypingStatistics must be used within a TypingStatisticsProvider");
   }
   return context;
 };

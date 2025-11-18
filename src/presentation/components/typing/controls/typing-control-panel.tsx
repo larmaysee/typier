@@ -5,11 +5,9 @@ import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { TypingSessionState } from "@/presentation/hooks/typing/use-typing-session";
 import { memo } from "react";
-import { KeyboardLayoutSelector } from "../keyboard-layouts/keyboard-layout-selector";
-import { DifficultySelector } from "./difficulty-selector";
-import { LanguageSelector } from "./language-selector";
 import { PracticeModeToggle } from "./practice-mode-toggle";
 import { RefreshButton } from "./refresh-button";
+import { TypingConfigDialog } from "./typing-config-dialog";
 
 interface TypingControlPanelProps {
   session: TypingSessionState;
@@ -31,32 +29,22 @@ export const TypingControlPanel = memo(function TypingControlPanel({
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         {/* Left Section - Test Controls */}
         <div className="flex flex-wrap items-center gap-2">
-          <RefreshButton onRefresh={onRefresh} disabled={testCompleted} />
-
           <TimerOptions
             selectedTime={session.selectedTime}
             setSelectedTime={onTimeChange}
             disabled={testCompleted}
+            showCountdown={session.startTime !== null && !testCompleted}
+            timeLeft={session.timeLeft}
           />
-
-          <Separator orientation="vertical" className="h-6 hidden sm:block" />
-
-          <LanguageSelector disabled={testCompleted} />
-
-          <DifficultySelector disabled={testCompleted} />
         </div>
 
-        {/* Right Section - Layout & Mode Settings */}
+        {/* Right Section - Configuration & Actions */}
         <div className="flex flex-wrap items-center gap-2">
-          <KeyboardLayoutSelector
-            compact={true}
-            showLayoutInfo={true}
-            onLayoutChange={onLayoutChange}
-          />
+          <TypingConfigDialog disabled={testCompleted} onLayoutChange={onLayoutChange} />
 
           <Separator orientation="vertical" className="h-6 hidden sm:block" />
-
-          <PracticeModeToggle disabled={testCompleted} />
+          <PracticeModeToggle />
+          <RefreshButton onRefresh={onRefresh} disabled={testCompleted} />
         </div>
       </div>
     </Card>
