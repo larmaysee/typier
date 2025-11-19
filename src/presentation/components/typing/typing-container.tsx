@@ -63,26 +63,6 @@ function TypingContainerInner() {
     handleRefresh();
   };
 
-  // Debug function to create test result for testing modal
-  const createTestResult = () => {
-    const mockResult = {
-      wpm: 45,
-      accuracy: 92.5,
-      correctWords: 23,
-      incorrectWords: 2,
-      totalWords: 25,
-      testDuration: 30,
-      language: "en",
-      charactersTyped: 127,
-      errors: 5,
-    };
-    setState((prev) => ({
-      ...prev,
-      lastTestResult: mockResult,
-      showResults: true,
-    }));
-  };
-
   // Debug logging for modal rendering
   if (showResults && lastTestResult) {
     console.log("🔄 [TypingContainer] Should render ResultsModal:", { showResults, lastTestResult: !!lastTestResult });
@@ -110,50 +90,7 @@ function TypingContainerInner() {
   }
 
   return (
-    <div className="space-y-4">
-      {/* Debug Info */}
-      {process.env.NODE_ENV === "development" && (
-        <div className="fixed top-2 right-2 bg-background border rounded p-2 text-xs z-50">
-          <div>showResults: {showResults ? "true" : "false"}</div>
-          <div>lastTestResult: {lastTestResult ? "exists" : "null"}</div>
-          <div>testCompleted: {testCompleted ? "true" : "false"}</div>
-          <div>sessionId: {session.sessionId || "null"}</div>
-          <div>practiceMode: {config.practiceMode ? "true" : "false"}</div>
-          <div>modalCondition: {showResults && lastTestResult ? "SHOULD SHOW" : "NOT SHOWING"}</div>
-          <div>overlayCondition: {testCompleted && !showResults ? "SHOWING OVERLAY" : "NOT SHOWING OVERLAY"}</div>
-          {/* Debug buttons */}
-          <div className="mt-2 space-x-1">
-            <button
-              onClick={() => setState((prev) => ({ ...prev, showResults: true }))}
-              className="bg-blue-500 text-white px-2 py-1 rounded text-xs"
-              disabled={!lastTestResult}
-            >
-              Force Show Results
-            </button>
-            <button
-              onClick={() => setState((prev) => ({ ...prev, showResults: false }))}
-              className="bg-red-500 text-white px-2 py-1 rounded text-xs"
-            >
-              Hide Results
-            </button>
-            <button onClick={createTestResult} className="bg-green-500 text-white px-2 py-1 rounded text-xs">
-              Create Test Result
-            </button>
-            <button
-              onClick={() => {
-                setState((prev) => ({ ...prev, typedText: "hello world test" }));
-                setTimeout(() => {
-                  completeSession();
-                }, 100);
-              }}
-              className="bg-purple-500 text-white px-2 py-1 rounded text-xs"
-            >
-              Complete With Text
-            </button>
-          </div>
-        </div>
-      )}
-
+    <div className="space-y-4 flex flex-col justify-between h-full">
       {/* Results Modal */}
       {showResults && lastTestResult && (
         <ResultsModal

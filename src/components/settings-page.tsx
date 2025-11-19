@@ -4,7 +4,7 @@ import themesConfig from "@/config/themes.json";
 import { LanguageCode } from "@/domain";
 import { SUPPORTED_LANGUAGES } from "@/lib/constants/keyboard-layouts";
 import { applyThemeColors, Theme } from "@/lib/utils";
-import { Check, Cloud, Globe, HardDrive, Keyboard, Monitor, Moon, Palette, Sun } from "lucide-react";
+import { Check, Cloud, Globe, HardDrive, Keyboard, Moon, Palette, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { useAuth } from "./auth-provider";
@@ -90,12 +90,12 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto p-6">
+    <div className="space-y-6 container max-w-5xl mx-auto">
       {/* Header */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
-            <h1 className="text-3xl font-bold text-foreground">Settings</h1>
+            <h1 className="text-xl font-bold text-foreground">Settings</h1>
             <p className="text-muted-foreground">
               Customize your typing experience with themes, languages, and preferences.
             </p>
@@ -161,15 +161,6 @@ export default function SettingsPage() {
                   >
                     <Moon className="h-4 w-4" />
                     Dark
-                  </Button>
-                  <Button
-                    variant={theme === "system" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setTheme("system")}
-                    className="flex items-center gap-2"
-                  >
-                    <Monitor className="h-4 w-4" />
-                    System
                   </Button>
                 </div>
               </div>

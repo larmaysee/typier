@@ -3,10 +3,9 @@ import React from "react";
 
 const SiteFooter: React.FC = () => {
   return (
-    <footer className="text-center border-t p-4 h-14 bottom-0">
+    <footer className="text-center border-t border-dashed p-4 h-14 bottom-0">
       <p className="text-sm text-muted-foreground">
-        &copy; {new Date().getFullYear()}{" "}
-        <Link href="https://lisu.io"> lisu.io </Link>. All rights reserved.
+        &copy; {new Date().getFullYear()} <Link href="https://lisu.net"> lisu.net </Link>. All rights reserved.
       </p>
     </footer>
   );

@@ -3,6 +3,7 @@ import { account } from "@/lib/appwrite";
 import { Models } from "appwrite";
 import { User } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useAuth } from "./auth-provider";
 import { LoginDialog } from "./login-dialog";
 import { Button } from "./ui/button";
 import {
@@ -13,11 +14,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import { useAuth } from "./auth-provider";
 export default function Profile() {
-  const [user, setUser] = useState<Models.User<Models.Preferences> | null>(
-    null
-  );
+  const [user, setUser] = useState<Models.User<Models.Preferences> | null>(null);
   const [loading, setLoading] = useState(true);
   const { logout } = useAuth();
 
@@ -32,7 +30,7 @@ export default function Profile() {
       setUser(user);
     } catch (error) {
       // Silently handle authentication errors - user is not logged in
-      console.log('User not authenticated:', error);
+      console.log("User not authenticated:", error);
       setUser(null);
     } finally {
       setLoading(false);
@@ -44,14 +42,12 @@ export default function Profile() {
       {user != null ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant={user != null ? "default" : "outline"} size="sm" className="h-9">
-              <User size={16} />
+            <Button variant={user != null ? "default" : "outline"} size="icon" className="w-8 h-8 p-0 rounded-sm">
+              <User className="size-5" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel className="text-muted-foreground text-sm font-normal">
-              Setting
-            </DropdownMenuLabel>
+            <DropdownMenuLabel className="text-muted-foreground text-sm font-normal">Setting</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem>Profile</DropdownMenuItem>
             <DropdownMenuSeparator />

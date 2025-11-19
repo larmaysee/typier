@@ -10,12 +10,12 @@ interface ViewTogglerProps {
 
 export default function ViewToggler({ currentView, onViewChange }: ViewTogglerProps) {
   return (
-    <div className="flex gap-1 border rounded-xl p-1">
+    <div className="flex gap-2">
       <TooltipWrapper tooltip="Typing Test">
         <Button
-          variant={currentView === "typing" ? "default" : "ghost"}
-          size="sm"
-          className="h-8 px-3"
+          variant={currentView === "typing" ? "default" : "secondary"}
+          size="icon"
+          className="w-8 h-8 p-0 rounded-sm"
           onClick={() => onViewChange("typing")}
         >
           <Keyboard className="h-4 w-4" />
@@ -23,9 +23,9 @@ export default function ViewToggler({ currentView, onViewChange }: ViewTogglerPr
       </TooltipWrapper>
       <TooltipWrapper tooltip="Statistics">
         <Button
-          variant={currentView === "statistics" ? "default" : "ghost"}
-          size="sm"
-          className="h-8 px-3"
+          variant={currentView === "statistics" ? "default" : "secondary"}
+          size="icon"
+          className="w-8 h-8 p-0 rounded-sm"
           onClick={() => onViewChange("statistics")}
         >
           <BarChart3 className="h-4 w-4" />
@@ -33,9 +33,9 @@ export default function ViewToggler({ currentView, onViewChange }: ViewTogglerPr
       </TooltipWrapper>
       <TooltipWrapper tooltip="Leaderboard">
         <Button
-          variant={currentView === "leaderboard" ? "default" : "ghost"}
-          size="sm"
-          className="h-8 px-3"
+          variant={currentView === "leaderboard" ? "default" : "secondary"}
+          size="icon"
+          className="w-8 h-8 p-0 rounded-sm"
           onClick={() => onViewChange("leaderboard")}
         >
           <Trophy className="h-4 w-4" />
@@ -43,9 +43,9 @@ export default function ViewToggler({ currentView, onViewChange }: ViewTogglerPr
       </TooltipWrapper>
       <TooltipWrapper tooltip="Competitions">
         <Button
-          variant={currentView === "competitions" ? "default" : "ghost"}
-          size="sm"
-          className="h-8 px-3"
+          variant={currentView === "competitions" ? "default" : "secondary"}
+          size="icon"
+          className="w-8 h-8 p-0 rounded-sm"
           onClick={() => onViewChange("competitions")}
         >
           <Medal className="h-4 w-4" />
@@ -53,9 +53,9 @@ export default function ViewToggler({ currentView, onViewChange }: ViewTogglerPr
       </TooltipWrapper>
       <TooltipWrapper tooltip="Analytics">
         <Button
-          variant={currentView === "analytics" ? "default" : "ghost"}
-          size="sm"
-          className="h-8 px-3"
+          variant={currentView === "analytics" ? "default" : "secondary"}
+          size="icon"
+          className="w-8 h-8 p-0 rounded-sm"
           onClick={() => onViewChange("analytics")}
         >
           <Brain className="h-4 w-4" />
@@ -63,9 +63,9 @@ export default function ViewToggler({ currentView, onViewChange }: ViewTogglerPr
       </TooltipWrapper>
       <TooltipWrapper tooltip="Settings">
         <Button
-          variant={currentView === "settings" ? "default" : "ghost"}
-          size="sm"
-          className="h-8 px-3"
+          variant={currentView === "settings" ? "default" : "secondary"}
+          size="icon"
+          className="w-8 h-8 p-0 rounded-sm"
           onClick={() => onViewChange("settings")}
         >
           <Settings className="h-4 w-4" />

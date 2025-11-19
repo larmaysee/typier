@@ -24,7 +24,7 @@ export default function KeyButton({ label, value, className, shiftKey, pressedKe
       className={cn(
         "key-button relative p-2 border",
         `key-${keyname(value).toLowerCase()}`,
-        isPressed ? "bg-primary text-primary-foreground" : "",
+        isPressed ? "bg-primary text-primary-foreground" : "bg-background",
         isEmpty && "opacity-30 cursor-not-allowed",
         "hover:bg-primary/80 hover:text-primary-foreground transition-colors",
         className
