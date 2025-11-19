@@ -62,8 +62,13 @@ export class CompleteTypingSessionUseCase {
     if (session.test.mode !== "practice") {
       await this.typingRepository.save(completedTest);
 
-      // 8. Update user statistics
-      await this.updateUserStatistics(session.test.userId, finalResults);
+      // 8. Update user statistics (only for real users)
+      const isGuest =
+        !session.test.userId || session.test.userId === "anonymous" || session.test.userId.startsWith("guest_");
+
+      if (!isGuest) {
+        await this.updateUserStatistics(session.test.userId, finalResults);
+      }
     }
 
     return completedSession;

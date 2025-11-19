@@ -5,6 +5,7 @@ import { CompleteSessionCommandDTO } from "@/application/dto/typing-session.dto"
 import { CompleteTypingSessionUseCase } from "@/application/use-cases/typing/complete-typing-session";
 import { ProcessTypingInputUseCase } from "@/application/use-cases/typing/process-typing-input";
 import { StartTypingSessionUseCase } from "@/application/use-cases/typing/start-typing-session";
+import { useAuth } from "@/components/auth-provider";
 import { useSiteConfig } from "@/components/site-config";
 import { useTypingStatistics } from "@/components/typing-statistics";
 import { LanguageCode } from "@/domain";
@@ -70,6 +71,7 @@ export function useTypingSession() {
   const { config } = useSiteConfig();
   const { addTestResult } = useTypingStatistics();
   const { resolve, serviceTokens } = useDependencyInjection();
+  const { user } = useAuth();
 
   const [state, setState] = useState<TypingSessionState>(initialState);
   const [error, setError] = useState<string | null>(null);
@@ -114,7 +116,7 @@ export function useTypingSession() {
       setError(null);
 
       const command: StartSessionCommand = {
-        userId: "anonymous", // TODO: Get from auth context when available
+        userId: user?.id || "anonymous",
         mode: getTypingMode(),
         difficulty: getDifficultyLevel(),
         language: config.language.code as LanguageCode,
@@ -166,6 +168,7 @@ export function useTypingSession() {
     config.practiceMode,
     config.textType,
     config.difficultyLevel,
+    user?.id,
     // selectedTime now uses ref, getTypingMode, getDifficultyLevel, getTextType are stable functions
   ]);
 

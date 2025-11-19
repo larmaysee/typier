@@ -3,7 +3,6 @@
 import { FocusOverlay } from "@/components/focus-overlay";
 import ModernKeyboard from "@/components/modern-keyboard";
 import { PracticeModeProvider } from "@/components/pratice-mode";
-import { ResultsModal } from "@/components/results-modal";
 import { useSiteConfig } from "@/components/site-config";
 import { useSessionControls } from "@/presentation/hooks/typing/use-session-controls";
 import { useTypingSession } from "@/presentation/hooks/typing/use-typing-session";
@@ -54,15 +53,6 @@ function TypingContainerInner() {
     }
   };
 
-  const handleCloseResults = () => {
-    console.log("🔄 [TypingContainer] Closing results modal...");
-    setState((prev) => ({ ...prev, showResults: false }));
-  };
-
-  const handleStartNewTest = () => {
-    handleRefresh();
-  };
-
   // Debug logging for modal rendering
   if (showResults && lastTestResult) {
     console.log("🔄 [TypingContainer] Should render ResultsModal:", { showResults, lastTestResult: !!lastTestResult });
@@ -91,25 +81,13 @@ function TypingContainerInner() {
 
   return (
     <div className="space-y-4 flex flex-col justify-between h-full">
-      {/* Results Modal */}
-      {showResults && lastTestResult && (
-        <ResultsModal
-          isOpen={showResults}
-          onClose={handleCloseResults}
-          result={lastTestResult}
-          onStartNewTest={handleStartNewTest}
-        />
-      )}
-
       <div className="relative">
         <FocusOverlay isVisible={!isFocused && !testCompleted} onClick={handleFocusOverlayClick} />
-
         <TypingDisplay
           textContent={textContent}
           session={session}
           isFocused={isFocused}
           testCompleted={testCompleted}
-          showResults={showResults}
           inputRef={inputRef}
           onInput={handleInput}
           onFocus={handleFocus}
@@ -118,8 +96,7 @@ function TypingContainerInner() {
         />
       </div>
 
-      {/* Modern Keyboard Component */}
-      <div className="mt-6 space-y-4">
+      <div className="space-y-4">
         <TypingControlPanel
           session={session}
           testCompleted={session.testCompleted}

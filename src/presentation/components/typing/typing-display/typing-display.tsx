@@ -13,7 +13,6 @@ interface TypingDisplayProps {
   session: TypingSessionState;
   isFocused: boolean;
   testCompleted: boolean;
-  showResults: boolean; // Add showResults prop
   inputRef: React.RefObject<HTMLInputElement>;
   onInput: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onFocus: () => void;
@@ -26,7 +25,6 @@ export default function TypingDisplay({
   session,
   isFocused,
   testCompleted,
-  showResults, // Use the new prop
   inputRef,
   onInput,
   onFocus,
@@ -212,19 +210,10 @@ export default function TypingDisplay({
               })}
             </div>
           ) : (
-            // Sentence mode with original styling
             <div className="words flex flex-wrap relative leading-relaxed">
               {textContent?.split(" ").map((word, wordIndex) => {
-                // Calculate if this word should show any cursor
                 const isCurrentWord = session.cursorPosition.wordIndex === wordIndex;
                 const shouldShowSpaceCursor = isCurrentWord && session.cursorPosition.isSpacePosition;
-                const shouldShowEndOfWordCursor =
-                  isCurrentWord &&
-                  session.cursorPosition.charIndex === word.length &&
-                  !session.cursorPosition.isSpacePosition;
-
-                console.log("isSpacePosition ", session.cursorPosition.isSpacePosition);
-
                 return (
                   <div
                     key={wordIndex}
@@ -263,20 +252,8 @@ export default function TypingDisplay({
             </div>
           )}
         </div>
-
-        {/* Completion message - only show if results modal is not showing */}
-        {testCompleted && !showResults && (
-          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm rounded-lg flex items-center justify-center">
-            <div className="text-center space-y-2">
-              <div className="text-4xl">🎉</div>
-              <div className="text-xl font-semibold">Test Completed!</div>
-              <div className="text-sm text-muted-foreground">Check your results above</div>
-            </div>
-          </div>
-        )}
       </div>
       <div>
-        {/* Hidden input for typing */}
         <Input
           ref={inputRef}
           type="text"

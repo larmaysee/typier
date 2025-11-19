@@ -13,8 +13,10 @@ export class StartTypingSessionUseCase {
   ) {}
 
   async execute(command: StartSessionCommand): Promise<StartSessionResponseDto> {
-    // 1. Validate user exists (except for practice mode and anonymous users)
-    if (command.mode !== TypingMode.PRACTICE && command.userId && command.userId !== "anonymous") {
+    // 1. Validate user exists (except for practice mode, anonymous users, and guest users)
+    const isGuest = !command.userId || command.userId === "anonymous" || command.userId.startsWith("guest_");
+
+    if (command.mode !== TypingMode.PRACTICE && !isGuest) {
       const user = await this.userRepository.findById(command.userId);
       if (!user) {
         console.warn(`User not found: ${command.userId}, proceeding with anonymous session`);

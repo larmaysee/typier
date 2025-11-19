@@ -22,11 +22,7 @@ export function LoginDialog() {
 
   const loginWithGoogle = async () => {
     setLoading(true);
-    account.createOAuth2Session(
-      OAuthProvider.Google,
-      `${location.origin}`,
-      `${location.origin}`
-    );
+    account.createOAuth2Session(OAuthProvider.Google, `${location.origin}`, `${location.origin}`);
 
     const user = await account.get();
 
@@ -43,7 +39,7 @@ export function LoginDialog() {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="default" size="sm" className="">
+        <Button variant="default" size="sm" className="h-8 py-0 rounded-sm">
           <LockIcon size={16} />
           <span className="text-sm">Sign In</span>
         </Button>
@@ -52,24 +48,15 @@ export function LoginDialog() {
         <DialogHeader>
           <DialogTitle>Login to save your result</DialogTitle>
           <DialogDescription>
-            Login to save your result and access your saved results from any
-            device.
+            Login to save your result and access your saved results from any device.
           </DialogDescription>
 
           <div className="flex items-center space-x-2 h-[100px] bg-muted rounded-lg"></div>
         </DialogHeader>
         <div className="flex items-center space-x-2">
-          <Button
-            variant="default"
-            size="sm"
-            className="w-full"
-            onClick={loginWithGoogle}
-            disabled={loading}
-          >
+          <Button variant="default" size="sm" className="w-full" onClick={loginWithGoogle} disabled={loading}>
             <Icons.googleLogo className="w-6 h-6" />
-            <span className="text-sm text-primary-foreground font-bold">
-              Sign in with Google
-            </span>
+            <span className="text-sm text-primary-foreground font-bold">Sign in with Google</span>
           </Button>
         </div>
       </DialogContent>
