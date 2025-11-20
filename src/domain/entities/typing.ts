@@ -457,6 +457,22 @@ export class TypingSession {
     );
   }
 
+  withTest(test: TypingTest): TypingSession {
+    return new TypingSession(
+      this.id,
+      test,
+      this.currentInput,
+      this.startTime,
+      this.timeLeft,
+      this.status,
+      this.cursorPosition,
+      this.focusState,
+      this.mistakes,
+      this.liveStats,
+      this.activeLayout
+    );
+  }
+
   switchLayout(newLayout: KeyboardLayout): TypingSession {
     if (newLayout.language !== this.test.language) {
       throw new Error("Layout language must match test language");

@@ -1,5 +1,5 @@
 import { CompleteSessionCommandDTO } from "@/application/dto/typing-session.dto";
-import { SessionStatus, TypingResults, TypingSession, TypingTest } from "@/domain/entities/typing";
+import { SessionStatus, TypingMistake, TypingResults, TypingSession, TypingTest } from "@/domain/entities/typing";
 import { ISessionRepository, ITypingRepository, IUserRepository } from "@/domain/interfaces/repositories";
 
 export class CompleteTypingSessionUseCase {
@@ -18,7 +18,15 @@ export class CompleteTypingSessionUseCase {
 
     // 2. Validate session can be completed
     if (session.status === SessionStatus.COMPLETED) {
-      return session; // Already completed
+      // Check if results are actually calculated (WPM > 0 or charactersTyped > 0 is better proxy than duration)
+      // Duration is set during initialization, so we check actual typing activity instead
+      const hasResults = session.test.results.wpm > 0 || session.test.results.charactersTyped > 0;
+      if (hasResults) {
+        return session; // Already completed AND calculated
+      }
+      console.log(
+        "⚠️ [CompleteTypingSession] Session is marked COMPLETED but results are empty. Proceeding with calculation."
+      );
     }
 
     if (session.status === SessionStatus.ABANDONED) {
@@ -28,7 +36,27 @@ export class CompleteTypingSessionUseCase {
     // 3. Calculate final results
     const completionTime = command.completionTime;
     const startTime = session.startTime || completionTime;
-    const totalDuration = (completionTime - startTime) / 1000; // in seconds
+    let totalDuration = (completionTime - startTime) / 1000; // in seconds
+
+    // Robust duration calculation to prevent 0 WPM
+    if (totalDuration <= 0.1) {
+      console.warn("⚠️ [CompleteTypingSession] Calculated duration is ~0, attempting fallbacks", {
+        startTime,
+        completionTime,
+        statsElapsed: session.liveStats.timeElapsed,
+        testDuration: session.test.results.duration,
+      });
+
+      if (session.liveStats.timeElapsed > 0) {
+        totalDuration = session.liveStats.timeElapsed;
+      } else if (session.test.results.duration > 0) {
+        totalDuration = session.test.results.duration;
+      } else {
+        // Last resort: estimate based on char count (assuming 300 CPM / 60 WPM approx)
+        // This prevents division by zero
+        totalDuration = Math.max(1, command.finalInput.length / 5);
+      }
+    }
 
     const finalResults = this.calculateFinalResults(
       session.test.textContent,
@@ -37,6 +65,8 @@ export class CompleteTypingSessionUseCase {
       totalDuration,
       session.liveStats.timeElapsed
     );
+
+    console.log("final result in complete typing session ", finalResults);
 
     // 4. Create completed test with results
     const completedTest = TypingTest.create({
@@ -52,8 +82,23 @@ export class CompleteTypingSessionUseCase {
       competitionId: session.test.competitionId,
     });
 
-    // 5. Create completed session using complete() method
-    const completedSession = session.complete().updateInput(command.finalInput, session.cursorPosition);
+    console.log("sessions object", session);
+
+    // 5. Create completed session using complete() method and update with completed test (containing results)
+    let completedSession: TypingSession;
+
+    if (session.status === SessionStatus.COMPLETED) {
+      // Already completed state, just update input and test results
+      completedSession = session.updateInput(command.finalInput, session.cursorPosition).withTest(completedTest);
+    } else {
+      // Active state, transition to completed
+      completedSession = session
+        .complete()
+        .updateInput(command.finalInput, session.cursorPosition)
+        .withTest(completedTest);
+    }
+
+    console.log("complete session ", completedSession);
 
     // 6. Save completed session
     await this.sessionRepository.save(completedSession);
@@ -66,7 +111,11 @@ export class CompleteTypingSessionUseCase {
       const isGuest =
         !session.test.userId || session.test.userId === "anonymous" || session.test.userId.startsWith("guest_");
 
+      console.log("is guest ==> ", isGuest);
+
       if (!isGuest) {
+        console.log("not guest");
+
         await this.updateUserStatistics(session.test.userId, finalResults);
       }
     }
@@ -77,7 +126,7 @@ export class CompleteTypingSessionUseCase {
   private calculateFinalResults(
     targetText: string,
     finalInput: string,
-    mistakes: any[],
+    mistakes: TypingMistake[],
     totalDurationSeconds: number,
     actualTypingTime: number
   ): TypingResults {
@@ -142,7 +191,7 @@ export class CompleteTypingSessionUseCase {
     const consistency = this.calculateConsistency(mistakes, totalDurationSeconds);
 
     // Peak WPM calculation (highest WPM achieved during any 10-second window)
-    const peakWPM = this.calculatePeakWPM(mistakes, correctChars, totalDurationSeconds);
+    // const peakWPM = this.calculatePeakWPM(mistakes, correctChars, totalDurationSeconds);
 
     console.log("🧮 [calculateFinalResults] Calculated values:", {
       correctChars,
@@ -213,7 +262,7 @@ export class CompleteTypingSessionUseCase {
     return correctCount;
   }
 
-  private calculateConsistency(mistakes: any[], totalDuration: number): number {
+  private calculateConsistency(mistakes: TypingMistake[], totalDuration: number): number {
     if (totalDuration <= 0 || mistakes.length === 0) {
       return 100;
     }
@@ -240,7 +289,7 @@ export class CompleteTypingSessionUseCase {
     return consistencyScore;
   }
 
-  private calculatePeakWPM(mistakes: any[], correctChars: number, totalDuration: number): number {
+  private calculatePeakWPM(mistakes: TypingMistake[], correctChars: number, totalDuration: number): number {
     // Simplified peak WPM calculation
     // In a full implementation, this would analyze typing speed in sliding windows
     const timeInMinutes = totalDuration / 60;

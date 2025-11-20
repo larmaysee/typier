@@ -3,6 +3,7 @@
 import { FocusOverlay } from "@/components/focus-overlay";
 import ModernKeyboard from "@/components/modern-keyboard";
 import { PracticeModeProvider } from "@/components/pratice-mode";
+import { ResultsModal } from "@/components/results-modal";
 import { useSiteConfig } from "@/components/site-config";
 import { useSessionControls } from "@/presentation/hooks/typing/use-session-controls";
 import { useTypingSession } from "@/presentation/hooks/typing/use-typing-session";
@@ -44,7 +45,7 @@ function TypingContainerInner() {
     setState,
     inputRef,
     getRandomData,
-    processInput, // Pass the processInput use case
+    processInput,
   });
 
   const handleFocusOverlayClick = () => {
@@ -53,20 +54,18 @@ function TypingContainerInner() {
     }
   };
 
-  // Debug logging for modal rendering
-  if (showResults && lastTestResult) {
-    console.log("🔄 [TypingContainer] Should render ResultsModal:", { showResults, lastTestResult: !!lastTestResult });
-  }
-  if (showResults && !lastTestResult) {
-    console.log("⚠️ [TypingContainer] showResults=true but no lastTestResult");
-  }
-  if (!showResults && lastTestResult) {
-    console.log("⚠️ [TypingContainer] lastTestResult exists but showResults=false");
-  }
+  const handleCloseResults = () => {
+    console.log("🔄 [TypingContainer] Closing results modal...");
+    setState((prev) => ({ ...prev, showResults: false }));
+  };
+
+  const handleStartNewTest = () => {
+    handleRefresh();
+  };
 
   if (error) {
     return (
-      <div className="text-center py-12">
+      <div className="text-center p-12">
         <div className="text-red-500 mb-2">⚠️ {error}</div>
         <button onClick={handleRefresh} className="px-4 py-2 bg-primary text-primary-foreground rounded">
           Try Again
@@ -81,6 +80,15 @@ function TypingContainerInner() {
 
   return (
     <div className="space-y-4 flex flex-col justify-between h-full">
+      {showResults && lastTestResult && (
+        <ResultsModal
+          isOpen={showResults}
+          onClose={handleCloseResults}
+          result={lastTestResult}
+          onStartNewTest={handleStartNewTest}
+        />
+      )}
+
       <div className="relative">
         <FocusOverlay isVisible={!isFocused && !testCompleted} onClick={handleFocusOverlayClick} />
         <TypingDisplay

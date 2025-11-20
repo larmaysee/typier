@@ -93,7 +93,7 @@ export function useTypingSession() {
   // Map config to typing mode
   const getTypingMode = useCallback((): TypingMode => {
     if (config.practiceMode) return TypingMode.PRACTICE;
-    return TypingMode.NORMAL; // Default mode
+    return TypingMode.NORMAL;
   }, [config.practiceMode]);
 
   // Get text type from config
@@ -135,6 +135,9 @@ export function useTypingSession() {
         timeLeft: response.session.timeLeft,
       });
 
+      // Reset completion flag when starting new session
+      isCompletingRef.current = false;
+
       setState((prev) => ({
         ...prev,
         sessionId: response.session.id,
@@ -151,6 +154,7 @@ export function useTypingSession() {
         currentAccuracy: 100,
         progress: 0,
         cursorPosition: { wordIndex: 0, charIndex: 0, isSpacePosition: false },
+        lastTestResult: null,
       }));
 
       console.log("✅ [startNewSession] State updated successfully");
@@ -174,6 +178,7 @@ export function useTypingSession() {
 
   // Use ref to track the latest session ID without causing re-renders
   const sessionIdRef = useRef<string | null>(null);
+  const isCompletingRef = useRef<boolean>(false);
 
   useEffect(() => {
     sessionIdRef.current = state.sessionId;
@@ -251,7 +256,7 @@ export function useTypingSession() {
       }));
 
       // If session just completed, trigger completion logic
-      if (sessionDto.status === "completed" && !state.testCompleted) {
+      if (sessionDto.status === "completed" && !state.testCompleted && !isCompletingRef.current) {
         console.log("🏁 Session completed during input processing, triggering completion...");
         // Use setTimeout to ensure state update happens first
         setTimeout(() => {
@@ -297,6 +302,14 @@ export function useTypingSession() {
       return;
     }
 
+    // Guard against duplicate completion calls
+    if (isCompletingRef.current) {
+      console.log("⚠️ Completion already in progress, skipping duplicate call");
+      return;
+    }
+
+    isCompletingRef.current = true;
+
     try {
       console.log("🏁 Starting session completion...", {
         sessionId: currentSessionId,
@@ -319,6 +332,8 @@ export function useTypingSession() {
       };
 
       const completedSession = await completeSessionUseCase.execute(command);
+      console.log("completedSession object ==> ", completedSession);
+
       const results = completedSession.test.results;
 
       console.log("✅ Session completed successfully", {
@@ -370,6 +385,8 @@ export function useTypingSession() {
       const errorMessage = err instanceof Error ? err.message : "Failed to complete session";
       setError(errorMessage);
       console.error("❌ Error completing session:", err);
+    } finally {
+      isCompletingRef.current = false;
     }
     // completeSessionUseCase and addTestResult are stable functions
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -474,7 +491,13 @@ export function useTypingSession() {
     });
 
     // Auto-complete if timer runs out AND we haven't already processed results
-    if (shouldAutoComplete && state.timeLeft === 0 && !state.showResults && state.sessionId) {
+    if (
+      shouldAutoComplete &&
+      state.timeLeft === 0 &&
+      !state.showResults &&
+      state.sessionId &&
+      !isCompletingRef.current
+    ) {
       console.log("🏁 Auto-completing session due to timer...");
       completeSession();
     }
