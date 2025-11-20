@@ -119,30 +119,35 @@ export default function SettingsPage() {
 
       {/* Main Settings Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="">
           <TabsTrigger value="themes" className="flex items-center gap-2">
             <Palette className="h-4 w-4" />
-            Theme Settings
+            Theme
           </TabsTrigger>
           <TabsTrigger value="keyboard" className="flex items-center gap-2">
             <Keyboard className="h-4 w-4" />
-            Keyboard Layouts
+            Keyboard
           </TabsTrigger>
         </TabsList>
 
         {/* 1. Theme Settings Tab */}
         <TabsContent value="themes" className="space-y-6">
-          <Card>
+          <Card className="rounded-2xl border border-dashed">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="text-lg flex items-center gap-2">
                 <Palette className="h-5 w-5" />
                 Appearance & Theme Settings
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Dark/Light Mode Toggle */}
-              <div className="space-y-3">
-                <h3 className="text-lg font-medium">Appearance Mode</h3>
+              <div className="flex justify-between items-center space-y-3">
+                <div className="flex flex-col justify-start">
+                  <h3 className="text-lg font-medium">Appearance Mode</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Choose between light and dark modes for your typing experience.
+                  </p>
+                </div>
                 <div className="flex gap-2">
                   <Button
                     variant={theme === "light" ? "default" : "outline"}
@@ -165,61 +170,35 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <Separator />
-
+              <Separator className="my-4" />
               {/* Color Themes */}
               <div className="space-y-4">
-                <h3 className="text-lg font-medium">Color Themes</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="flex flex-col justify-start">
+                  <h3 className="text-lg font-medium">Color Themes</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Select a color theme to personalize the look and feel of the application.
+                  </p>
+                </div>
+                <div className="flex gap-4">
                   {themes.map((themeOption) => (
-                    <div
+                    <Button
                       key={themeOption.id}
-                      className={`relative p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
-                        selectedTheme === themeOption.id
-                          ? "border-primary ring-2 ring-primary/20"
-                          : "border-border hover:border-muted-foreground"
-                      }`}
+                      variant={"secondary"}
+                      className={
+                        "relative h-10 w-10 rounded-full overflow-hidden flex flex-col border-2 " +
+                        (selectedTheme === themeOption.id ? " border-primary ring-2 ring-primary/20" : " border-border")
+                      }
+                      style={{
+                        backgroundColor: `hsl(${themeOption.colors.primary})`,
+                      }}
                       onClick={() => handleThemeChange(themeOption.id)}
                     >
                       {selectedTheme === themeOption.id && (
-                        <div className="absolute top-2 right-2">
-                          <Check className="h-4 w-4 text-primary" />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/10">
+                          <Check className="h-4 w-4 text-white drop-shadow-md" />
                         </div>
                       )}
-
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-medium">{themeOption.name}</h4>
-                          {themeOption.id === "default" && (
-                            <Badge variant="secondary" className="text-xs">
-                              Default
-                            </Badge>
-                          )}
-                        </div>
-
-                        <p className="text-sm text-muted-foreground">{themeOption.description}</p>
-
-                        {/* Color Preview */}
-                        <div className="flex gap-1">
-                          <div
-                            className="w-4 h-4 rounded-full border border-muted"
-                            style={{ backgroundColor: `hsl(${themeOption.colors.primary})` }}
-                          />
-                          <div
-                            className="w-4 h-4 rounded-full border border-muted"
-                            style={{ backgroundColor: `hsl(${themeOption.colors.secondary})` }}
-                          />
-                          <div
-                            className="w-4 h-4 rounded-full border border-muted"
-                            style={{ backgroundColor: `hsl(${themeOption.colors.accent})` }}
-                          />
-                          <div
-                            className="w-4 h-4 rounded-full border border-muted"
-                            style={{ backgroundColor: `hsl(${themeOption.colors.muted})` }}
-                          />
-                        </div>
-                      </div>
-                    </div>
+                    </Button>
                   ))}
                 </div>
               </div>

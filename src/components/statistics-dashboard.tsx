@@ -315,10 +315,10 @@ export default function StatisticsDashboard() {
               {recentTests.map((test, index) => (
                 <div
                   key={test.id}
-                  className="flex items-center justify-between px-3 py-1 rounded-md hover:bg-muted/30 transition-colors"
+                  className="flex items-center justify-between px-3 py-1 bg-muted/30 rounded-md hover:bg-muted/30 transition-colors"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1.5">{index + 1}.</div>
+                    <div className="flex items-center gap-1.5 text-muted-foreground font-medium">{index + 1}.</div>
                     <div className="flex items-center gap-1.5">
                       <Calendar className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm text-muted-foreground">{formatDate(test.timestamp)}</span>
@@ -326,22 +326,45 @@ export default function StatisticsDashboard() {
                     <Badge variant="outline" className="text-xs h-5">
                       {test.language.toUpperCase()}
                     </Badge>
-                    {index === 0 && (
-                      <Badge className="text-xs h-5 bg-primary/10 text-primary hover:bg-primary/20">Latest</Badge>
+                    <Badge variant="secondary" className="text-xs h-5 capitalize">
+                      {test.textType || "words"}
+                    </Badge>
+                    <Badge
+                      variant="outline"
+                      className={`text-xs h-5 capitalize ${
+                        test.difficulty === "easy"
+                          ? "border-green-500/50 text-green-700 dark:text-green-400"
+                          : test.difficulty === "hard"
+                          ? "border-red-500/50 text-red-700 dark:text-red-400"
+                          : "border-yellow-500/50 text-yellow-700 dark:text-yellow-400"
+                      }`}
+                    >
+                      {test.difficulty || "medium"}
+                    </Badge>
+                    {test.practiceMode ? (
+                      <Badge className="text-xs h-5 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                        Practice
+                      </Badge>
+                    ) : (
+                      <Badge className="text-xs h-5 bg-primary/10 text-primary">Normal</Badge>
                     )}
                   </div>
                   <div className="flex items-center gap-4">
                     <div className="text-center">
-                      <div className="text-xs font-semibold">{test.wpm}</div>
+                      <div className="text-sm font-semibold">{test.wpm}</div>
                       <div className="text-xs text-muted-foreground">WPM</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-xs font-semibold">{test.accuracy}%</div>
+                      <div className="text-sm font-semibold">{test.accuracy}%</div>
                       <div className="text-xs text-muted-foreground">ACC</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-xs font-semibold">{test.testDuration}s</div>
+                      <div className="text-sm font-semibold">{test.testDuration}s</div>
                       <div className="text-xs text-muted-foreground">TIME</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-sm font-semibold text-red-600 dark:text-red-400">{test.errors}</div>
+                      <div className="text-xs text-muted-foreground">ERR</div>
                     </div>
                   </div>
                 </div>

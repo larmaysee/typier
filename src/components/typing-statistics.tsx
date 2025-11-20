@@ -17,6 +17,9 @@ export interface TypingTestResult {
   timestamp: number;
   charactersTyped: number;
   errors: number;
+  textType?: string; // e.g., 'words', 'sentences', 'chars'
+  difficulty?: string; // e.g., 'easy', 'medium', 'hard'
+  practiceMode?: boolean;
 }
 
 export interface TypingStatistics {
@@ -356,6 +359,9 @@ export const TypingStatisticsProvider: React.FC<{ children: ReactNode }> = ({ ch
       id: `test_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       userId: getCurrentUserId(),
       timestamp: Date.now(),
+      textType: result.textType || "words",
+      difficulty: result.difficulty || "medium",
+      practiceMode: result.practiceMode || false,
     };
 
     try {
