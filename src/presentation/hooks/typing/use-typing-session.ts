@@ -358,6 +358,13 @@ export function useTypingSession() {
 
       // Calculate legacy format for existing components
       const totalWords = results.correctWords + results.incorrectWords;
+
+      console.log("🔍 Config values:", {
+        textType: config.textType,
+        difficultyLevel: config.difficultyLevel,
+        practiceMode: config.practiceMode,
+      });
+
       const testResult = {
         wpm: results.wpm,
         accuracy: results.accuracy,
@@ -368,6 +375,9 @@ export function useTypingSession() {
         language: languageRef.current,
         charactersTyped: results.charactersTyped,
         errors: results.errors,
+        textType: config.textType,
+        difficulty: config.difficultyLevel,
+        practiceMode: config.practiceMode,
       };
 
       console.log("📊 Test result calculated", testResult);

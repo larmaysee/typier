@@ -323,15 +323,15 @@ export default function StatisticsDashboard() {
                       <Calendar className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm text-muted-foreground">{formatDate(test.timestamp)}</span>
                     </div>
-                    <Badge variant="outline" className="text-xs h-5">
+                    <Badge variant="outline" className="text-xs h-5 font-normal">
                       {test.language.toUpperCase()}
                     </Badge>
-                    <Badge variant="secondary" className="text-xs h-5 capitalize">
+                    <Badge variant="secondary" className="text-xs h-5 capitalize font-normal">
                       {test.textType || "words"}
                     </Badge>
                     <Badge
                       variant="outline"
-                      className={`text-xs h-5 capitalize ${
+                      className={`text-xs h-5 capitalize font-normal ${
                         test.difficulty === "easy"
                           ? "border-green-500/50 text-green-700 dark:text-green-400"
                           : test.difficulty === "hard"
@@ -342,11 +342,11 @@ export default function StatisticsDashboard() {
                       {test.difficulty || "medium"}
                     </Badge>
                     {test.practiceMode ? (
-                      <Badge className="text-xs h-5 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                      <Badge className="text-xs h-5 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 font-normal">
                         Practice
                       </Badge>
                     ) : (
-                      <Badge className="text-xs h-5 bg-primary/10 text-primary">Normal</Badge>
+                      <Badge className="text-xs h-5 bg-primary/10 text-primary font-normal">Normal</Badge>
                     )}
                   </div>
                   <div className="flex items-center gap-4">

@@ -359,10 +359,17 @@ export const TypingStatisticsProvider: React.FC<{ children: ReactNode }> = ({ ch
       id: `test_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       userId: getCurrentUserId(),
       timestamp: Date.now(),
+      // Use provided values or fallback to defaults
       textType: result.textType || "words",
       difficulty: result.difficulty || "medium",
-      practiceMode: result.practiceMode || false,
+      practiceMode: result.practiceMode ?? false,
     };
+
+    console.log("💾 Saving test result to storage:", {
+      textType: newResult.textType,
+      difficulty: newResult.difficulty,
+      practiceMode: newResult.practiceMode,
+    });
 
     try {
       if (canUseDatabase() && isOnline) {
