@@ -14,6 +14,7 @@ interface UseSessionControlsProps {
   getRandomData: () => void;
   processInput: (input: string) => Promise<void>; // Required - no fallback
   allowDeletion?: boolean; // Whether to allow backspace/delete keys
+  onTimeChange?: () => void; // Callback to restart session when time changes
 }
 
 export function useSessionControls({
@@ -23,6 +24,7 @@ export function useSessionControls({
   getRandomData,
   processInput,
   allowDeletion = true,
+  onTimeChange,
 }: UseSessionControlsProps) {
   const getActiveWordIndex = useCallback(() => {
     const words = session.typedText.split(" ");
@@ -191,8 +193,16 @@ export function useSessionControls({
         testCompleted: false,
         showResults: false,
       }));
+
+      // Restart the session with new time
+      if (onTimeChange) {
+        // Use setTimeout to ensure state update completes first
+        setTimeout(() => {
+          onTimeChange();
+        }, 0);
+      }
     },
-    [setState]
+    [setState, onTimeChange]
   );
 
   return {

@@ -1,15 +1,10 @@
 "use client";
 
+import { PerformanceChart } from "@/components/performance-chart";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Award, Clock, Keyboard, Target, TrendingUp, Trophy } from "lucide-react";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Award, Clock, Target, TrendingUp, Trophy } from "lucide-react";
+import { Badge } from "./ui/badge";
 
 // Interface for modal display - only includes properties needed for display
 interface TestResultDisplay {
@@ -58,71 +53,63 @@ export function ResultsModal({ isOpen, onClose, result, onStartNewTest }: Result
     result.charactersTyped > 0 ? ((result.errors / result.charactersTyped) * 100).toFixed(1) : "0.0";
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl rounded-3xl">
-        <DialogHeader className="text-center pb-4">
-          <div className="flex items-center justify-center mb-3">
-            <div className="p-2 rounded-full bg-primary/10">
-              <Trophy className="h-6 w-6 text-primary" />
-            </div>
-          </div>
-          <DialogTitle className="text-2xl font-bold">Congratulations 🎉</DialogTitle>
-          <div className="flex items-center justify-center gap-2">
-            <PerformanceIcon className={`h-4 w-4 ${performance.color}`} />
-            <DialogDescription className={`font-semibold ${performance.color}`}>{performance.rating}</DialogDescription>
-          </div>
+    <Dialog open={isOpen} onOpenChange={onClose} modal>
+      <DialogContent
+        className="max-w-3xl rounded-3xl max-h-[90vh] overflow-y-auto [&>button]:hidden"
+        onInteractOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+      >
+        <DialogHeader className="pb-2">
+          <DialogTitle className="text-2xl font-bold flex items-center gap-2">
+            <div className="p-2 rounded-full bg-primary/10 w-10 h-10">
+              <PerformanceIcon className={`h-6 w-6 ${performance.color}`} />
+            </div>{" "}
+            <span>Results</span>
+            <Badge className="ml-2 bg-primary/10 text-primary font-semibold hover:bg-primary/20">
+              {performance.rating}
+            </Badge>
+          </DialogTitle>
         </DialogHeader>
 
-        {/* Compact Stats Grid */}
-        <div className="space-y-6">
-          {/* Primary Stats */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="text-center p-4 bg-muted/50 rounded-lg border border-border">
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <Keyboard className="h-4 w-4 text-muted-foreground" />
-                <span className="font-semibold text-muted-foreground">WPM</span>
-              </div>
-              <div className="text-3xl font-bold text-foreground">{result.wpm}</div>
-              <div className="text-xs text-muted-foreground">Words Per Minute</div>
-            </div>
+        {/* Performance Graph */}
+        <div className="mb-4">
+          <PerformanceChart
+            wpm={result.wpm}
+            accuracy={result.accuracy}
+            correctWords={result.correctWords}
+            incorrectWords={result.incorrectWords}
+            testDuration={result.testDuration}
+          />
+        </div>
 
-            <div className="text-center p-4 bg-muted/50 rounded-lg border border-border">
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <Target className="h-4 w-4 text-muted-foreground" />
-                <span className="font-semibold text-muted-foreground">Accuracy</span>
-              </div>
-              <div className="text-3xl font-bold text-foreground">{result.accuracy.toFixed(1)}%</div>
-              <div className="text-xs text-muted-foreground">Typing Precision</div>
-            </div>
-          </div>
-
+        {/* Detailed Stats */}
+        <div className="space-y-4">
           {/* Secondary Stats */}
           <div className="grid grid-cols-4 gap-3">
-            <div className="text-center p-3 bg-muted/30 rounded-lg border border-border">
-              <div className="text-sm font-semibold text-muted-foreground mb-1">Correct</div>
-              <div className="text-xl font-bold text-foreground">{result.correctWords}</div>
-              <div className="text-xs text-muted-foreground">words</div>
-            </div>
-
-            <div className="text-center p-3 bg-muted/30 rounded-lg border border-border">
-              <div className="text-sm font-semibold text-muted-foreground mb-1">Errors</div>
-              <div className="text-xl font-bold text-foreground">{result.errors}</div>
-              <div className="text-xs text-muted-foreground">mistakes</div>
-            </div>
-
             <div className="text-center p-3 bg-muted/30 rounded-lg border border-border">
               <div className="flex items-center justify-center gap-1 mb-1">
                 <Clock className="h-3 w-3 text-muted-foreground" />
                 <span className="text-sm font-semibold text-muted-foreground">Time</span>
               </div>
               <div className="text-xl font-bold text-foreground">{result.testDuration}s</div>
-              <div className="text-xs text-muted-foreground">duration</div>
+            </div>
+
+            <div className="text-center p-3 bg-muted/30 rounded-lg border border-border">
+              <div className="text-sm font-semibold text-muted-foreground mb-1">Total</div>
+              <div className="text-xl font-bold text-foreground">{result.totalWords}</div>
+              <div className="text-xs text-muted-foreground">words</div>
             </div>
 
             <div className="text-center p-3 bg-muted/30 rounded-lg border border-border">
               <div className="text-sm font-semibold text-muted-foreground mb-1">Chars</div>
               <div className="text-xl font-bold text-foreground">{result.charactersTyped}</div>
               <div className="text-xs text-muted-foreground">typed</div>
+            </div>
+
+            <div className="text-center p-3 bg-muted/30 rounded-lg border border-border">
+              <div className="text-sm font-semibold text-muted-foreground mb-1">CPM</div>
+              <div className="text-xl font-bold text-foreground">{safeCharsPerMin}</div>
+              <div className="text-xs text-muted-foreground">chars/min</div>
             </div>
           </div>
 
@@ -135,26 +122,18 @@ export function ResultsModal({ isOpen, onClose, result, onStartNewTest }: Result
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div className="space-y-1">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Total Words:</span>
-                  <span className="font-semibold">{result.totalWords}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Incorrect Words:</span>
-                  <span className="font-semibold">{result.incorrectWords}</span>
-                </div>
-                <div className="flex justify-between">
                   <span className="text-muted-foreground">Language:</span>
                   <span className="font-semibold capitalize">{result.language}</span>
                 </div>
-              </div>
-              <div className="space-y-1">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Success Rate:</span>
                   <span className="font-semibold">{safeSuccessRate}%</span>
                 </div>
+              </div>
+              <div className="space-y-1">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Chars per Min:</span>
-                  <span className="font-semibold">{safeCharsPerMin}</span>
+                  <span className="text-muted-foreground">Incorrect Words:</span>
+                  <span className="font-semibold">{result.incorrectWords}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Error Rate:</span>
@@ -166,8 +145,8 @@ export function ResultsModal({ isOpen, onClose, result, onStartNewTest }: Result
         </div>
 
         {/* Action Button */}
-        <DialogFooter className="pt-6">
-          <Button onClick={handleStartNewTest} className="w-full">
+        <DialogFooter className="pt-4">
+          <Button onClick={handleStartNewTest} className="">
             <Trophy className="h-4 w-4 mr-2" />
             New Test
           </Button>

@@ -47,6 +47,7 @@ function TypingContainerInner() {
     getRandomData,
     processInput,
     allowDeletion: config.allowDeletion,
+    onTimeChange: getRandomData, // Restart session when time changes
   });
 
   const handleFocusOverlayClick = () => {

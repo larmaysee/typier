@@ -63,6 +63,40 @@ export class MockTextGenerationService implements ITextGenerationService {
     ];
 
     // English word pools for EASY difficulty (chars, words, numbers)
+    // Left hand keys: q w e r t a s d f g z x c v b (QWERTY layout)
+    // Right hand keys: y u i o p h j k l n m
+    this.wordPools.set(`${LanguageCode.EN}-${DifficultyLevel.EASY}-chars-left`, [
+      "a",
+      "s",
+      "d",
+      "f",
+      "g",
+      "q",
+      "w",
+      "e",
+      "r",
+      "t",
+      "z",
+      "x",
+      "c",
+      "v",
+      "b",
+    ]);
+
+    this.wordPools.set(`${LanguageCode.EN}-${DifficultyLevel.EASY}-chars-right`, [
+      "h",
+      "j",
+      "k",
+      "l",
+      "y",
+      "u",
+      "i",
+      "o",
+      "p",
+      "n",
+      "m",
+    ]);
+
     this.wordPools.set(`${LanguageCode.EN}-${DifficultyLevel.EASY}-chars`, [
       "a",
       "b",
@@ -169,6 +203,26 @@ export class MockTextGenerationService implements ITextGenerationService {
       "Exercise is important for maintaining good health.",
       "Communication skills are essential in professional settings.",
       "Time management can improve productivity significantly.",
+      "Education opens doors to countless opportunities in life.",
+      "Teamwork and collaboration lead to better outcomes.",
+      "Innovation drives progress in every field of study.",
+      "Determination and perseverance overcome most obstacles.",
+      "Critical thinking skills are valuable in problem-solving.",
+      "Creativity flourishes when you explore new perspectives.",
+      "Effective leadership inspires and motivates others.",
+      "Continuous improvement is the key to long-term success.",
+      "Adaptability helps navigate changing circumstances gracefully.",
+      "Clear communication prevents misunderstandings and conflicts.",
+      "Professional development enhances career growth opportunities.",
+      "Digital literacy is essential in today's technology-driven world.",
+      "Cultural awareness promotes understanding and respect.",
+      "Environmental sustainability requires collective action.",
+      "Financial planning ensures stability and security.",
+      "Healthy habits contribute to overall well-being.",
+      "Social connections enrich our daily experiences.",
+      "Emotional intelligence improves interpersonal relationships.",
+      "Strategic thinking enables better decision making.",
+      "Lifelong learning keeps the mind sharp and engaged.",
     ]);
 
     // English pools for HARD difficulty (mixed all)
@@ -464,9 +518,35 @@ export class MockTextGenerationService implements ITextGenerationService {
 
   /**
    * EASY: chars, words (no numbers)
+   * For CHARS text type: generates left hand, then right hand practice format (min 300 chars)
    */
   private generateEasyContent(config: TextGenerationConfig): string {
     const parts: string[] = [];
+
+    // Special handling for CHARS text type - generate left/right hand practice
+    if (config.textType === TextType.CHARS) {
+      const minChars = 300;
+      const leftHandPool = this.wordPools.get(`${config.language}-${config.difficulty}-chars-left`) || [];
+      const rightHandPool = this.wordPools.get(`${config.language}-${config.difficulty}-chars-right`) || [];
+
+      if (leftHandPool.length > 0 && rightHandPool.length > 0) {
+        // Generate left hand practice (first half)
+        const leftHandCount = Math.ceil(minChars / 2);
+        for (let i = 0; i < leftHandCount; i++) {
+          parts.push(leftHandPool[Math.floor(Math.random() * leftHandPool.length)]);
+        }
+
+        // Generate right hand practice (second half)
+        const rightHandCount = Math.ceil(minChars / 2);
+        for (let i = 0; i < rightHandCount; i++) {
+          parts.push(rightHandPool[Math.floor(Math.random() * rightHandPool.length)]);
+        }
+
+        return parts.join(" ");
+      }
+    }
+
+    // Default behavior for WORDS or fallback
     const contentLength = Math.max(config.length || 30, 20); // Minimum 20 items
 
     // Mix of chars (40%) and words (60%) - no numbers in easy mode
@@ -493,7 +573,7 @@ export class MockTextGenerationService implements ITextGenerationService {
   }
 
   /**
-   * MEDIUM: sentences, paragraphs
+   * MEDIUM: sentences, paragraphs (minimum 300 words)
    */
   private generateMediumContent(config: TextGenerationConfig): string {
     const sentencePool =
@@ -506,12 +586,19 @@ export class MockTextGenerationService implements ITextGenerationService {
       return this.generateEasyContent(config);
     }
 
-    const sentenceCount = Math.max(Math.floor((config.length || 50) / 10), 3); // At least 3 sentences
+    // Target at least 300 words
+    const minWords = 300;
     const selectedSentences: string[] = [];
+    let currentWordCount = 0;
 
-    for (let i = 0; i < sentenceCount; i++) {
+    // Keep adding sentences until we reach at least 300 words
+    while (currentWordCount < minWords) {
       const randomSentence = sentencePool[Math.floor(Math.random() * sentencePool.length)];
       selectedSentences.push(randomSentence);
+
+      // Count words in the sentence
+      const wordsInSentence = randomSentence.split(/\s+/).filter((word) => word.length > 0).length;
+      currentWordCount += wordsInSentence;
     }
 
     return selectedSentences.join(" ");

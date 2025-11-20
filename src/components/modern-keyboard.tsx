@@ -343,7 +343,7 @@ export default function ModernKeyboard() {
 
   // Main keyboard render
   return (
-    <div className={cn("border rounded-lg bg-muted-foreground/10 p-2")}>
+    <div className={cn("border rounded-lg bg-muted/10 p-4 pt-2")}>
       {/* Layout info */}
       <div className="mb-2 text-xs text-muted-foreground text-center">{currentLayout.metadata.displayName}</div>
 
@@ -382,17 +382,6 @@ export default function ModernKeyboard() {
           </div>
         ))}
       </div>
-
-      {/* Debug modifier state indicator */}
-      {process.env.NODE_ENV === "development" && (
-        <div className="mt-2 text-xs text-muted-foreground">
-          Modifiers:{" "}
-          {Object.entries(modifierState)
-            .filter(([, active]) => active)
-            .map(([modifier]) => modifier)
-            .join(", ") || "none"}
-        </div>
-      )}
     </div>
   );
 }

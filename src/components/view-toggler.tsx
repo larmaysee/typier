@@ -1,5 +1,5 @@
 "use client";
-import { BarChart3, Brain, Keyboard, Medal, Settings, Trophy } from "lucide-react";
+import { BarChart3, Keyboard, Settings, Trophy } from "lucide-react";
 import TooltipWrapper from "./tooltip-wrapper";
 import { Button } from "./ui/button";
 
@@ -41,7 +41,7 @@ export default function ViewToggler({ currentView, onViewChange }: ViewTogglerPr
           <Trophy className="h-4 w-4" />
         </Button>
       </TooltipWrapper>
-      <TooltipWrapper tooltip="Competitions">
+      {/* <TooltipWrapper tooltip="Competitions">
         <Button
           variant={currentView === "competitions" ? "default" : "outline"}
           size="icon"
@@ -60,7 +60,7 @@ export default function ViewToggler({ currentView, onViewChange }: ViewTogglerPr
         >
           <Brain className="h-4 w-4" />
         </Button>
-      </TooltipWrapper>
+      </TooltipWrapper> */}
       <TooltipWrapper tooltip="Settings">
         <Button
           variant={currentView === "settings" ? "default" : "outline"}

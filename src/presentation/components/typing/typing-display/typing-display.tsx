@@ -99,21 +99,52 @@ export default function TypingDisplay({
     return () => document.removeEventListener("keydown", handleGlobalKeyDown);
   }, [isFocused, testCompleted, inputRef]);
 
-  // Auto-scroll for active words
+  // Auto-scroll for active words/characters with line tracking
   useEffect(() => {
-    const activeWord = document.querySelector(".word.active") as HTMLElement;
     const databox = document.querySelector(".databox") as HTMLElement;
-    if (activeWord && databox) {
-      if (activeWord.offsetTop + 30 > databox.clientHeight) {
-        databox.scrollTo({ top: databox.clientHeight, behavior: "smooth" });
-      } else {
-        const topOffset =
-          activeWord.offsetTop - databox.clientHeight > 0 ? activeWord.offsetTop - databox.clientHeight : 0;
-        databox.scrollTo({ top: topOffset, behavior: "smooth" });
+
+    if (!databox) return;
+
+    // Handle character mode
+    if (config.textType === TextType.CHARS) {
+      // Find all character boxes
+      const charBoxes = Array.from(databox.querySelectorAll(".char-box")) as HTMLElement[];
+      const cursorIndex = typedClusters.length;
+      const activeChar = charBoxes[cursorIndex];
+
+      if (activeChar) {
+        const activeCharTop = activeChar.offsetTop;
+        const lineHeight = 52; // Approximate height including gap
+        const currentLine = Math.floor(activeCharTop / lineHeight);
+
+        // When cursor reaches line 2 or beyond, scroll up
+        if (currentLine >= 2) {
+          const scrollAmount = (currentLine - 1) * lineHeight;
+          databox.scrollTo({ top: scrollAmount, behavior: "smooth" });
+        } else {
+          databox.scrollTo({ top: 0, behavior: "smooth" });
+        }
+      }
+    } else {
+      // Handle word mode
+      const activeWord = document.querySelector(".word.active") as HTMLElement;
+
+      if (activeWord) {
+        const activeWordTop = activeWord.offsetTop;
+        const lineHeight = 40; // h-[40px] from word class
+        const currentLine = Math.floor(activeWordTop / lineHeight);
+
+        // When cursor reaches the end of the second visible line, scroll up by one line
+        if (currentLine >= 2) {
+          const scrollAmount = (currentLine - 1) * lineHeight;
+          databox.scrollTo({ top: scrollAmount, behavior: "smooth" });
+        } else {
+          // Reset to top if we're on first two lines
+          databox.scrollTo({ top: 0, behavior: "smooth" });
+        }
       }
     }
-  }, [session.typedText]);
-
+  }, [session.typedText, session.cursorPosition.wordIndex, config.textType, typedClusters.length]);
   const getActiveWordIndex = () => {
     // Use cursor position instead of splitting typed text
     return session.cursorPosition.wordIndex;
@@ -173,7 +204,7 @@ export default function TypingDisplay({
       {/* Text display area */}
       <div
         className={cn(
-          "databox-wrapper bg-card rounded-lg border border-dashed w-full cursor-text transition-all duration-200 p-4 relative",
+          "databox-wrapper bg-card rounded-lg border border-dashed w-full cursor-text transition-all duration-200 px-6 py-10 relative",
           isFocused ? "border-primary/20 focus" : "",
           testCompleted && "opacity-50 pointer-events-none"
         )}
@@ -182,7 +213,7 @@ export default function TypingDisplay({
       >
         {/* Header with instructions */}
         {!session.startTime && (
-          <div className="absolute top-4 right-4">
+          <div className="absolute top-2 right-2">
             <div className="text-xs text-muted-foreground bg-muted px-3 py-1 rounded-full">
               Click here to start typing
             </div>
@@ -214,7 +245,7 @@ export default function TypingDisplay({
                   <div
                     key={charIndex}
                     className={cn(
-                      "relative flex items-center justify-center min-w-[40px] h-[40px] rounded-md border text-xl font-medium transition-colors",
+                      "char-box relative flex items-center justify-center min-w-[40px] h-[40px] rounded-md border text-xl font-medium transition-colors",
                       bgColor,
                       textColor,
                       char === " " ? "min-w-[40px] bg-transparent border-dashed" : ""
@@ -281,7 +312,7 @@ export default function TypingDisplay({
           onFocus={onFocus}
           onBlur={onBlur}
           onKeyDown={onKeyDown}
-          className=""
+          className="bg-muted/10 border border-primary/10 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 w-full h-10 font-sans text-xl"
           disabled={testCompleted}
           autoFocus
           autoComplete="off"
