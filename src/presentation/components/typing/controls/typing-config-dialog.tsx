@@ -3,33 +3,26 @@
 import { useSiteConfig } from "@/components/site-config";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { DifficultyLevel, LANGUAGE_DISPLAY_NAMES, LanguageCode, TextType } from "@/domain";
 import { cn } from "@/lib/utils";
 import {
   BookOpen,
   Code,
+  DeleteIcon,
+  Eye,
+  EyeOff,
   FileText,
   Hash,
-  Keyboard,
   Languages,
   Lightbulb,
-  Settings,
+  Settings2,
   Target,
   Type,
   Zap,
 } from "lucide-react";
 import { memo, useState } from "react";
-import { KeyboardLayoutSelector } from "../keyboard-layouts/keyboard-layout-selector";
 
 interface TypingConfigDialogProps {
   disabled?: boolean;
@@ -38,8 +31,8 @@ interface TypingConfigDialogProps {
 
 // Language options
 const LANGUAGES = [
-  { code: LanguageCode.EN, name: LANGUAGE_DISPLAY_NAMES.en, icon: "🇺🇸" },
   { code: LanguageCode.LI, name: LANGUAGE_DISPLAY_NAMES.li, icon: "⛰️" },
+  { code: LanguageCode.EN, name: LANGUAGE_DISPLAY_NAMES.en, icon: "🇺🇸" },
   { code: LanguageCode.MY, name: LANGUAGE_DISPLAY_NAMES.my, icon: "🇲🇲" },
 ];
 
@@ -119,10 +112,7 @@ const DIFFICULTY_OPTIONS: DifficultyOption[] = [
   },
 ];
 
-export const TypingConfigDialog = memo(function TypingConfigDialog({
-  disabled = false,
-  onLayoutChange,
-}: TypingConfigDialogProps) {
+export const TypingConfigDialog = memo(function TypingConfigDialog({ disabled = false }: TypingConfigDialogProps) {
   const { config, setConfig } = useSiteConfig();
   const [isOpen, setIsOpen] = useState(false);
 
@@ -160,203 +150,182 @@ export const TypingConfigDialog = memo(function TypingConfigDialog({
     });
   };
 
+  const handleAllowDeletionToggle = async () => {
+    await setConfig({
+      ...config,
+      allowDeletion: !config.allowDeletion,
+    });
+  };
+
+  const handleShowInputBoxToggle = async () => {
+    await setConfig({
+      ...config,
+      showInputBox: !config.showInputBox,
+    });
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button variant="secondary" size="icon" disabled={disabled} className="gap-2">
-          <Settings className="h-4 w-4" />
+          <Settings2 className="h-4 w-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5" />
+            <Settings2 className="h-5 w-5" />
             Typing Configuration
           </DialogTitle>
-          <DialogDescription>
-            Customize your typing experience by selecting language, difficulty, keyboard layout, and practice mode
-            settings.
-          </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-6">
+        <div className="space-y-4">
           {/* Language Selection */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Languages className="h-5 w-5" />
-                Language
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {LANGUAGES.map((language) => (
-                  <div
-                    key={language.code}
-                    onClick={() => handleLanguageChange(language.code)}
-                    className={cn(
-                      "relative p-4 border rounded-lg cursor-pointer transition-all hover:border-primary/50",
-                      language.code === config.language.code ? "border-primary bg-primary/5" : "border-border"
-                    )}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">{language.icon}</span>
-                      <div>
-                        <div className="font-medium">{language.name}</div>
-                        <div className="text-sm text-muted-foreground">{language.code.toUpperCase()}</div>
-                      </div>
-                    </div>
-                    {language.code === config.language.code && (
-                      <div className="absolute top-2 right-2">
-                        <Badge variant="default" className="text-xs">
-                          Active
-                        </Badge>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Text Type Selection */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Type className="h-5 w-5" />
-                Text Type
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {TEXT_TYPE_OPTIONS.map((option) => (
-                  <div
-                    key={option.type}
-                    onClick={() => handleTextTypeChange(option.type)}
-                    className={cn(
-                      "relative p-3 border rounded-lg cursor-pointer transition-all hover:border-primary/50",
-                      option.type === config.textType ? "border-primary bg-primary/5" : "border-border"
-                    )}
-                  >
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        {option.icon}
-                        <div className="font-medium text-sm">{option.label}</div>
-                      </div>
-                      <div className="text-xs text-muted-foreground">{option.description}</div>
-                    </div>
-                    {option.type === config.textType && (
-                      <div className="absolute top-2 right-2">
-                        <Badge variant="default" className="text-xs">
-                          Active
-                        </Badge>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Difficulty Level Selection */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Target className="h-5 w-5" />
-                Difficulty Level
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {DIFFICULTY_OPTIONS.map((option) => (
-                  <div
-                    key={option.level}
-                    onClick={() => handleDifficultyChange(option.level)}
-                    className={cn(
-                      "relative p-4 border rounded-lg cursor-pointer transition-all hover:border-primary/50",
-                      option.level === config.difficultyLevel ? "border-primary bg-primary/5" : "border-border"
-                    )}
-                  >
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        {option.icon}
-                        <div className="font-medium">{option.label}</div>
-                      </div>
-                      <div className="text-sm text-muted-foreground">{option.description}</div>
-                    </div>
-                    {option.level === config.difficultyLevel && (
-                      <div className="absolute top-2 right-2">
-                        <Badge variant="default" className="text-xs">
-                          Active
-                        </Badge>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Practice Mode & Keyboard Layout */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {/* Practice Mode */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Lightbulb className="h-5 w-5" />
-                  Practice Mode
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div
-                  onClick={handlePracticeModeToggle}
+          <div className="space-y-2 flex justify-between">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <Languages className="h-4 w-4" />
+              Language
+            </div>
+            <div className="flex gap-2">
+              {LANGUAGES.map((language) => (
+                <button
+                  key={language.code}
+                  onClick={() => handleLanguageChange(language.code)}
                   className={cn(
-                    "p-4 border rounded-lg cursor-pointer transition-all hover:border-primary/50",
-                    config.practiceMode ? "border-primary bg-primary/5" : "border-border"
+                    "flex-1 px-3 py-2 border rounded-lg transition-all hover:border-primary/50 text-sm",
+                    language.code === config.language.code ? "border-primary bg-primary/5" : "border-border"
                   )}
                 >
-                  <div className="space-y-2">
-                    <div className="font-medium">{config.practiceMode ? "Enabled" : "Disabled"}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {config.practiceMode
-                        ? "Key highlighting and enhanced feedback active"
-                        : "Standard typing mode without highlighting"}
-                    </div>
+                  <div className="flex items-center justify-center gap-2">
+                    <span>{language.icon}</span>
+                    <span className="font-medium">{language.name}</span>
                   </div>
-                  {config.practiceMode && (
-                    <div className="mt-2">
-                      <Badge variant="default" className="text-xs">
-                        Active
-                      </Badge>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                </button>
+              ))}
+            </div>
+          </div>
 
-            {/* Keyboard Layout */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Keyboard className="h-5 w-5" />
-                  Keyboard Layout
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="text-sm text-muted-foreground">
-                    Select your preferred keyboard layout for the current language.
-                  </div>
-                  <KeyboardLayoutSelector compact={false} showLayoutInfo={true} onLayoutChange={onLayoutChange} />
-                </div>
-              </CardContent>
-            </Card>
+          <Separator />
+
+          {/* Text Type Selection */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <Type className="h-4 w-4" />
+              Text Type
+            </div>
+            <div className="grid grid-cols-5 gap-2">
+              {TEXT_TYPE_OPTIONS.map((option) => (
+                <button
+                  key={option.type}
+                  onClick={() => handleTextTypeChange(option.type)}
+                  className={cn(
+                    "flex items-center justify-center gap-2 px-3 py-2 border rounded-lg transition-all hover:border-primary/50 text-sm",
+                    option.type === config.textType ? "border-primary bg-primary/5" : "border-border"
+                  )}
+                >
+                  {option.icon}
+                  <span className="font-medium">{option.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Difficulty Level Selection */}
+          <div className="space-y-2 flex justify-between items-center">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <Target className="h-4 w-4" />
+              Difficulty
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {DIFFICULTY_OPTIONS.map((option) => (
+                <button
+                  key={option.level}
+                  onClick={() => handleDifficultyChange(option.level)}
+                  className={cn(
+                    "flex items-center justify-center gap-2 px-3 py-2 border rounded-lg transition-all hover:border-primary/50 text-sm",
+                    option.level === config.difficultyLevel ? "border-primary bg-primary/5" : "border-border"
+                  )}
+                >
+                  {option.icon}
+                  <span className="font-medium">{option.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Practice Mode */}
+          <div className="space-y-2 flex justify-between items-center">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <Lightbulb className="h-4 w-4" />
+              Practice Mode
+            </div>
+            <button
+              onClick={handlePracticeModeToggle}
+              className={cn(
+                "px-3 py-2 border rounded-lg transition-all hover:border-primary/50 text-sm",
+                config.practiceMode ? "border-primary bg-primary/5" : "border-border"
+              )}
+            >
+              <div className="flex items-center justify-between">
+                <Badge variant={config.practiceMode ? "default" : "secondary"} className="text-xs">
+                  {config.practiceMode ? "On" : "Off"}
+                </Badge>
+              </div>
+            </button>
+          </div>
+
+          <Separator />
+
+          {/* Allow Deletion */}
+          <div className="space-y-2 flex justify-between items-center">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <DeleteIcon className="h-4 w-4" />
+              Allow Deletion
+            </div>
+            <button
+              onClick={handleAllowDeletionToggle}
+              className={cn(
+                "px-3 py-2 border rounded-lg transition-all hover:border-primary/50 text-sm",
+                config.allowDeletion ? "border-primary bg-primary/5" : "border-border"
+              )}
+            >
+              <div className="flex items-center justify-between">
+                <Badge variant={config.allowDeletion ? "default" : "secondary"} className="text-xs">
+                  {config.allowDeletion ? "On" : "Off"}
+                </Badge>
+              </div>
+            </button>
+          </div>
+
+          <Separator />
+
+          {/* Show Input Box */}
+          <div className="space-y-2 flex justify-between items-center">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              {config.showInputBox ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+              Show Input Box
+            </div>
+            <button
+              onClick={handleShowInputBoxToggle}
+              className={cn(
+                "px-3 py-2 border rounded-lg transition-all hover:border-primary/50 text-sm",
+                config.showInputBox ? "border-primary bg-primary/5" : "border-border"
+              )}
+            >
+              <div className="flex items-center justify-between">
+                <Badge variant={config.showInputBox ? "default" : "secondary"} className="text-xs">
+                  {config.showInputBox ? "Visible" : "Hidden"}
+                </Badge>
+              </div>
+            </button>
           </div>
         </div>
 
-        <Separator />
-
-        <div className="flex justify-end">
+        <div className="flex justify-end pt-4">
           <Button onClick={() => setIsOpen(false)}>Done</Button>
         </div>
       </DialogContent>
