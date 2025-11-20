@@ -118,7 +118,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Main Settings Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6">
         <TabsList className="">
           <TabsTrigger value="themes" className="flex items-center gap-2">
             <Palette className="h-4 w-4" />
@@ -132,13 +132,7 @@ export default function SettingsPage() {
 
         {/* 1. Theme Settings Tab */}
         <TabsContent value="themes" className="space-y-6">
-          <Card className="rounded-2xl border border-dashed">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Palette className="h-5 w-5" />
-                Appearance & Theme Settings
-              </CardTitle>
-            </CardHeader>
+          <Card className="rounded-2xl border border-dashed py-4">
             <CardContent className="space-y-6">
               {/* Dark/Light Mode Toggle */}
               <div className="flex justify-between items-center space-y-3">
