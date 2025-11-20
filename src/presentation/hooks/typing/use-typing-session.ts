@@ -11,7 +11,11 @@ import { useTypingStatistics } from "@/components/typing-statistics";
 import { LanguageCode } from "@/domain";
 import { DifficultyLevel, TextType, TypingMode } from "@/domain/enums/typing-mode";
 import { useDependencyInjection } from "@/presentation/hooks/core/use-dependency-injection";
+import GraphemeSplitter from "grapheme-splitter";
 import { useCallback, useEffect, useRef, useState } from "react";
+
+// Create a single instance of GraphemeSplitter for reuse
+const splitter = new GraphemeSplitter();
 
 export interface TypingSessionState {
   sessionId: string | null;
@@ -198,13 +202,14 @@ export function useTypingSession() {
 
       const sessionDto = await processInputUseCase.execute(command);
 
-      // Calculate proper cursor position based on current input
+      // Calculate proper cursor position based on current input using GraphemeSplitter
       const calculateCursorPosition = (input: string, textContent: string | null) => {
         if (!textContent) {
           return { wordIndex: 0, charIndex: 0, isSpacePosition: false };
         }
 
         const words = textContent.split(" ");
+        const wordClusters = words.map((word) => splitter.splitGraphemes(word));
 
         // If input ends with space, we're at the beginning of next word
         if (input.endsWith(" ")) {
@@ -220,17 +225,21 @@ export function useTypingSession() {
 
         // Split and filter out empty strings to handle trailing spaces correctly
         const typedWords = input.split(" ").filter((word, index, arr) => index < arr.length - 1 || word !== "");
+        const typedWordClusters = typedWords.map((word) => splitter.splitGraphemes(word));
 
         // Current word being typed
         const currentWordIndex = Math.max(0, typedWords.length - 1);
-        const currentTypedWord = typedWords[currentWordIndex] || "";
-        const currentTargetWord = words[currentWordIndex] || "";
+        const currentTypedClusters = typedWordClusters[currentWordIndex] || [];
+        const currentTargetClusters = wordClusters[currentWordIndex] || [];
 
-        // If we're at the end of a word and it matches the target word
-        if (currentTypedWord.length === currentTargetWord.length && currentTypedWord === currentTargetWord) {
+        // If we're at the end of a word and it matches the target word (comparing grapheme clusters)
+        if (
+          currentTypedClusters.length === currentTargetClusters.length &&
+          currentTypedClusters.every((char, idx) => char === currentTargetClusters[idx])
+        ) {
           return {
             wordIndex: currentWordIndex,
-            charIndex: currentTypedWord.length,
+            charIndex: currentTypedClusters.length,
             isSpacePosition: true,
           };
         }
@@ -238,7 +247,7 @@ export function useTypingSession() {
         // Otherwise, we're typing within the current word
         return {
           wordIndex: currentWordIndex,
-          charIndex: currentTypedWord.length,
+          charIndex: currentTypedClusters.length,
           isSpacePosition: false,
         };
       };

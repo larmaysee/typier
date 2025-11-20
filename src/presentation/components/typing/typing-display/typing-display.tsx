@@ -7,7 +7,10 @@ import { TextType } from "@/domain";
 import { cn } from "@/lib/utils";
 import { TypingSessionState } from "@/presentation/hooks/typing/use-typing-session";
 import GraphemeSplitter from "grapheme-splitter";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
+
+// Create a single instance of GraphemeSplitter for reuse
+const splitter = new GraphemeSplitter();
 
 interface TypingDisplayProps {
   textContent: string | null;
@@ -36,6 +39,25 @@ export default function TypingDisplay({
   const { setActiveChar } = usePracticeMode();
   const textContainerRef = useRef<HTMLDivElement>(null);
 
+  // Memoize grapheme splitting for performance
+  const textClusters = useMemo(() => {
+    return textContent ? splitter.splitGraphemes(textContent) : [];
+  }, [textContent]);
+
+  const typedClusters = useMemo(() => {
+    return splitter.splitGraphemes(session.typedText);
+  }, [session.typedText]);
+
+  // Split by words but preserve grapheme integrity
+  const textWords = useMemo(() => {
+    if (!textContent) return [];
+    return textContent.split(" ").map((word) => splitter.splitGraphemes(word));
+  }, [textContent]);
+
+  const typedWords = useMemo(() => {
+    return session.typedText.split(" ").map((word) => splitter.splitGraphemes(word));
+  }, [session.typedText]);
+
   // Track current character for practice mode
   useEffect(() => {
     if (!config.practiceMode || !textContent || testCompleted) {
@@ -43,15 +65,15 @@ export default function TypingDisplay({
       return;
     }
 
-    // Calculate the current character that needs to be typed
-    const currentIndex = session.typedText.length;
-    if (currentIndex < textContent.length) {
-      const currentChar = textContent[currentIndex];
+    // Calculate the current character that needs to be typed using grapheme clusters
+    const currentIndex = typedClusters.length;
+    if (currentIndex < textClusters.length) {
+      const currentChar = textClusters[currentIndex];
       setActiveChar(currentChar === " " ? "spacebar" : currentChar);
     } else {
       setActiveChar(null);
     }
-  }, [config.practiceMode, textContent, session.typedText, testCompleted, setActiveChar]);
+  }, [config.practiceMode, textContent, typedClusters.length, testCompleted, setActiveChar, textClusters]);
 
   // Global keyboard event listener to focus input when not focused
   useEffect(() => {
@@ -98,16 +120,18 @@ export default function TypingDisplay({
   };
 
   const getWordClass = (wordIndex: number) => {
-    const currentWords = textContent?.split(" ") || [];
-    const typedWords = session.typedText.split(" ");
+    if (wordIndex >= textWords.length) return "";
 
-    // Handle the case where typed text ends with space
-    const typedWord = typedWords[wordIndex] || "";
-    const targetWord = currentWords[wordIndex] || "";
+    const targetWord = textWords[wordIndex];
+    const typedWord = typedWords[wordIndex] || [];
 
     // Only mark as typed if we've moved past this word
     if (session.cursorPosition.wordIndex > wordIndex) {
-      if (typedWord === targetWord) {
+      // Compare grapheme arrays
+      const isCorrect =
+        targetWord.length === typedWord.length && targetWord.every((char, idx) => char === typedWord[idx]);
+
+      if (isCorrect) {
         return "correct typed";
       } else if (typedWord.length > 0) {
         return "incorrect border-b border-dashed border-destructive typed";
@@ -118,29 +142,24 @@ export default function TypingDisplay({
   };
 
   const getLetterClass = (wordIndex: number, charIndex: number) => {
-    const currentWords = textContent?.split(" ") || [];
-
-    if (wordIndex >= currentWords.length) {
+    if (wordIndex >= textWords.length) {
       return "text-muted-foreground";
     }
 
-    const currentWord = currentWords[wordIndex];
-    if (charIndex >= currentWord.length) {
+    const targetWordClusters = textWords[wordIndex];
+    if (charIndex >= targetWordClusters.length) {
       return "text-muted-foreground";
     }
 
-    // Get the typed text for this specific word
-    const typedWords = session.typedText.split(" ");
-    const typedWord = typedWords[wordIndex] || "";
-
-    const currentChar = currentWord[charIndex];
-    const typedChar = typedWord[charIndex] || "";
+    const typedWordClusters = typedWords[wordIndex] || [];
+    const targetChar = targetWordClusters[charIndex];
+    const typedChar = typedWordClusters[charIndex] || "";
 
     if (!typedChar) {
       return "text-muted-foreground";
     }
 
-    return typedChar === currentChar ? "text-black dark:text-white" : "text-destructive";
+    return typedChar === targetChar ? "text-black dark:text-white" : "text-destructive";
   };
 
   const handleClickToFocus = () => {
@@ -148,9 +167,6 @@ export default function TypingDisplay({
       inputRef.current.focus();
     }
   };
-
-  const splitter = new GraphemeSplitter();
-  const clusters = splitter.splitGraphemes(textContent || "");
 
   return (
     <div className="relative w-full space-y-4">
@@ -175,12 +191,11 @@ export default function TypingDisplay({
 
         <div className={cn("databox relative focus-visible:border-primary overflow-hidden h-[150px]")}>
           {config.textType === TextType.CHARS ? (
-            // Character mode with special styling
+            // Character mode with special styling using grapheme clusters
             <div className="flex flex-wrap gap-2 p-2">
-              {clusters.map((char, charIndex) => {
-                const words = session.typedText.split("");
-                const typedChar = words[charIndex] || "";
-                const isCursorPosition = charIndex === session.typedText.length;
+              {textClusters.map((char, charIndex) => {
+                const typedChar = typedClusters[charIndex] || "";
+                const isCursorPosition = charIndex === typedClusters.length;
 
                 let bgColor = "bg-muted/30";
                 let textColor = "text-muted-foreground";
@@ -215,7 +230,7 @@ export default function TypingDisplay({
             </div>
           ) : (
             <div className="words flex flex-wrap relative leading-relaxed">
-              {textContent?.split(" ").map((word, wordIndex) => {
+              {textWords.map((wordClusters, wordIndex) => {
                 const isCurrentWord = session.cursorPosition.wordIndex === wordIndex;
                 const shouldShowSpaceCursor = isCurrentWord && session.cursorPosition.isSpacePosition;
                 return (
@@ -225,7 +240,7 @@ export default function TypingDisplay({
                       getActiveWordIndex() === wordIndex ? " active" : ""
                     }`}
                   >
-                    {word.split("").map((char, charIndex) => {
+                    {wordClusters.map((char, charIndex) => {
                       const isCursorPosition =
                         isCurrentWord &&
                         session.cursorPosition.charIndex === charIndex &&
@@ -244,7 +259,7 @@ export default function TypingDisplay({
                             <span className="absolute left-0 top-0 w-0.5 h-full bg-primary animate-pulse" />
                           )}
 
-                          {shouldShowSpaceCursor && charIndex === word.length - 1 && !testCompleted && (
+                          {shouldShowSpaceCursor && charIndex === wordClusters.length - 1 && !testCompleted && (
                             <span className="absolute right-0 top-0 w-0.5 h-full bg-primary animate-pulse" />
                           )}
                         </span>

@@ -1,7 +1,11 @@
 "use client";
 
+import GraphemeSplitter from "grapheme-splitter";
 import { useCallback } from "react";
 import { TypingSessionState } from "./use-typing-session";
+
+// Create a single instance of GraphemeSplitter for reuse
+const splitter = new GraphemeSplitter();
 
 interface UseSessionControlsProps {
   session: TypingSessionState;
@@ -27,18 +31,18 @@ export function useSessionControls({
 
   const getLetterClass = useCallback(
     (wordIndex: number, charIndex: number) => {
-      const words = session.typedText.split(" ");
-      const currentWords = session.currentData?.split(" ") || [];
+      const currentWords = session.currentData?.split(" ").map((word) => splitter.splitGraphemes(word)) || [];
 
       let className = "";
 
       if (wordIndex < currentWords.length) {
-        const currentWord = currentWords[wordIndex];
-        const typedWord = words[wordIndex] || "";
+        const currentWordClusters = currentWords[wordIndex];
+        const typedWords = session.typedText.split(" ").map((word) => splitter.splitGraphemes(word));
+        const typedWordClusters = typedWords[wordIndex] || [];
 
-        if (charIndex < currentWord.length) {
-          const currentChar = currentWord[charIndex];
-          const typedChar = typedWord[charIndex] || "";
+        if (charIndex < currentWordClusters.length) {
+          const currentChar = currentWordClusters[charIndex];
+          const typedChar = typedWordClusters[charIndex] || "";
 
           if (typedChar) {
             if (typedChar === currentChar) {
