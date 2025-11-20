@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { TextType } from "@/domain";
 import { cn } from "@/lib/utils";
 import { TypingSessionState } from "@/presentation/hooks/typing/use-typing-session";
+import GraphemeSplitter from "grapheme-splitter";
 import { useEffect, useRef } from "react";
 
 interface TypingDisplayProps {
@@ -148,6 +149,9 @@ export default function TypingDisplay({
     }
   };
 
+  const splitter = new GraphemeSplitter();
+  const clusters = splitter.splitGraphemes(textContent || "");
+
   return (
     <div className="relative w-full space-y-4">
       {/* Text display area */}
@@ -173,7 +177,7 @@ export default function TypingDisplay({
           {config.textType === TextType.CHARS ? (
             // Character mode with special styling
             <div className="flex flex-wrap gap-2 p-2">
-              {textContent?.split("").map((char, charIndex) => {
+              {clusters.map((char, charIndex) => {
                 const words = session.typedText.split("");
                 const typedChar = words[charIndex] || "";
                 const isCursorPosition = charIndex === session.typedText.length;
@@ -217,7 +221,7 @@ export default function TypingDisplay({
                 return (
                   <div
                     key={wordIndex}
-                    className={`word word-${wordIndex} h-[30px] flex items-baseline mr-2 ${getWordClass(wordIndex)}${
+                    className={`word word-${wordIndex} h-[40px] flex items-baseline mr-2 ${getWordClass(wordIndex)}${
                       getActiveWordIndex() === wordIndex ? " active" : ""
                     }`}
                   >

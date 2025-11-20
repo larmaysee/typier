@@ -9,6 +9,7 @@ interface UseSessionControlsProps {
   inputRef: React.RefObject<HTMLInputElement | null>;
   getRandomData: () => void;
   processInput: (input: string) => Promise<void>; // Required - no fallback
+  allowDeletion?: boolean; // Whether to allow backspace/delete keys
 }
 
 export function useSessionControls({
@@ -16,122 +17,141 @@ export function useSessionControls({
   setState,
   inputRef,
   getRandomData,
-  processInput
+  processInput,
+  allowDeletion = true,
 }: UseSessionControlsProps) {
   const getActiveWordIndex = useCallback(() => {
     const words = session.typedText.split(" ");
     return words.length - 1;
   }, [session.typedText]);
 
-  const getLetterClass = useCallback((wordIndex: number, charIndex: number) => {
-    const words = session.typedText.split(" ");
-    const currentWords = session.currentData?.split(" ") || [];
+  const getLetterClass = useCallback(
+    (wordIndex: number, charIndex: number) => {
+      const words = session.typedText.split(" ");
+      const currentWords = session.currentData?.split(" ") || [];
 
-    let className = "";
+      let className = "";
 
-    if (wordIndex < currentWords.length) {
-      const currentWord = currentWords[wordIndex];
-      const typedWord = words[wordIndex] || "";
+      if (wordIndex < currentWords.length) {
+        const currentWord = currentWords[wordIndex];
+        const typedWord = words[wordIndex] || "";
 
-      if (charIndex < currentWord.length) {
-        const currentChar = currentWord[charIndex];
-        const typedChar = typedWord[charIndex] || "";
+        if (charIndex < currentWord.length) {
+          const currentChar = currentWord[charIndex];
+          const typedChar = typedWord[charIndex] || "";
 
-        if (typedChar) {
-          if (typedChar === currentChar) {
-            className = "text-black dark:text-white";
+          if (typedChar) {
+            if (typedChar === currentChar) {
+              className = "text-black dark:text-white";
+            } else {
+              className = "text-destructive";
+            }
           } else {
-            className = "text-destructive";
+            className = "text-muted-foreground";
           }
-        } else {
-          className = "text-muted-foreground";
         }
       }
-    }
 
-    return className;
-  }, [session.typedText, session.currentData]);
+      return className;
+    },
+    [session.typedText, session.currentData]
+  );
 
-  const getWordClass = useCallback((wordIndex: number) => {
-    const words = session.typedText.split(" ");
-    const currentWords = session.currentData?.split(" ") || [];
-    const typedWord = words[wordIndex] || "";
-
-    if (typedWord === currentWords[wordIndex] && wordIndex < words.length - 1) {
-      return "text-green-500";
-    }
-    return "";
-  }, [session.typedText, session.currentData]);
-
-  const handleInput = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    // Delegate all input processing to the use case
-    await processInput(value);
-  }, [processInput]);
-
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.repeat || e.nativeEvent.isComposing || !e.nativeEvent.isTrusted) {
-      e.preventDefault();
-      return;
-    }
-
-    const words = session.typedText.split(" ");
-    const activeWordIndex = getActiveWordIndex();
-    const activeWord = words[activeWordIndex] || "";
-
-    // Handle Ctrl/Cmd + Backspace (word deletion)
-    if (e.key === "Backspace" && (e.ctrlKey || e.metaKey)) {
-      e.preventDefault();
-
-      // Get current input value and cursor position
-      const input = e.target as HTMLInputElement;
-      if (!input) return;
-
-      const cursorPos = input.selectionStart || 0;
-      const text = input.value;
-
-      // Find the start of the current word to delete
-      let wordStart = cursorPos;
-      while (wordStart > 0 && text[wordStart - 1] !== " ") {
-        wordStart--;
-      }
-
-      // Create new text without the deleted word
-      const newText = text.slice(0, wordStart) + text.slice(cursorPos);
-
-      // Update the input value and trigger change event
-      input.value = newText;
-      input.setSelectionRange(wordStart, wordStart);
-
-      // Trigger the change event manually
-      const event = new Event("input", { bubbles: true });
-      input.dispatchEvent(event);
-
-      return;
-    }
-
-    // Prevent space if current word is empty
-    if (e.key === " " && activeWord.length === 0) {
-      e.preventDefault();
-    }
-
-    // Handle space key for word completion tracking
-    if (e.key === " " && activeWord.length > 0) {
+  const getWordClass = useCallback(
+    (wordIndex: number) => {
+      const words = session.typedText.split(" ");
       const currentWords = session.currentData?.split(" ") || [];
-      if (activeWord === currentWords[activeWordIndex]) {
-        setState(prev => ({ ...prev, correctWords: prev.correctWords + 1 }));
-      } else {
-        setState(prev => ({ ...prev, incorrectWords: prev.incorrectWords + 1 }));
+      const typedWord = words[wordIndex] || "";
+
+      if (typedWord === currentWords[wordIndex] && wordIndex < words.length - 1) {
+        return "text-green-500";
       }
-    }
-  }, [session.typedText, session.currentData, getActiveWordIndex, setState]);
+      return "";
+    },
+    [session.typedText, session.currentData]
+  );
+
+  const handleInput = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.value;
+      // Delegate all input processing to the use case
+      await processInput(value);
+    },
+    [processInput]
+  );
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.repeat || e.nativeEvent.isComposing || !e.nativeEvent.isTrusted) {
+        e.preventDefault();
+        return;
+      }
+
+      // Block backspace/delete keys if allowDeletion is false
+      if (!allowDeletion && (e.key === "Backspace" || e.key === "Delete")) {
+        e.preventDefault();
+        return;
+      }
+
+      const words = session.typedText.split(" ");
+      const activeWordIndex = getActiveWordIndex();
+      const activeWord = words[activeWordIndex] || "";
+
+      // Handle Ctrl/Cmd + Backspace (word deletion) - only if deletion allowed
+      if (e.key === "Backspace" && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+
+        // Get current input value and cursor position
+        const input = e.target as HTMLInputElement;
+        if (!input) return;
+
+        const cursorPos = input.selectionStart || 0;
+        const text = input.value;
+
+        // Find the start of the current word to delete
+        let wordStart = cursorPos;
+        while (wordStart > 0 && text[wordStart - 1] !== " ") {
+          wordStart--;
+        }
+
+        // Create new text without the deleted word
+        const newText = text.slice(0, wordStart) + text.slice(cursorPos);
+
+        // Update the input value and trigger change event
+        input.value = newText;
+        input.setSelectionRange(wordStart, wordStart);
+
+        // Trigger the change event manually
+        const event = new Event("input", { bubbles: true });
+        input.dispatchEvent(event);
+
+        return;
+      }
+
+      // Prevent space if current word is empty
+      if (e.key === " " && activeWord.length === 0) {
+        e.preventDefault();
+      }
+
+      // Handle space key for word completion tracking
+      if (e.key === " " && activeWord.length > 0) {
+        const currentWords = session.currentData?.split(" ") || [];
+        if (activeWord === currentWords[activeWordIndex]) {
+          setState((prev) => ({ ...prev, correctWords: prev.correctWords + 1 }));
+        } else {
+          setState((prev) => ({ ...prev, incorrectWords: prev.incorrectWords + 1 }));
+        }
+      }
+    },
+    [session.typedText, session.currentData, getActiveWordIndex, setState, allowDeletion]
+  );
 
   const handleFocus = useCallback(() => {
-    setState(prev => ({ ...prev, isFocused: true }));
+    setState((prev) => ({ ...prev, isFocused: true }));
   }, [setState]);
 
   const handleBlur = useCallback(() => {
-    setState(prev => ({ ...prev, isFocused: false }));
+    setState((prev) => ({ ...prev, isFocused: false }));
   }, [setState]);
 
   const handleRefresh = useCallback(() => {
@@ -155,18 +175,21 @@ export function useSessionControls({
   }, [session, setState, getRandomData, inputRef]);
 
   const closeResults = useCallback(() => {
-    setState(prev => ({ ...prev, showResults: false }));
+    setState((prev) => ({ ...prev, showResults: false }));
   }, [setState]);
 
-  const setSelectedTime = useCallback((time: number) => {
-    setState(prev => ({
-      ...prev,
-      selectedTime: time,
-      timeLeft: time,
-      testCompleted: false,
-      showResults: false
-    }));
-  }, [setState]);
+  const setSelectedTime = useCallback(
+    (time: number) => {
+      setState((prev) => ({
+        ...prev,
+        selectedTime: time,
+        timeLeft: time,
+        testCompleted: false,
+        showResults: false,
+      }));
+    },
+    [setState]
+  );
 
   return {
     handleInput,
@@ -178,6 +201,6 @@ export function useSessionControls({
     setSelectedTime,
     getActiveWordIndex,
     getLetterClass,
-    getWordClass
+    getWordClass,
   };
 }

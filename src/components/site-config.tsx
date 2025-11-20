@@ -22,6 +22,7 @@ interface SiteConfig {
   };
   showShiftLabel?: boolean;
   practiceMode?: boolean;
+  allowDeletion?: boolean; // Allow backspace/delete when typing incorrectly
   textType: TextType; // What type of content to generate
   difficultyLevel: DifficultyLevel; // How difficult the content should be
   // Keyboard layout preferences per language
@@ -51,6 +52,7 @@ const defaultConfig: SiteConfig = {
   },
   showShiftLabel: false,
   practiceMode: false,
+  allowDeletion: true, // Default to allowing deletion
   textType: TextType.CHARS, // Default to characters
   difficultyLevel: DifficultyLevel.EASY, // Default to easy difficulty
   preferredLayouts: {
@@ -112,6 +114,7 @@ export const SiteConfigProvider: React.FC<SiteConfigProviderProps> = ({ children
             },
             showShiftLabel: userSettings.show_shift_label ?? false,
             practiceMode: userSettings.practice_mode ?? false,
+            allowDeletion: userSettings.allow_deletion ?? true,
             textType: (userSettings.text_type as TextType) ?? TextType.CHARS,
             difficultyLevel: (userSettings.difficulty_level as DifficultyLevel) ?? DifficultyLevel.EASY,
           };
@@ -197,6 +200,7 @@ export const SiteConfigProvider: React.FC<SiteConfigProviderProps> = ({ children
           show_leaderboard: true, // Default value, could be made configurable
           show_shift_label: newConfig.showShiftLabel,
           practice_mode: newConfig.practiceMode,
+          allow_deletion: newConfig.allowDeletion,
           text_type: newConfig.textType,
           difficulty_level: newConfig.difficultyLevel,
           color_theme: colorTheme,

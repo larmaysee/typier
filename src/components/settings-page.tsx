@@ -259,6 +259,22 @@ export default function SettingsPage() {
                       {config.practiceMode ? "Enabled" : "Disabled"}
                     </Button>
                   </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <Label htmlFor="allow-deletion">Allow Deletion</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Allow using backspace to delete characters when making mistakes
+                      </p>
+                    </div>
+                    <Button
+                      variant={config.allowDeletion ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setConfig({ ...config, allowDeletion: !config.allowDeletion })}
+                    >
+                      {config.allowDeletion ? "Enabled" : "Disabled"}
+                    </Button>
+                  </div>
                 </div>
               </div>
             </CardContent>

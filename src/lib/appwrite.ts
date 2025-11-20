@@ -74,6 +74,7 @@ export interface UserSettingsDocument {
   show_leaderboard: boolean;
   show_shift_label?: boolean;
   practice_mode?: boolean;
+  allow_deletion?: boolean;
   text_type?: "chars" | "words" | "numbers" | "sentences" | "paragraphs" | "code";
   difficulty_level?: "easy" | "medium" | "hard";
   color_theme?: string;

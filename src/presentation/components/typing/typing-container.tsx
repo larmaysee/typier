@@ -46,6 +46,7 @@ function TypingContainerInner() {
     inputRef,
     getRandomData,
     processInput,
+    allowDeletion: config.allowDeletion,
   });
 
   const handleFocusOverlayClick = () => {

@@ -59,15 +59,14 @@ export function ResultsModal({ isOpen, onClose, result, onStartNewTest }: Result
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
-        {/* Compact Header */}
+      <DialogContent className="max-w-2xl rounded-3xl">
         <DialogHeader className="text-center pb-4">
           <div className="flex items-center justify-center mb-3">
             <div className="p-2 rounded-full bg-primary/10">
               <Trophy className="h-6 w-6 text-primary" />
             </div>
           </div>
-          <DialogTitle className="text-2xl font-bold">Test Complete!</DialogTitle>
+          <DialogTitle className="text-2xl font-bold">Congratulations 🎉</DialogTitle>
           <div className="flex items-center justify-center gap-2">
             <PerformanceIcon className={`h-4 w-4 ${performance.color}`} />
             <DialogDescription className={`font-semibold ${performance.color}`}>{performance.rating}</DialogDescription>
