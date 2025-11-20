@@ -490,11 +490,11 @@ export function useTypingSession() {
       lastTestResult: !!state.lastTestResult,
     });
 
-    // Auto-complete if timer runs out AND we haven't already processed results
+    // Auto-complete if timer runs out AND we haven't already completed the test
     if (
       shouldAutoComplete &&
       state.timeLeft === 0 &&
-      !state.showResults &&
+      !state.testCompleted &&
       state.sessionId &&
       !isCompletingRef.current
     ) {

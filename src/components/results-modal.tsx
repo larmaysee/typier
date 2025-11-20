@@ -9,7 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Award, Clock, Keyboard, Target, TrendingUp, Trophy, X } from "lucide-react";
+import { Award, Clock, Keyboard, Target, TrendingUp, Trophy } from "lucide-react";
 
 // Interface for modal display - only includes properties needed for display
 interface TestResultDisplay {
@@ -166,18 +166,12 @@ export function ResultsModal({ isOpen, onClose, result, onStartNewTest }: Result
           </div>
         </div>
 
-        {/* Compact Action Buttons */}
+        {/* Action Button */}
         <DialogFooter className="pt-6">
-          <div className="flex gap-3 w-full">
-            <Button onClick={onClose} variant="outline" className="flex-1">
-              <X className="h-4 w-4 mr-2" />
-              Close
-            </Button>
-            <Button onClick={handleStartNewTest} className="flex-1">
-              <Trophy className="h-4 w-4 mr-2" />
-              New Test
-            </Button>
-          </div>
+          <Button onClick={handleStartNewTest} className="w-full">
+            <Trophy className="h-4 w-4 mr-2" />
+            New Test
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
