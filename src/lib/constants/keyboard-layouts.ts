@@ -14,17 +14,17 @@ export interface LanguageLayoutOption {
 
 export const SUPPORTED_LANGUAGES: LanguageLayoutOption[] = [
   {
-    code: LanguageCode.EN,
-    name: LANGUAGE_DISPLAY_NAMES[LanguageCode.EN],
-    description: "English language with QWERTY, Dvorak, and Colemak layouts",
-    flag: "🇺🇸",
-    isSupported: true,
-  },
-  {
     code: LanguageCode.LI,
     name: LANGUAGE_DISPLAY_NAMES[LanguageCode.LI],
     description: "Lisu language with SIL Basic, Standard, and Unicode layouts",
     flag: "🏔️",
+    isSupported: true,
+  },
+  {
+    code: LanguageCode.EN,
+    name: LANGUAGE_DISPLAY_NAMES[LanguageCode.EN],
+    description: "English language with QWERTY, Dvorak, and Colemak layouts",
+    flag: "🇺🇸",
     isSupported: true,
   },
   {

@@ -5,8 +5,6 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { LanguageCode } from "@/domain";
 import { cn } from "@/lib/utils";
 import { BookOpen, Check, Clock, Keyboard, Star, Zap } from "lucide-react";
@@ -43,32 +41,6 @@ const ENGLISH_LAYOUTS: LayoutOption[] = [
     features: ["Universal compatibility", "Standard layout", "Easy to learn"],
     keyPreview: ["Q", "W", "E", "R", "T", "Y"],
   },
-  {
-    id: "en-dvorak",
-    name: "Dvorak",
-    displayName: "Dvorak Simplified",
-    variant: "dvorak",
-    type: "Standard",
-    difficulty: "Hard",
-    description: "Alternative layout designed for efficiency and reduced finger movement",
-    bestFor: ["Touch typing", "Speed typing", "Ergonomic typing"],
-    popularity: 15,
-    features: ["Optimized for English", "Reduced finger movement", "Better for touch typing"],
-    keyPreview: ["'", ",", ".", "P", "Y", "F"],
-  },
-  {
-    id: "en-colemak",
-    name: "Colemak",
-    displayName: "Colemak",
-    variant: "colemak",
-    type: "Standard",
-    difficulty: "Medium",
-    description: "Modern alternative to QWERTY with improved efficiency",
-    bestFor: ["Ergonomic typing", "Programming", "Modern workflows"],
-    popularity: 8,
-    features: ["QWERTY shortcuts preserved", "Improved efficiency", "Easy transition"],
-    keyPreview: ["Q", "W", "F", "P", "G", "J"],
-  },
 ];
 
 // Lisu Layouts
@@ -87,63 +59,10 @@ const LISU_LAYOUTS: LayoutOption[] = [
     features: ["Simple mapping", "Beginner friendly", "Basic character set"],
     keyPreview: ["ꓐ", "ꓑ", "ꓒ", "ꓓ", "ꓔ", "ꓕ"],
   },
-  {
-    id: "li-sil-standard",
-    name: "SIL Standard",
-    displayName: "Lisu (SIL Standard)",
-    variant: "sil-standard",
-    type: "Standard",
-    difficulty: "Medium",
-    description: "Standard SIL keyboard with full Lisu character support",
-    bestFor: ["Professional typing", "Complete documents", "Advanced users"],
-    popularity: 70,
-    features: ["Full character set", "Professional grade", "Complete coverage"],
-    keyPreview: ["ꓐ", "ꓑ", "ꓒ", "ꓓ", "ꓔ", "ꓕ"],
-  },
-  {
-    id: "li-unicode-standard",
-    name: "Unicode Standard",
-    displayName: "Lisu (Unicode Standard)",
-    variant: "unicode-standard",
-    type: "Unicode",
-    difficulty: "Medium",
-    description: "Direct Unicode mapping for Lisu characters with standard positioning",
-    bestFor: ["Unicode compliance", "Modern systems", "Cross-platform"],
-    popularity: 45,
-    features: ["Unicode standard", "Cross-platform", "Modern compatibility"],
-    keyPreview: ["ꓐ", "ꓑ", "ꓒ", "ꓓ", "ꓔ", "ꓕ"],
-  },
 ];
 
 // Myanmar Layouts
 const MYANMAR_LAYOUTS: LayoutOption[] = [
-  {
-    id: "my-myanmar3",
-    name: "Myanmar3",
-    displayName: "Myanmar (Myanmar3)",
-    variant: "myanmar3",
-    type: "Standard",
-    difficulty: "Medium",
-    description: "Most widely used modern Myanmar input method with full Unicode support",
-    bestFor: ["General typing", "Professional documents", "Modern systems"],
-    isRecommended: true,
-    popularity: 95,
-    features: ["Full Unicode support", "Smart input method", "Wide compatibility"],
-    keyPreview: ["က", "ခ", "ဂ", "ဃ", "င", "စ"],
-  },
-  {
-    id: "my-zawgyi",
-    name: "Zawgyi",
-    displayName: "Myanmar (Zawgyi)",
-    variant: "zawgyi",
-    type: "Legacy",
-    difficulty: "Easy",
-    description: "Legacy Zawgyi encoding for compatibility with older systems",
-    bestFor: ["Legacy systems", "Compatibility", "Older documents"],
-    popularity: 25,
-    features: ["Legacy compatibility", "Simple input", "Older system support"],
-    keyPreview: ["က", "ခ", "ဂ", "ဃ", "င", "စ"],
-  },
   {
     id: "my-unicode-standard",
     name: "Unicode Standard",
@@ -166,12 +85,7 @@ interface LanguageLayoutSelectorProps {
   onSave?: () => void;
 }
 
-export function LanguageLayoutSelector({
-  language,
-  selectedLayoutId,
-  onLayoutSelect,
-  onSave,
-}: LanguageLayoutSelectorProps) {
+export function LanguageLayoutSelector({ language, selectedLayoutId, onLayoutSelect }: LanguageLayoutSelectorProps) {
   const [layouts, setLayouts] = useState<LayoutOption[]>([]);
 
   // Get layouts based on language
@@ -220,106 +134,56 @@ export function LanguageLayoutSelector({
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium">
-          {language === LanguageCode.EN && "English Keyboard Layouts"}
-          {language === LanguageCode.LI && "Lisu Keyboard Layouts"}
-          {language === LanguageCode.MY && "Myanmar Keyboard Layouts"}
-        </h3>
-        {onSave && (
-          <Button onClick={onSave} size="sm">
-            Save Preference
-          </Button>
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 gap-4">
+    <div className="space-y-3">
+      <div className="grid grid-cols-1 gap-3">
         {layouts.map((layout) => (
-          <Card
+          <div
             key={layout.id}
             className={cn(
-              "cursor-pointer transition-all hover:shadow-md border",
-              selectedLayoutId === layout.id
-                ? "border-primary ring-2 ring-primary/20 bg-primary/5"
-                : "border-border hover:border-muted-foreground"
+              "cursor-pointer transition-all px-3 py-2 rounded-md border border-dashed flex items-center justify-between hover:bg-muted/30",
+              selectedLayoutId === layout.id ? "border-primary ring-2 ring-primary/20 bg-primary/5" : "border-border"
             )}
             onClick={() => onLayoutSelect(layout.id)}
           >
-            <CardContent className="p-4">
-              <div className="flex items-start justify-between">
-                <div className="flex-1 space-y-3">
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2">
-                      {getTypeIcon(layout.type)}
-                      <h4 className="font-semibold text-lg">{layout.displayName}</h4>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {layout.isRecommended && (
-                        <Badge variant="default" className="flex items-center gap-1">
-                          <Star className="h-3 w-3" />
-                          Recommended
-                        </Badge>
-                      )}
-                      <Badge className={getDifficultyColor(layout.difficulty)}>{layout.difficulty}</Badge>
-                      <Badge variant="outline">{layout.popularity}% users</Badge>
-                    </div>
-                    {selectedLayoutId === layout.id && <Check className="h-5 w-5 text-primary" />}
-                  </div>
-
-                  <p className="text-sm text-muted-foreground">{layout.description}</p>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <h5 className="text-sm font-medium mb-2">Best for:</h5>
-                      <ul className="text-sm text-muted-foreground space-y-1">
-                        {layout.bestFor.map((item, index) => (
-                          <li key={index} className="flex items-center gap-2">
-                            <div className="w-1 h-1 bg-current rounded-full" />
-                            {item}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div>
-                      <h5 className="text-sm font-medium mb-2">Key features:</h5>
-                      <ul className="text-sm text-muted-foreground space-y-1">
-                        {layout.features.map((feature, index) => (
-                          <li key={index} className="flex items-center gap-2">
-                            <div className="w-1 h-1 bg-current rounded-full" />
-                            {feature}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-
-                  {/* Key Preview */}
-                  <div className="pt-2 border-t">
-                    <h5 className="text-sm font-medium mb-2">Key preview:</h5>
-                    <div className="flex gap-1">
-                      {layout.keyPreview.map((key, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center justify-center w-8 h-8 border rounded text-sm font-medium bg-muted"
-                        >
-                          {key}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
+            <div className="flex items-center gap-3 flex-1">
+              <div className="flex items-center gap-2">
+                {getTypeIcon(layout.type)}
+                <h4 className="font-medium text-sm">{layout.displayName}</h4>
               </div>
-            </CardContent>
-          </Card>
+              <div className="flex items-center gap-2">
+                {layout.isRecommended && (
+                  <Badge variant="default" className="flex items-center gap-1 text-xs h-5">
+                    <Star className="h-3 w-3" />
+                    Recommended
+                  </Badge>
+                )}
+                <Badge className={getDifficultyColor(layout.difficulty) + " text-xs h-5"}>{layout.difficulty}</Badge>
+                <Badge variant="outline" className="text-xs h-5">
+                  {layout.popularity}%
+                </Badge>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex gap-1">
+                {layout.keyPreview.slice(0, 4).map((key, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-center w-6 h-6 border rounded text-xs font-medium bg-muted/50"
+                  >
+                    {key}
+                  </div>
+                ))}
+              </div>
+              {selectedLayoutId === layout.id && <Check className="h-4 w-4 text-primary" />}
+            </div>
+          </div>
         ))}
       </div>
 
       {layouts.length === 0 && (
-        <div className="text-center py-8 text-muted-foreground">
-          <Keyboard className="h-8 w-8 mx-auto mb-2" />
-          <p>No keyboard layouts available for this language.</p>
+        <div className="text-center py-6 text-muted-foreground">
+          <Keyboard className="h-6 w-6 mx-auto mb-2 opacity-50" />
+          <p className="text-sm">No keyboard layouts available for this language.</p>
         </div>
       )}
     </div>

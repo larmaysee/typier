@@ -12,7 +12,7 @@ import { LanguageLayoutSelector } from "./keyboard-layout-selector";
 import { useSiteConfig } from "./site-config";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Card, CardContent } from "./ui/card";
 import { Label } from "./ui/label";
 import { Separator } from "./ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
@@ -256,72 +256,58 @@ export default function SettingsPage() {
 
         {/* 2. Keyboard Layout Configuration Tab */}
         <TabsContent value="keyboard" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Globe className="h-5 w-5" />
-                Language Selection
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <Card className="rounded-2xl border border-dashed py-4">
+            <CardContent className="space-y-6">
+              {/* Language Selection */}
               <div className="space-y-4">
-                <h3 className="text-lg font-medium">Active Language</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="flex flex-col justify-start">
+                  <h3 className="text-lg font-medium flex items-center gap-2">
+                    <Globe className="h-5 w-5" />
+                    Active Language
+                  </h3>
+                  <p className="text-xs text-muted-foreground">Choose your primary typing language</p>
+                </div>
+                <div className="flex gap-3">
                   {SUPPORTED_LANGUAGES.map((language) => (
                     <Button
                       key={language.code}
                       variant={config.language.code === language.code ? "default" : "outline"}
-                      className="justify-start h-auto p-4 space-y-2"
+                      className="w-10 h-10 rounded-full"
                       onClick={() => handleLanguageChange(language.code)}
                     >
-                      <div className="flex items-center gap-3 w-full">
-                        <span className="text-2xl">{language.flag}</span>
-                        <div className="text-left flex-1">
-                          <div className="font-medium">{language.name}</div>
-                          <div className="text-sm opacity-70">{language.code.toUpperCase()}</div>
-                        </div>
-                        {config.language.code === language.code && <Check className="h-4 w-4 text-primary" />}
-                      </div>
+                      <span className="text-xl">{language.flag}</span>
                     </Button>
                   ))}
                 </div>
               </div>
 
-              <div className="rounded-lg border p-4 bg-muted/20">
-                <p className="text-sm text-muted-foreground">
-                  <strong>Selected:</strong> {config.language.name} ({config.language.code.toUpperCase()})
-                  <br />
-                  {SUPPORTED_LANGUAGES.find((l) => l.code === config.language.code)?.description}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+              <Separator />
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Keyboard className="h-5 w-5" />
-                Keyboard Layout Preferences
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <LanguageLayoutSelector
-                language={config.language.code}
-                selectedLayoutId={config.preferredLayouts?.[config.language.code]}
-                onLayoutSelect={(layoutId) => {
-                  setConfig({
-                    ...config,
-                    preferredLayouts: {
-                      ...config.preferredLayouts,
-                      [config.language.code]: layoutId,
-                    },
-                  });
-                }}
-                onSave={async () => {
-                  // Save is automatic with setConfig
-                  console.log("Layout preference saved for", config.language.code);
-                }}
-              />
+              {/* Keyboard Layout Selection */}
+              <div className="space-y-4">
+                <div className="flex flex-col justify-start">
+                  <h3 className="text-lg font-medium flex items-center gap-2">
+                    <Keyboard className="h-5 w-5" />
+                    Keyboard Layout
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Select your preferred keyboard layout for {config.language.name}
+                  </p>
+                </div>
+                <LanguageLayoutSelector
+                  language={config.language.code}
+                  selectedLayoutId={config.preferredLayouts?.[config.language.code]}
+                  onLayoutSelect={(layoutId) => {
+                    setConfig({
+                      ...config,
+                      preferredLayouts: {
+                        ...config.preferredLayouts,
+                        [config.language.code]: layoutId,
+                      },
+                    });
+                  }}
+                />
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
