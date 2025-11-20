@@ -196,60 +196,6 @@ export default function SettingsPage() {
                   ))}
                 </div>
               </div>
-
-              <Separator />
-
-              {/* Display Preferences */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Display Preferences</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <Label htmlFor="shift-labels">Show Shift Labels</Label>
-                      <p className="text-sm text-muted-foreground">Display shift key labels on the virtual keyboard</p>
-                    </div>
-                    <Button
-                      variant={config.showShiftLabel ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setConfig({ ...config, showShiftLabel: !config.showShiftLabel })}
-                    >
-                      {config.showShiftLabel ? "Enabled" : "Disabled"}
-                    </Button>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <Label htmlFor="practice-mode">Practice Mode</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Enable practice mode with finger position guides and key highlighting
-                      </p>
-                    </div>
-                    <Button
-                      variant={config.practiceMode ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setConfig({ ...config, practiceMode: !config.practiceMode })}
-                    >
-                      {config.practiceMode ? "Enabled" : "Disabled"}
-                    </Button>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <Label htmlFor="allow-deletion">Allow Deletion</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Allow using backspace to delete characters when making mistakes
-                      </p>
-                    </div>
-                    <Button
-                      variant={config.allowDeletion ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setConfig({ ...config, allowDeletion: !config.allowDeletion })}
-                    >
-                      {config.allowDeletion ? "Enabled" : "Disabled"}
-                    </Button>
-                  </div>
-                </div>
-              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -307,6 +253,60 @@ export default function SettingsPage() {
                     });
                   }}
                 />
+              </div>
+
+              <Separator />
+
+              {/* Display Preferences */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Display Preferences</h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <Label htmlFor="shift-labels">Show Shift Labels</Label>
+                      <p className="text-sm text-muted-foreground">Display shift key labels on the virtual keyboard</p>
+                    </div>
+                    <Button
+                      variant={config.showShiftLabel ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setConfig({ ...config, showShiftLabel: !config.showShiftLabel })}
+                    >
+                      {config.showShiftLabel ? "Enabled" : "Disabled"}
+                    </Button>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <Label htmlFor="practice-mode">Practice Mode</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Enable practice mode with finger position guides and key highlighting
+                      </p>
+                    </div>
+                    <Button
+                      variant={config.practiceMode ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setConfig({ ...config, practiceMode: !config.practiceMode })}
+                    >
+                      {config.practiceMode ? "Enabled" : "Disabled"}
+                    </Button>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <Label htmlFor="allow-deletion">Allow Deletion</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Allow using backspace to delete characters when making mistakes
+                      </p>
+                    </div>
+                    <Button
+                      variant={config.allowDeletion ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setConfig({ ...config, allowDeletion: !config.allowDeletion })}
+                    >
+                      {config.allowDeletion ? "Enabled" : "Disabled"}
+                    </Button>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
