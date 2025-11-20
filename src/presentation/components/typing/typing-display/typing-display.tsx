@@ -303,7 +303,7 @@ export default function TypingDisplay({
           )}
         </div>
       </div>
-      <div>
+      <div className={cn(!config.showInputBox && "opacity-0 h-0 overflow-hidden pointer-events-none")}>
         <Input
           ref={inputRef}
           type="text"

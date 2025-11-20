@@ -306,6 +306,22 @@ export default function SettingsPage() {
                       {config.allowDeletion ? "Enabled" : "Disabled"}
                     </Button>
                   </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <Label htmlFor="show-input-box">Show Input Box</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Display the typing input box below the text display
+                      </p>
+                    </div>
+                    <Button
+                      variant={config.showInputBox ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setConfig({ ...config, showInputBox: !config.showInputBox })}
+                    >
+                      {config.showInputBox ? "Enabled" : "Disabled"}
+                    </Button>
+                  </div>
                 </div>
               </div>
             </CardContent>
