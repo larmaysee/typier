@@ -13,7 +13,7 @@ export default function ViewToggler({ currentView, onViewChange }: ViewTogglerPr
     <div className="flex gap-2">
       <TooltipWrapper tooltip="Typing Test">
         <Button
-          variant={currentView === "typing" ? "default" : "secondary"}
+          variant={currentView === "typing" ? "default" : "outline"}
           size="icon"
           className="w-8 h-8 p-0 rounded-sm"
           onClick={() => onViewChange("typing")}
@@ -23,7 +23,7 @@ export default function ViewToggler({ currentView, onViewChange }: ViewTogglerPr
       </TooltipWrapper>
       <TooltipWrapper tooltip="Statistics">
         <Button
-          variant={currentView === "statistics" ? "default" : "secondary"}
+          variant={currentView === "statistics" ? "default" : "outline"}
           size="icon"
           className="w-8 h-8 p-0 rounded-sm"
           onClick={() => onViewChange("statistics")}
@@ -33,7 +33,7 @@ export default function ViewToggler({ currentView, onViewChange }: ViewTogglerPr
       </TooltipWrapper>
       <TooltipWrapper tooltip="Leaderboard">
         <Button
-          variant={currentView === "leaderboard" ? "default" : "secondary"}
+          variant={currentView === "leaderboard" ? "default" : "outline"}
           size="icon"
           className="w-8 h-8 p-0 rounded-sm"
           onClick={() => onViewChange("leaderboard")}
@@ -43,7 +43,7 @@ export default function ViewToggler({ currentView, onViewChange }: ViewTogglerPr
       </TooltipWrapper>
       <TooltipWrapper tooltip="Competitions">
         <Button
-          variant={currentView === "competitions" ? "default" : "secondary"}
+          variant={currentView === "competitions" ? "default" : "outline"}
           size="icon"
           className="w-8 h-8 p-0 rounded-sm"
           onClick={() => onViewChange("competitions")}
@@ -53,7 +53,7 @@ export default function ViewToggler({ currentView, onViewChange }: ViewTogglerPr
       </TooltipWrapper>
       <TooltipWrapper tooltip="Analytics">
         <Button
-          variant={currentView === "analytics" ? "default" : "secondary"}
+          variant={currentView === "analytics" ? "default" : "outline"}
           size="icon"
           className="w-8 h-8 p-0 rounded-sm"
           onClick={() => onViewChange("analytics")}
@@ -63,7 +63,7 @@ export default function ViewToggler({ currentView, onViewChange }: ViewTogglerPr
       </TooltipWrapper>
       <TooltipWrapper tooltip="Settings">
         <Button
-          variant={currentView === "settings" ? "default" : "secondary"}
+          variant={currentView === "settings" ? "default" : "outline"}
           size="icon"
           className="w-8 h-8 p-0 rounded-sm"
           onClick={() => onViewChange("settings")}

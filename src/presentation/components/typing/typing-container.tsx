@@ -109,6 +109,7 @@ function TypingContainerInner() {
         <TypingControlPanel
           session={session}
           testCompleted={session.testCompleted}
+          textContent={textContent}
           onRefresh={handleRefresh}
           onTimeChange={setSelectedTime}
         />
