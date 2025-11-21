@@ -167,7 +167,7 @@ export const TypingConfigDialog = memo(function TypingConfigDialog({ disabled = 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="secondary" size="icon" disabled={disabled} className="gap-2">
+        <Button variant="secondary" size="icon" disabled={disabled} className="gap-2 border border-dashed bg-muted/50">
           <Settings2 className="h-4 w-4" />
         </Button>
       </DialogTrigger>
@@ -192,7 +192,7 @@ export const TypingConfigDialog = memo(function TypingConfigDialog({ disabled = 
                   key={language.code}
                   onClick={() => handleLanguageChange(language.code)}
                   className={cn(
-                    "flex-1 px-3 py-2 border rounded-lg transition-all hover:border-primary/50 text-sm",
+                    "flex-1 px-3 py-2 border border-dashed rounded-lg transition-all hover:border-primary/50 text-sm",
                     language.code === config.language.code ? "border-primary bg-primary/5" : "border-border"
                   )}
                 >
@@ -219,7 +219,7 @@ export const TypingConfigDialog = memo(function TypingConfigDialog({ disabled = 
                   key={option.type}
                   onClick={() => handleTextTypeChange(option.type)}
                   className={cn(
-                    "flex items-center justify-center gap-2 px-3 py-2 border rounded-lg transition-all hover:border-primary/50 text-sm",
+                    "flex items-center justify-center gap-2 px-3 py-2 border border-dashed rounded-lg transition-all hover:border-primary/50 text-sm",
                     option.type === config.textType ? "border-primary bg-primary/5" : "border-border"
                   )}
                 >
@@ -244,7 +244,7 @@ export const TypingConfigDialog = memo(function TypingConfigDialog({ disabled = 
                   key={option.level}
                   onClick={() => handleDifficultyChange(option.level)}
                   className={cn(
-                    "flex items-center justify-center gap-2 px-3 py-2 border rounded-lg transition-all hover:border-primary/50 text-sm",
+                    "flex items-center justify-center gap-2 px-3 py-2 border border-dashed rounded-lg transition-all hover:border-primary/50 text-sm",
                     option.level === config.difficultyLevel ? "border-primary bg-primary/5" : "border-border"
                   )}
                 >
@@ -266,7 +266,7 @@ export const TypingConfigDialog = memo(function TypingConfigDialog({ disabled = 
             <button
               onClick={handlePracticeModeToggle}
               className={cn(
-                "px-3 py-2 border rounded-lg transition-all hover:border-primary/50 text-sm",
+                "px-3 py-2 border border-dashed rounded-lg transition-all hover:border-primary/50 text-sm",
                 config.practiceMode ? "border-primary bg-primary/5" : "border-border"
               )}
             >
@@ -289,7 +289,7 @@ export const TypingConfigDialog = memo(function TypingConfigDialog({ disabled = 
             <button
               onClick={handleAllowDeletionToggle}
               className={cn(
-                "px-3 py-2 border rounded-lg transition-all hover:border-primary/50 text-sm",
+                "px-3 py-2 border border-dashed rounded-lg transition-all hover:border-primary/50 text-sm",
                 config.allowDeletion ? "border-primary bg-primary/5" : "border-border"
               )}
             >
@@ -312,7 +312,7 @@ export const TypingConfigDialog = memo(function TypingConfigDialog({ disabled = 
             <button
               onClick={handleShowInputBoxToggle}
               className={cn(
-                "px-3 py-2 border rounded-lg transition-all hover:border-primary/50 text-sm",
+                "px-3 py-2 border border-dashed  rounded-lg transition-all hover:border-primary/50 text-sm",
                 config.showInputBox ? "border-primary bg-primary/5" : "border-border"
               )}
             >
@@ -323,10 +323,6 @@ export const TypingConfigDialog = memo(function TypingConfigDialog({ disabled = 
               </div>
             </button>
           </div>
-        </div>
-
-        <div className="flex justify-end pt-4">
-          <Button onClick={() => setIsOpen(false)}>Done</Button>
         </div>
       </DialogContent>
     </Dialog>

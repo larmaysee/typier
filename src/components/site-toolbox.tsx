@@ -1,6 +1,5 @@
 "use client";
 import { Icons } from "./icons";
-import Profile from "./profile";
 import { ThemeToggler } from "./theme-toggler";
 import ViewToggler from "./view-toggler";
 
@@ -21,7 +20,7 @@ export default function SiteToolbox({ currentView, onViewChange }: SiteToolboxPr
           <div className="flex items-center gap-4">
             <div className="flex gap-2">
               <ThemeToggler />
-              <Profile />
+              {/* <Profile /> */}
             </div>
           </div>
         </div>

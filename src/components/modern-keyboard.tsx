@@ -343,7 +343,7 @@ export default function ModernKeyboard() {
 
   // Main keyboard render
   return (
-    <div className={cn("border rounded-lg bg-muted/10 p-4 pt-2")}>
+    <div className={cn("border border-dashed rounded-2xl bg-muted/10 p-4 pt-2")}>
       {/* Layout info */}
       <div className="mb-2 text-xs text-muted-foreground text-center">{currentLayout.metadata.displayName}</div>
 

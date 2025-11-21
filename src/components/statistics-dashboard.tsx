@@ -31,7 +31,7 @@ interface StatCardProps {
 
 const StatCard: React.FC<StatCardProps> = ({ title, value, description, icon, trend }) => {
   return (
-    <Card className="hover:shadow-md transition-all duration-200 bg-muted/10 px-2 py-2 border-none">
+    <Card className="hover:shadow-md transition-all duration-200 bg-muted/10 px-2 py-2 border border-dashed rounded-xl">
       <div className="flex flex-row items-center gap-2">
         <div className="p-2.5 rounded-md bg-primary/10 text-primary">{icon}</div>
         <div>
@@ -234,7 +234,7 @@ export default function StatisticsDashboard() {
           </h1>
         </div>
         <TooltipWrapper tooltip="Clear all statistics">
-          <Button variant="secondary" size="sm" onClick={handleClearStats} className="bg-destructive">
+          <Button variant="secondary" size="sm" onClick={handleClearStats} className="bg-destructive text-white">
             <RotateCcw className="h-4 w-4 mr-2" />
             Clear Stats
           </Button>
@@ -271,7 +271,7 @@ export default function StatisticsDashboard() {
       </div>
 
       <div className="flex justify-between items-center">
-        <Button variant="outline" size={"sm"}>
+        <Button variant="outline" size={"sm"} className="border border-dashed">
           Current Streak - 🔥 {streakData.recent} Day{streakData.recent !== 1 ? "s" : ""}
         </Button>
 

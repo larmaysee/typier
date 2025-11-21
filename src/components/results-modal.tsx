@@ -146,7 +146,7 @@ export function ResultsModal({ isOpen, onClose, result, onStartNewTest }: Result
 
         {/* Action Button */}
         <DialogFooter className="pt-4">
-          <Button onClick={handleStartNewTest} className="">
+          <Button onClick={handleStartNewTest} className="" tabIndex={-1}>
             <Trophy className="h-4 w-4 mr-2" />
             New Test
           </Button>
