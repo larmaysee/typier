@@ -1,16 +1,16 @@
+import { AppwriteDatabaseClient } from "@/infrastructure/persistence/appwrite/database-client";
+import { LocalStorageClient } from "@/infrastructure/persistence/local-storage/storage-client";
 import { ConsoleLogger } from "@/shared/utils/console-logger";
-import { AppwriteDatabaseClient } from "../persistence/appwrite/database-client";
-import { LocalStorageClient } from "../persistence/local-storage/storage-client";
 import { container } from "./service-container";
 
 // Repository implementations
-import { AppwriteKeyboardLayoutRepository } from "../repositories/appwrite/appwrite-keyboard-layout.repository";
-import { AppwriteTypingRepository } from "../repositories/appwrite/appwrite-typing.repository";
-import { AppwriteUserRepository } from "../repositories/appwrite/appwrite-user.repository";
-import { HybridTypingRepository } from "../repositories/hybrid/hybrid-typing.repository";
-import { LocalKeyboardLayoutRepository } from "../repositories/local-storage/local-keyboard-layout.repository";
-import { LocalTypingRepository } from "../repositories/local-storage/local-typing.repository";
-import { LocalUserPreferencesRepository } from "../repositories/local-storage/local-user-preferences.repository";
+import { AppwriteKeyboardLayoutRepository } from "@/infrastructure/repositories/appwrite/appwrite-keyboard-layout.repository";
+import { AppwriteTypingRepository } from "@/infrastructure/repositories/appwrite/appwrite-typing.repository";
+import { AppwriteUserRepository } from "@/infrastructure/repositories/appwrite/appwrite-user.repository";
+import { HybridTypingRepository } from "@/infrastructure/repositories/hybrid/hybrid-typing.repository";
+import { LocalKeyboardLayoutRepository } from "@/infrastructure/repositories/local-storage/local-keyboard-layout.repository";
+import { LocalTypingRepository } from "@/infrastructure/repositories/local-storage/local-typing.repository";
+import { LocalUserPreferencesRepository } from "@/infrastructure/repositories/local-storage/local-user-preferences.repository";
 
 // Types
 import type { IKeyboardLayoutRepository, ITypingRepository, IUserRepository } from "@/domain/interfaces";

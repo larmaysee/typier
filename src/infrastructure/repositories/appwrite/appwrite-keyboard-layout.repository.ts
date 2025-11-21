@@ -1,11 +1,11 @@
 import { LanguageCode } from "@/domain";
 import { KeyboardLayout } from "@/domain/entities";
 import { IKeyboardLayoutRepository } from "@/domain/interfaces";
+import { AppwriteKeyboardLayoutDocument, COLLECTIONS } from "@/infrastructure/persistence/appwrite/collections.config";
+import { AppwriteDatabaseClient } from "@/infrastructure/persistence/appwrite/database-client";
 import { NotFoundError, RepositoryError } from "@/shared/errors";
 import type { ILogger } from "@/shared/utils/logger";
 import { Query } from "appwrite";
-import { AppwriteKeyboardLayoutDocument, COLLECTIONS } from "../../persistence/appwrite/collections.config";
-import { AppwriteDatabaseClient } from "../../persistence/appwrite/database-client";
 
 export class AppwriteKeyboardLayoutRepository implements IKeyboardLayoutRepository {
   constructor(private client: AppwriteDatabaseClient, private logger: ILogger) {}

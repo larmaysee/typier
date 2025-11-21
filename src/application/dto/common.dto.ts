@@ -1,6 +1,6 @@
+import { LanguageCode } from "@/domain";
 import { LayoutVariant } from "@/domain/enums/keyboard-layouts";
 import { DifficultyLevel, TypingMode } from "@/domain/enums/typing-mode";
-import { LanguageCode } from "@/domain";
 
 export interface CreateTypingSessionDTO {
   userId: string;

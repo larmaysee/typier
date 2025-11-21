@@ -111,8 +111,6 @@ export class GetLeaderboardUseCase {
       };
     }
 
-    const userBestWpm = Math.max(...userTests.map((test) => test.results.wpm));
-
     // 2. Get leaderboard to find user's ranking
     const leaderboard = await this.typingRepository.getLeaderboard({
       ...filters,
@@ -162,7 +160,19 @@ export class GetLeaderboardUseCase {
     }>
   > {
     const languages = [LanguageCode.EN, LanguageCode.LI, LanguageCode.MY];
-    const results: Array<any> = [];
+    const results: Array<{
+      language: LanguageCode;
+      languageName: string;
+      topUsers: Array<{
+        rank: number;
+        userId: string;
+        username: string;
+        wpm: number;
+        accuracy: number;
+        layoutName: string;
+      }>;
+      totalUsers: number;
+    }> = [];
 
     for (const language of languages) {
       const leaderboard = await this.typingRepository.getLeaderboard({
@@ -191,7 +201,7 @@ export class GetLeaderboardUseCase {
     return results;
   }
 
-  private async enrichLeaderboardEntries(entries: any[]): Promise<
+  private async enrichLeaderboardEntries(entries: LeaderboardEntry[]): Promise<
     Array<{
       userId: string;
       username: string;
@@ -207,28 +217,31 @@ export class GetLeaderboardUseCase {
     return entries.map((entry, index) => ({
       userId: entry.userId,
       username: entry.username,
-      bestWpm: entry.bestWpm,
-      bestAccuracy: entry.bestAccuracy,
+      bestWpm: entry.bestWPM,
+      bestAccuracy: entry.averageAccuracy,
       totalTests: entry.totalTests || 0,
       language: entry.language,
-      layoutId: entry.layoutId || "unknown",
-      layoutName: this.getLayoutDisplayName(entry.layoutId), // In real implementation, fetch from layout repository
+      layoutId: entry.keyboardLayout || "unknown",
+      layoutName: this.getLayoutDisplayName(entry.keyboardLayout || "unknown"), // In real implementation, fetch from layout repository
       rank: index + 1,
     }));
   }
 
-  private sortByCategory(entries: any[], category: "wpm" | "accuracy" | "consistency" | "improvement"): any[] {
+  private sortByCategory(
+    entries: LeaderboardEntry[],
+    category: "wpm" | "accuracy" | "consistency" | "improvement"
+  ): LeaderboardEntry[] {
     switch (category) {
       case "wpm":
-        return entries.sort((a, b) => b.bestWpm - a.bestWpm);
+        return entries.sort((a, b) => b.wpm - a.wpm);
       case "accuracy":
-        return entries.sort((a, b) => b.bestAccuracy - a.bestAccuracy);
+        return entries.sort((a, b) => b.accuracy - a.accuracy);
       case "consistency":
         // In real implementation, calculate consistency score
-        return entries.sort((a, b) => (b.consistencyScore || 0) - (a.consistencyScore || 0));
+        return entries;
       case "improvement":
         // In real implementation, calculate improvement rate
-        return entries.sort((a, b) => (b.improvementRate || 0) - (a.improvementRate || 0));
+        return entries;
       default:
         return entries;
     }
@@ -256,7 +269,7 @@ export class GetLeaderboardUseCase {
     return commonLayouts[layoutId] || layoutId || "Unknown";
   }
   private buildLeaderboardFilters(language?: string, mode?: string, keyboardLayout?: string, timeRange?: string) {
-    const filters: Record<string, any> = {};
+    const filters: Record<string, unknown> = {};
 
     if (language) {
       filters.language = language;
@@ -308,7 +321,7 @@ export class GetLeaderboardUseCase {
     }));
   }
 
-  private async getTotalEntriesCount(filters: Record<string, any>): Promise<number> {
+  private async getTotalEntriesCount(filters: Record<string, unknown>): Promise<number> {
     // In a real implementation, this would be a separate repository method
     // For now, return a reasonable estimate
     const entries = await this.typingRepository.getLeaderboard({
@@ -392,7 +405,7 @@ export class GetLeaderboardUseCase {
             consistencyScore: additionalStats.consistencyScore,
             recentActivity: additionalStats.recentActivity,
           };
-        } catch (_error) {
+        } catch {
           // Return basic entry if additional stats fail
           return entry;
         }

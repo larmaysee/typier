@@ -58,7 +58,7 @@ export class MyanmarTextService implements ITextGenerationService {
     return [TextType.CHARS, TextType.WORDS, TextType.SENTENCES];
   }
 
-  async validateContent(content: string, config: TextGenerationConfig): Promise<boolean> {
+  async validateContent(content: string): Promise<boolean> {
     if (!content) return false;
     const myanmarPattern = /[\u{1000}-\u{109F}\s\u{200C}\u{200D}]+/u;
     return myanmarPattern.test(content);

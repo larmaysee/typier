@@ -2,11 +2,11 @@
  * Mock implementation of ITypingRepository for development and testing
  */
 
-import { ITypingRepository, TestFilters, LeaderboardFilters } from "../../../domain/interfaces/repositories";
-import { TypingTest } from "@/domain/entities/typing";
-import { TypingMode } from "@/domain/enums/typing-mode";
-import { LanguageCode } from "@/domain/enums/languages";
 import { LeaderboardEntry } from "@/domain/entities/statistics";
+import { TypingTest } from "@/domain/entities/typing";
+import { LanguageCode } from "@/domain/enums/languages";
+import { TypingMode } from "@/domain/enums/typing-mode";
+import { ITypingRepository, LeaderboardFilters, TestFilters } from "@/domain/interfaces/repositories";
 
 export class MockTypingRepository implements ITypingRepository {
   private tests: Map<string, TypingTest> = new Map();
@@ -20,11 +20,11 @@ export class MockTypingRepository implements ITypingRepository {
   }
 
   async getUserTests(userId: string, filters?: TestFilters): Promise<TypingTest[]> {
-    const userTests = Array.from(this.tests.values()).filter(test => test.userId === userId);
+    const userTests = Array.from(this.tests.values()).filter((test) => test.userId === userId);
 
     if (!filters) return userTests;
 
-    return userTests.filter(test => {
+    return userTests.filter((test) => {
       if (filters.language && test.language !== filters.language) return false;
       if (filters.mode && test.mode !== filters.mode) return false;
       if (filters.difficulty && test.difficulty !== filters.difficulty) return false;
@@ -50,7 +50,7 @@ export class MockTypingRepository implements ITypingRepository {
         totalTests: 45,
         lastImproved: Date.now() - 86400000, // 1 day ago
         isVerified: true,
-        achievementBadges: ["speed_demon", "accuracy_master"]
+        achievementBadges: ["speed_demon", "accuracy_master"],
       }),
       LeaderboardEntry.create({
         userId: "user2",
@@ -64,19 +64,19 @@ export class MockTypingRepository implements ITypingRepository {
         totalTests: 32,
         lastImproved: Date.now() - 172800000, // 2 days ago
         isVerified: false,
-        achievementBadges: ["consistent_typer"]
-      })
+        achievementBadges: ["consistent_typer"],
+      }),
     ];
 
     return entries;
   }
 
   async getCompetitionEntries(competitionId: string): Promise<TypingTest[]> {
-    return Array.from(this.tests.values()).filter(test => test.competitionId === competitionId);
+    return Array.from(this.tests.values()).filter((test) => test.competitionId === competitionId);
   }
 
   async bulkSave(tests: TypingTest[]): Promise<void> {
-    tests.forEach(test => this.tests.set(test.id, test));
+    tests.forEach((test) => this.tests.set(test.id, test));
   }
 
   async deleteTest(id: string): Promise<void> {

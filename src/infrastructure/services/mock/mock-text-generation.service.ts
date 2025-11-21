@@ -675,7 +675,7 @@ export class MockTextGenerationService implements ITextGenerationService {
     return [LanguageCode.EN, LanguageCode.LI, LanguageCode.MY].includes(language);
   }
 
-  async getAvailableTextTypes(_language: LanguageCode): Promise<TextType[]> {
+  async getAvailableTextTypes(): Promise<TextType[]> {
     return [TextType.CHARS, TextType.WORDS, TextType.NUMBERS, TextType.SENTENCES, TextType.PARAGRAPHS, TextType.CODE];
   }
 

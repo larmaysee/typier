@@ -3,7 +3,7 @@ import { LayoutVariant } from "../enums";
 import { LanguageCode } from "../enums/languages";
 
 export interface IKeyboardLayoutRepository {
-  create(layout: Omit<KeyboardLayout, 'id' | 'createdAt' | 'updatedAt'>): Promise<KeyboardLayout>;
+  create(layout: Omit<KeyboardLayout, "id" | "createdAt" | "updatedAt">): Promise<KeyboardLayout>;
   findById(id: string): Promise<KeyboardLayout | null>;
   findByLanguage(language: LanguageCode): Promise<KeyboardLayout[]>;
   findByVariant(variant: LayoutVariant): Promise<KeyboardLayout | null>;
@@ -11,8 +11,4 @@ export interface IKeyboardLayoutRepository {
   findPublicLayouts(): Promise<KeyboardLayout[]>;
   update(id: string, data: Partial<KeyboardLayout>): Promise<KeyboardLayout>;
   delete(id: string): Promise<void>;
-
-  // Layout sharing
-  exportLayout(id: string): Promise<string>; // JSON string
-  importLayout(layoutData: string, userId: string): Promise<KeyboardLayout>;
 }

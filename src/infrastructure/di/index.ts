@@ -4,34 +4,32 @@
  */
 
 // Core DI container
-export { 
-  container, 
+export {
+  container,
   DependencyContainer,
   ServiceLifetime,
   type IDependencyContainer,
-  type ServiceDescriptor 
-} from './container';
+  type ServiceDescriptor,
+} from "./container";
 
 // Service bindings and tokens
-export { 
-  SERVICE_TOKENS,
+export {
   registerCoreServices,
+  registerKeyboardLayoutServices,
   registerRepositories,
   registerUseCases,
-  registerInfrastructureServices,
-  registerKeyboardLayoutServices,
-  registerExternalServices,
-  type ServiceToken,
+  SERVICE_TOKENS,
   type EnvironmentConfig,
-  type FeatureFlags
-} from './bindings';
+  type FeatureFlags,
+  type ServiceToken,
+} from "./bindings";
 
 // Service provider and factory
-export { 
-  ServiceProvider,
-  ServiceFactory,
+export {
   registerServicesForEnvironment,
+  ServiceFactory,
+  ServiceProvider,
+  type ServiceHealthReport,
   type ServiceRegistrationOptions,
   type ServiceStatus,
-  type ServiceHealthReport
-} from './providers';
+} from "./providers";

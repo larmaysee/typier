@@ -4,12 +4,10 @@
  */
 
 import { LanguageCode } from "@/domain";
-import { Competition, CompetitionEntry } from "../entities/competition";
 import { KeyboardLayout } from "../entities/keyboard-layout";
 import { LeaderboardEntry, TypingStatistics } from "../entities/statistics";
 import { TypingResults, TypingSession, TypingTest } from "../entities/typing";
 import { User, UserPreferences, UserProfile } from "../entities/user";
-import { CompetitionStatus, CompetitionType } from "../enums/competition-types";
 import { DifficultyLevel, TypingMode } from "../enums/typing-mode";
 
 // Filters and query objects
@@ -32,14 +30,6 @@ export interface LeaderboardFilters {
   timeRange?: "daily" | "weekly" | "monthly" | "all-time";
   limit?: number;
   offset?: number;
-}
-
-export interface CompetitionFilters {
-  type?: CompetitionType;
-  status?: CompetitionStatus;
-  language?: LanguageCode;
-  dateFrom?: number;
-  dateTo?: number;
 }
 
 export interface ValidationResult {
@@ -72,10 +62,7 @@ export interface IUserRepository {
   findByEmail(email: string): Promise<User | null>;
   findByUsername(username: string): Promise<User | null>;
   save(user: User): Promise<void>;
-  updatePreferences(
-    userId: string,
-    preferences: UserPreferences
-  ): Promise<void>;
+  updatePreferences(userId: string, preferences: UserPreferences): Promise<void>;
   getPreferences(userId: string): Promise<UserPreferences | null>;
   updateProfile(userId: string, profile: UserProfile): Promise<void>;
   deleteUser(id: string): Promise<void>;
@@ -84,54 +71,20 @@ export interface IUserRepository {
   updateStatistics(userId: string, stats: Partial<TypingStatistics>): Promise<void>;
 }
 
-export interface ICompetitionRepository {
-  findActive(): Promise<Competition[]>;
-  findById(id: string): Promise<Competition | null>;
-  save(competition: Competition): Promise<void>;
-  getEntries(competitionId: string): Promise<CompetitionEntry[]>;
-  submitEntry(entry: CompetitionEntry): Promise<void>;
-  updateRankings(competitionId: string): Promise<void>;
-  findByFilters(filters: CompetitionFilters): Promise<Competition[]>;
-  deleteCompetition(id: string): Promise<void>;
-}
-
 export interface IKeyboardLayoutRepository {
   getAvailableLayouts(language: LanguageCode): Promise<KeyboardLayout[]>;
   findById(layoutId: string): Promise<KeyboardLayout | null>;
   saveCustomLayout(layout: KeyboardLayout): Promise<void>;
-  getUserPreferredLayout(
-    userId: string,
-    language: LanguageCode
-  ): Promise<string | null>;
-  setUserPreferredLayout(
-    userId: string,
-    language: LanguageCode,
-    layoutId: string
-  ): Promise<void>;
+  getUserPreferredLayout(userId: string, language: LanguageCode): Promise<string | null>;
+  setUserPreferredLayout(userId: string, language: LanguageCode, layoutId: string): Promise<void>;
   deleteCustomLayout(layoutId: string, userId: string): Promise<void>;
   validateLayout(layout: KeyboardLayout): Promise<ValidationResult>;
-  getPopularLayouts(
-    language: LanguageCode,
-    limit?: number
-  ): Promise<KeyboardLayout[]>;
+  getPopularLayouts(language: LanguageCode, limit?: number): Promise<KeyboardLayout[]>;
 }
 
 export interface IStatisticsRepository {
-  getUserStatistics(
-    userId: string,
-    language?: LanguageCode,
-    mode?: TypingMode
-  ): Promise<TypingStatistics[]>;
-  updateStatistics(
-    userId: string,
-    testResult: TypingResults,
-    language: LanguageCode,
-    mode: TypingMode
-  ): Promise<void>;
+  getUserStatistics(userId: string, language?: LanguageCode, mode?: TypingMode): Promise<TypingStatistics[]>;
+  updateStatistics(userId: string, testResult: TypingResults, language: LanguageCode, mode: TypingMode): Promise<void>;
   getGlobalStatistics(): Promise<Record<string, number>>;
-  getUserRank(
-    userId: string,
-    language: LanguageCode,
-    mode: TypingMode
-  ): Promise<number>;
+  getUserRank(userId: string, language: LanguageCode, mode: TypingMode): Promise<number>;
 }

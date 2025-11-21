@@ -8,7 +8,7 @@ import { LocalTypingRepository } from "../local-storage/local-typing.repository"
 interface QueuedOperation {
   id: string;
   type: "save" | "delete";
-  data: any;
+  data: TypingTest | { userId: string; testId: string };
   timestamp: number;
   retryCount: number;
 }
@@ -22,7 +22,10 @@ export class HybridTypingRepository implements ITypingRepository {
     private appwriteRepository: AppwriteTypingRepository,
     private localRepository: LocalTypingRepository,
     private logger: ILogger,
-    private storage: { getItem: (key: string) => Promise<any>; setItem: (key: string, value: any) => Promise<void> }
+    private storage: {
+      getItem: (key: string) => Promise<unknown>;
+      setItem: (key: string, value: unknown) => Promise<void>;
+    }
   ) {
     // Start background sync process
     this.startBackgroundSync();
@@ -193,7 +196,8 @@ export class HybridTypingRepository implements ITypingRepository {
 
   private async getSyncQueue(): Promise<QueuedOperation[]> {
     try {
-      return (await this.storage.getItem(this.SYNC_QUEUE_KEY)) || [];
+      const result = await this.storage.getItem(this.SYNC_QUEUE_KEY);
+      return Array.isArray(result) ? (result as QueuedOperation[]) : [];
     } catch {
       return [];
     }
@@ -258,10 +262,13 @@ export class HybridTypingRepository implements ITypingRepository {
   private async executeQueuedOperation(operation: QueuedOperation): Promise<void> {
     switch (operation.type) {
       case "save":
-        await this.appwriteRepository.save(operation.data);
+        await this.appwriteRepository.save(operation.data as TypingTest);
         break;
       case "delete":
-        await this.appwriteRepository.deleteUserTest(operation.data.userId, operation.data.testId);
+        await this.appwriteRepository.deleteUserTest(
+          operation.data.userId,
+          (operation.data as { userId: string; testId: string }).testId
+        );
         break;
       default:
         throw new Error(`Unknown operation type: ${operation.type}`);

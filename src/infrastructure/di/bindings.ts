@@ -33,7 +33,6 @@ import { MockUserRepository } from "@/infrastructure/repositories/mock/mock-user
 // Mock services for now (will be replaced in Phase 2)
 import { MockAnalyticsService } from "@/infrastructure/services/mock/mock-analytics.service";
 import { MockAppwriteClientService } from "@/infrastructure/services/mock/mock-appwrite-client.service";
-import { MockLayoutValidatorService } from "@/infrastructure/services/mock/mock-layout-validator.service";
 import { MockNotificationService } from "@/infrastructure/services/mock/mock-notification.service";
 import { MockPerformanceTrackerService } from "@/infrastructure/services/mock/mock-performance-tracker.service";
 import { MockStorageService } from "@/infrastructure/services/mock/mock-storage.service";
@@ -185,13 +184,6 @@ export function registerUseCases(): void {
   });
 }
 
-export function registerInfrastructureServices(): void {
-  // Infrastructure services using mock implementations for development
-  container.registerSingleton(SERVICE_TOKENS.TEXT_GENERATOR_SERVICE, () => new MockTextGenerationService());
-  container.registerSingleton(SERVICE_TOKENS.PERFORMANCE_TRACKER_SERVICE, () => new MockPerformanceTrackerService());
-  container.registerSingleton(SERVICE_TOKENS.NOTIFICATION_SERVICE, () => new MockNotificationService());
-}
-
 export function registerKeyboardLayoutServices(): void {
   // Keyboard layout providers and services - priority for Phase 1
 
@@ -214,8 +206,13 @@ export function registerKeyboardLayoutServices(): void {
   container.registerSingleton(SERVICE_TOKENS.LAYOUT_MANAGER_SERVICE, () => {
     return new LayoutManagerService();
   });
+}
 
-  container.registerSingleton(SERVICE_TOKENS.LAYOUT_VALIDATOR_SERVICE, () => new MockLayoutValidatorService());
+export function registerInfrastructureServices(): void {
+  // Infrastructure services using mock implementations for development
+  container.registerSingleton(SERVICE_TOKENS.TEXT_GENERATOR_SERVICE, () => new MockTextGenerationService());
+  container.registerSingleton(SERVICE_TOKENS.PERFORMANCE_TRACKER_SERVICE, () => new MockPerformanceTrackerService());
+  container.registerSingleton(SERVICE_TOKENS.NOTIFICATION_SERVICE, () => new MockNotificationService());
 }
 
 export function registerExternalServices(): void {
@@ -270,6 +267,9 @@ export function initializeContainer(): void {
   registerKeyboardLayoutServices();
   registerExternalServices();
 }
+
+// Auto-initialize container when module is imported
+initializeContainer();
 
 // Auto-initialize container when module is imported
 initializeContainer();

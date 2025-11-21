@@ -1,27 +1,21 @@
-import { IUserRepository } from "@/domain/interfaces";
-import { DifficultyLevel, User, UserPreferences } from "@/domain/entities";
-import { RepositoryError } from "@/shared/errors";
-import { AppwriteDatabaseClient } from "../../persistence/appwrite/database-client";
-import {
-  COLLECTIONS,
-  AppwriteUserDocument,
-  AppwriteUserPreferencesDocument
-} from "../../persistence/appwrite/collections.config";
-import type { ILogger } from "@/shared/utils/logger";
 import { LanguageCode } from "@/domain";
+import { DifficultyLevel, User, UserPreferences } from "@/domain/entities";
+import { IUserRepository } from "@/domain/interfaces";
+import {
+  AppwriteUserDocument,
+  AppwriteUserPreferencesDocument,
+  COLLECTIONS,
+} from "@/infrastructure/persistence/appwrite/collections.config";
+import { AppwriteDatabaseClient } from "@/infrastructure/persistence/appwrite/database-client";
+import { RepositoryError } from "@/shared/errors";
+import type { ILogger } from "@/shared/utils/logger";
 
 export class AppwriteUserRepository implements IUserRepository {
-  constructor(
-    private client: AppwriteDatabaseClient,
-    private logger: ILogger
-  ) { }
+  constructor(private client: AppwriteDatabaseClient, private logger: ILogger) {}
 
   async findById(id: string): Promise<User | null> {
     try {
-      const userDoc = await this.client.getDocument<AppwriteUserDocument>(
-        COLLECTIONS.USERS,
-        id
-      );
+      const userDoc = await this.client.getDocument<AppwriteUserDocument>(COLLECTIONS.USERS, id);
 
       if (!userDoc) {
         return null;
@@ -35,7 +29,7 @@ export class AppwriteUserRepository implements IUserRepository {
       return this.fromAppwriteDocuments(userDoc, preferencesDoc);
     } catch (error) {
       this.logger.error(`Failed to find user: ${id}`, error as Error);
-      throw new RepositoryError('Failed to find user', error as Error);
+      throw new RepositoryError("Failed to find user", error as Error);
     }
   }
 
@@ -44,11 +38,7 @@ export class AppwriteUserRepository implements IUserRepository {
       const userDoc = this.toUserDocument(user);
       const preferencesDoc = this.toPreferencesDocument(user);
 
-      await this.client.createDocument<AppwriteUserDocument>(
-        COLLECTIONS.USERS,
-        userDoc,
-        user.id
-      );
+      await this.client.createDocument<AppwriteUserDocument>(COLLECTIONS.USERS, userDoc, user.id);
 
       await this.client.createDocument<AppwriteUserPreferencesDocument>(
         COLLECTIONS.USER_PREFERENCES,
@@ -58,8 +48,8 @@ export class AppwriteUserRepository implements IUserRepository {
 
       this.logger.info(`Saved user: ${user.id}`);
     } catch (error) {
-      this.logger.error('Failed to save user', error as Error);
-      throw new RepositoryError('Failed to save user', error as Error);
+      this.logger.error("Failed to save user", error as Error);
+      throw new RepositoryError("Failed to save user", error as Error);
     }
   }
 
@@ -72,7 +62,7 @@ export class AppwriteUserRepository implements IUserRepository {
         theme: preferences.theme,
         sound_enabled: preferences.soundEnabled,
         visual_feedback: true, // Default value since not in domain model
-        auto_complete_enabled: false // Default value since not in domain model
+        auto_complete_enabled: false, // Default value since not in domain model
       };
 
       await this.client.updateDocument<AppwriteUserPreferencesDocument>(
@@ -84,7 +74,7 @@ export class AppwriteUserRepository implements IUserRepository {
       this.logger.info(`Updated preferences for user: ${userId}`);
     } catch (error) {
       this.logger.error(`Failed to update preferences for user: ${userId}`, error as Error);
-      throw new RepositoryError('Failed to update user preferences', error as Error);
+      throw new RepositoryError("Failed to update user preferences", error as Error);
     }
   }
 
@@ -102,7 +92,7 @@ export class AppwriteUserRepository implements IUserRepository {
       return this.preferencesFromDocument(preferencesDoc);
     } catch (error) {
       this.logger.error(`Failed to get preferences for user: ${userId}`, error as Error);
-      throw new RepositoryError('Failed to get user preferences', error as Error);
+      throw new RepositoryError("Failed to get user preferences", error as Error);
     }
   }
 
@@ -121,22 +111,24 @@ export class AppwriteUserRepository implements IUserRepository {
       this.logger.info(`Deleted user: ${userId}`);
     } catch (error) {
       this.logger.error(`Failed to delete user: ${userId}`, error as Error);
-      throw new RepositoryError('Failed to delete user', error as Error);
+      throw new RepositoryError("Failed to delete user", error as Error);
     }
   }
 
-  private toUserDocument(user: User): Omit<AppwriteUserDocument, '$id' | '$createdAt' | '$updatedAt'> {
+  private toUserDocument(user: User): Omit<AppwriteUserDocument, "$id" | "$createdAt" | "$updatedAt"> {
     return {
       username: user.username,
       email: user.email,
       total_tests: user.profile.totalTests,
       best_wpm: user.profile.bestWPM,
       average_accuracy: user.profile.averageAccuracy,
-      favorite_language: user.profile.favoriteLanguage
+      favorite_language: user.profile.favoriteLanguage,
     };
   }
 
-  private toPreferencesDocument(user: User): Omit<AppwriteUserPreferencesDocument, '$id' | '$createdAt' | '$updatedAt'> {
+  private toPreferencesDocument(
+    user: User
+  ): Omit<AppwriteUserPreferencesDocument, "$id" | "$createdAt" | "$updatedAt"> {
     return {
       user_id: user.id,
       default_language: user.preferences.defaultLanguage,
@@ -144,7 +136,7 @@ export class AppwriteUserRepository implements IUserRepository {
       theme: user.preferences.theme,
       sound_enabled: user.preferences.soundEnabled,
       visual_feedback: true, // Default value since not in domain model
-      auto_complete_enabled: false // Default value since not in domain model
+      auto_complete_enabled: false, // Default value since not in domain model
     };
   }
 
@@ -155,7 +147,7 @@ export class AppwriteUserRepository implements IUserRepository {
     const defaultPreferences: UserPreferences = {
       defaultLanguage: LanguageCode.EN,
       preferredLayouts: {} as Record<LanguageCode, string>,
-      theme: 'system',
+      theme: "system",
       soundEnabled: false,
       showKeyboard: true,
       difficulty: DifficultyLevel.MEDIUM,
@@ -163,7 +155,7 @@ export class AppwriteUserRepository implements IUserRepository {
       practiceReminders: true,
       competitionNotifications: true,
       showDetailedStats: true,
-      privacyMode: false
+      privacyMode: false,
     };
 
     return User.create({
@@ -188,19 +180,19 @@ export class AppwriteUserRepository implements IUserRepository {
           name: "Beginner",
           requiredXP: 0,
           nextLevelXP: 100,
-          progress: 0
+          progress: 0,
         },
-        experiencePoints: 0
+        experiencePoints: 0,
       },
       createdAt: new Date(userDoc.$createdAt).getTime(),
-      updatedAt: new Date(userDoc.$updatedAt).getTime()
+      updatedAt: new Date(userDoc.$updatedAt).getTime(),
     });
   }
 
   private preferencesFromDocument(doc: AppwriteUserPreferencesDocument): UserPreferences {
     return {
       defaultLanguage: doc.default_language as LanguageCode,
-      preferredLayouts: JSON.parse(doc.keyboard_layouts || '{}'),
+      preferredLayouts: JSON.parse(doc.keyboard_layouts || "{}"),
       theme: doc.theme as any,
       soundEnabled: doc.sound_enabled,
       showKeyboard: true, // Default value since not in document
@@ -209,7 +201,7 @@ export class AppwriteUserRepository implements IUserRepository {
       practiceReminders: true, // Default value since not in document
       competitionNotifications: true, // Default value since not in document
       showDetailedStats: true, // Default value since not in document
-      privacyMode: false // Default value since not in document
+      privacyMode: false, // Default value since not in document
     };
   }
 }

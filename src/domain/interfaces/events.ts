@@ -3,10 +3,8 @@
  * These events represent important domain occurrences
  */
 
-import { LanguageCode } from '../enums/languages';
-import { TypingMode } from '../enums/typing-mode';
-import { SessionStatus } from '../enums/session-status';
-import { CompetitionType } from '../enums/competition-types';
+import { LanguageCode } from "../enums/languages";
+import { TypingMode } from "../enums/typing-mode";
 
 // Base domain event interface
 export interface DomainEvent<T = any> {
@@ -20,247 +18,249 @@ export interface DomainEvent<T = any> {
 }
 
 // Typing session events
-export interface TypingSessionStartedEvent extends DomainEvent<{
-  sessionId: string;
-  userId: string;
-  mode: TypingMode;
-  language: LanguageCode;
-  keyboardLayoutId: string;
-  textContent: string;
-  difficulty: string;
-}> {
-  type: 'typing.session.started';
+export interface TypingSessionStartedEvent
+  extends DomainEvent<{
+    sessionId: string;
+    userId: string;
+    mode: TypingMode;
+    language: LanguageCode;
+    keyboardLayoutId: string;
+    textContent: string;
+    difficulty: string;
+  }> {
+  type: "typing.session.started";
 }
 
-export interface TypingSessionCompletedEvent extends DomainEvent<{
-  sessionId: string;
-  userId: string;
-  mode: TypingMode;
-  language: LanguageCode;
-  wpm: number;
-  accuracy: number;
-  duration: number;
-  errorsCount: number;
-  isPersonalBest: boolean;
-}> {
-  type: 'typing.session.completed';
+export interface TypingSessionCompletedEvent
+  extends DomainEvent<{
+    sessionId: string;
+    userId: string;
+    mode: TypingMode;
+    language: LanguageCode;
+    wpm: number;
+    accuracy: number;
+    duration: number;
+    errorsCount: number;
+    isPersonalBest: boolean;
+  }> {
+  type: "typing.session.completed";
 }
 
-export interface TypingSessionPausedEvent extends DomainEvent<{
-  sessionId: string;
-  userId: string;
-  pausedAt: number;
-  currentProgress: number;
-}> {
-  type: 'typing.session.paused';
+export interface TypingSessionPausedEvent
+  extends DomainEvent<{
+    sessionId: string;
+    userId: string;
+    pausedAt: number;
+    currentProgress: number;
+  }> {
+  type: "typing.session.paused";
 }
 
-export interface TypingSessionResumedEvent extends DomainEvent<{
-  sessionId: string;
-  userId: string;
-  resumedAt: number;
-  pauseDuration: number;
-}> {
-  type: 'typing.session.resumed';
+export interface TypingSessionResumedEvent
+  extends DomainEvent<{
+    sessionId: string;
+    userId: string;
+    resumedAt: number;
+    pauseDuration: number;
+  }> {
+  type: "typing.session.resumed";
 }
 
-export interface TypingMistakeMadeEvent extends DomainEvent<{
-  sessionId: string;
-  userId: string;
-  expectedCharacter: string;
-  actualCharacter: string;
-  position: number;
-  timestamp: number;
-}> {
-  type: 'typing.mistake.made';
+export interface TypingMistakeMadeEvent
+  extends DomainEvent<{
+    sessionId: string;
+    userId: string;
+    expectedCharacter: string;
+    actualCharacter: string;
+    position: number;
+    timestamp: number;
+  }> {
+  type: "typing.mistake.made";
 }
 
 // Keyboard layout events
-export interface LayoutSwitchedEvent extends DomainEvent<{
-  sessionId?: string;
-  userId: string;
-  previousLayoutId?: string;
-  newLayoutId: string;
-  language: LanguageCode;
-  reason: 'user_selection' | 'auto_detection' | 'system_default';
-}> {
-  type: 'keyboard.layout.switched';
+export interface LayoutSwitchedEvent
+  extends DomainEvent<{
+    sessionId?: string;
+    userId: string;
+    previousLayoutId?: string;
+    newLayoutId: string;
+    language: LanguageCode;
+    reason: "user_selection" | "auto_detection" | "system_default";
+  }> {
+  type: "keyboard.layout.switched";
 }
 
-export interface CustomLayoutCreatedEvent extends DomainEvent<{
-  layoutId: string;
-  userId: string;
-  layoutName: string;
-  language: LanguageCode;
-  basedOnLayoutId?: string;
-}> {
-  type: 'keyboard.layout.created';
+export interface CustomLayoutCreatedEvent
+  extends DomainEvent<{
+    layoutId: string;
+    userId: string;
+    layoutName: string;
+    language: LanguageCode;
+    basedOnLayoutId?: string;
+  }> {
+  type: "keyboard.layout.created";
 }
 
-export interface CustomLayoutUpdatedEvent extends DomainEvent<{
-  layoutId: string;
-  userId: string;
-  changes: string[];
-  version: number;
-}> {
-  type: 'keyboard.layout.updated';
+export interface CustomLayoutUpdatedEvent
+  extends DomainEvent<{
+    layoutId: string;
+    userId: string;
+    changes: string[];
+    version: number;
+  }> {
+  type: "keyboard.layout.updated";
 }
 
 // User events
-export interface UserRegisteredEvent extends DomainEvent<{
-  userId: string;
-  username: string;
-  email: string;
-  preferredLanguage: LanguageCode;
-  registrationSource: string;
-}> {
-  type: 'user.registered';
+export interface UserRegisteredEvent
+  extends DomainEvent<{
+    userId: string;
+    username: string;
+    email: string;
+    preferredLanguage: LanguageCode;
+    registrationSource: string;
+  }> {
+  type: "user.registered";
 }
 
-export interface UserPreferencesUpdatedEvent extends DomainEvent<{
-  userId: string;
-  changedFields: string[];
-  previousValues: Record<string, any>;
-  newValues: Record<string, any>;
-}> {
-  type: 'user.preferences.updated';
+export interface UserPreferencesUpdatedEvent
+  extends DomainEvent<{
+    userId: string;
+    changedFields: string[];
+    previousValues: Record<string, any>;
+    newValues: Record<string, any>;
+  }> {
+  type: "user.preferences.updated";
 }
 
-export interface PersonalBestAchievedEvent extends DomainEvent<{
-  userId: string;
-  mode: TypingMode;
-  language: LanguageCode;
-  metric: 'wpm' | 'accuracy' | 'consistency';
-  newValue: number;
-  previousValue: number;
-  improvement: number;
-}> {
-  type: 'user.personal_best.achieved';
+export interface PersonalBestAchievedEvent
+  extends DomainEvent<{
+    userId: string;
+    mode: TypingMode;
+    language: LanguageCode;
+    metric: "wpm" | "accuracy" | "consistency";
+    newValue: number;
+    previousValue: number;
+    improvement: number;
+  }> {
+  type: "user.personal_best.achieved";
 }
 
-export interface MilestoneReachedEvent extends DomainEvent<{
-  userId: string;
-  milestoneType: 'tests_completed' | 'wpm_threshold' | 'accuracy_threshold' | 'consistency_achieved';
-  milestone: number;
-  currentValue: number;
-  description: string;
-}> {
-  type: 'user.milestone.reached';
+export interface MilestoneReachedEvent
+  extends DomainEvent<{
+    userId: string;
+    milestoneType: "tests_completed" | "wpm_threshold" | "accuracy_threshold" | "consistency_achieved";
+    milestone: number;
+    currentValue: number;
+    description: string;
+  }> {
+  type: "user.milestone.reached";
 }
 
-// Competition events
-export interface CompetitionCreatedEvent extends DomainEvent<{
-  competitionId: string;
-  name: string;
-  type: CompetitionType;
-  language: LanguageCode;
-  startDate: number;
-  endDate: number;
-  createdBy: string;
-}> {
-  type: 'competition.created';
+export interface CompetitionStartedEvent
+  extends DomainEvent<{
+    competitionId: string;
+    name: string;
+    participantCount: number;
+    expectedParticipants?: number;
+  }> {
+  type: "competition.started";
 }
 
-export interface CompetitionStartedEvent extends DomainEvent<{
-  competitionId: string;
-  name: string;
-  participantCount: number;
-  expectedParticipants?: number;
-}> {
-  type: 'competition.started';
+export interface CompetitionEntrySubmittedEvent
+  extends DomainEvent<{
+    competitionId: string;
+    userId: string;
+    username: string;
+    wpm: number;
+    accuracy: number;
+    rank?: number;
+    isFirstEntry: boolean;
+  }> {
+  type: "competition.entry.submitted";
 }
 
-export interface CompetitionEntrySubmittedEvent extends DomainEvent<{
-  competitionId: string;
-  userId: string;
-  username: string;
-  wpm: number;
-  accuracy: number;
-  rank?: number;
-  isFirstEntry: boolean;
-}> {
-  type: 'competition.entry.submitted';
+export interface CompetitionCompletedEvent
+  extends DomainEvent<{
+    competitionId: string;
+    name: string;
+    totalParticipants: number;
+    winnerUserId: string;
+    winnerUsername: string;
+    winnerScore: number;
+  }> {
+  type: "competition.completed";
 }
 
-export interface CompetitionCompletedEvent extends DomainEvent<{
-  competitionId: string;
-  name: string;
-  totalParticipants: number;
-  winnerUserId: string;
-  winnerUsername: string;
-  winnerScore: number;
-}> {
-  type: 'competition.completed';
-}
-
-export interface CompetitionRankingUpdatedEvent extends DomainEvent<{
-  competitionId: string;
-  userId: string;
-  previousRank?: number;
-  newRank: number;
-  rankChange: number;
-  currentScore: number;
-}> {
-  type: 'competition.ranking.updated';
+export interface CompetitionRankingUpdatedEvent
+  extends DomainEvent<{
+    competitionId: string;
+    userId: string;
+    previousRank?: number;
+    newRank: number;
+    rankChange: number;
+    currentScore: number;
+  }> {
+  type: "competition.ranking.updated";
 }
 
 // Leaderboard events
-export interface LeaderboardPositionChangedEvent extends DomainEvent<{
-  userId: string;
-  username: string;
-  language: LanguageCode;
-  mode: TypingMode;
-  previousRank?: number;
-  newRank: number;
-  currentWPM: number;
-  rankChange: number;
-}> {
-  type: 'leaderboard.position.changed';
+export interface LeaderboardPositionChangedEvent
+  extends DomainEvent<{
+    userId: string;
+    username: string;
+    language: LanguageCode;
+    mode: TypingMode;
+    previousRank?: number;
+    newRank: number;
+    currentWPM: number;
+    rankChange: number;
+  }> {
+  type: "leaderboard.position.changed";
 }
 
-export interface NewLeaderboardRecordEvent extends DomainEvent<{
-  userId: string;
-  username: string;
-  language: LanguageCode;
-  mode: TypingMode;
-  metric: 'wpm' | 'accuracy';
-  newRecord: number;
-  previousRecord?: number;
-  improvement: number;
-}> {
-  type: 'leaderboard.record.new';
+export interface NewLeaderboardRecordEvent
+  extends DomainEvent<{
+    userId: string;
+    username: string;
+    language: LanguageCode;
+    mode: TypingMode;
+    metric: "wpm" | "accuracy";
+    newRecord: number;
+    previousRecord?: number;
+    improvement: number;
+  }> {
+  type: "leaderboard.record.new";
 }
 
 // System events
-export interface SystemMaintenanceScheduledEvent extends DomainEvent<{
-  scheduledFor: number;
-  duration: number;
-  description: string;
-  affectedServices: string[];
-}> {
-  type: 'system.maintenance.scheduled';
+export interface SystemMaintenanceScheduledEvent
+  extends DomainEvent<{
+    scheduledFor: number;
+    duration: number;
+    description: string;
+    affectedServices: string[];
+  }> {
+  type: "system.maintenance.scheduled";
 }
 
-export interface ErrorOccurredEvent extends DomainEvent<{
-  errorType: string;
-  errorMessage: string;
-  stackTrace?: string;
-  userId?: string;
-  sessionId?: string;
-  severity: 'low' | 'medium' | 'high' | 'critical';
-  context: Record<string, any>;
-}> {
-  type: 'system.error.occurred';
+export interface ErrorOccurredEvent
+  extends DomainEvent<{
+    errorType: string;
+    errorMessage: string;
+    stackTrace?: string;
+    userId?: string;
+    sessionId?: string;
+    severity: "low" | "medium" | "high" | "critical";
+    context: Record<string, any>;
+  }> {
+  type: "system.error.occurred";
 }
 
 // Event factory functions for creating events
 export class DomainEvents {
-  private static createEvent<T>(
-    type: string,
-    aggregateId: string,
-    data: T,
-    causedBy?: string
-  ): DomainEvent<T> {
+  private static createEvent<T>(type: string, aggregateId: string, data: T, causedBy?: string): DomainEvent<T> {
     return {
       id: this.generateEventId(),
       type,
@@ -268,7 +268,7 @@ export class DomainEvents {
       data,
       timestamp: Date.now(),
       version: 1,
-      causedBy
+      causedBy,
     };
   }
 
@@ -286,15 +286,20 @@ export class DomainEvents {
     textContent: string,
     difficulty: string
   ): TypingSessionStartedEvent {
-    return this.createEvent('typing.session.started', sessionId, {
+    return this.createEvent(
+      "typing.session.started",
       sessionId,
-      userId,
-      mode,
-      language,
-      keyboardLayoutId,
-      textContent,
-      difficulty
-    }, userId) as TypingSessionStartedEvent;
+      {
+        sessionId,
+        userId,
+        mode,
+        language,
+        keyboardLayoutId,
+        textContent,
+        difficulty,
+      },
+      userId
+    ) as TypingSessionStartedEvent;
   }
 
   static layoutSwitched(
@@ -303,35 +308,45 @@ export class DomainEvents {
     language: LanguageCode,
     previousLayoutId?: string,
     sessionId?: string,
-    reason: 'user_selection' | 'auto_detection' | 'system_default' = 'user_selection'
+    reason: "user_selection" | "auto_detection" | "system_default" = "user_selection"
   ): LayoutSwitchedEvent {
-    return this.createEvent('keyboard.layout.switched', userId, {
-      sessionId,
+    return this.createEvent(
+      "keyboard.layout.switched",
       userId,
-      previousLayoutId,
-      newLayoutId,
-      language,
-      reason
-    }, userId) as LayoutSwitchedEvent;
+      {
+        sessionId,
+        userId,
+        previousLayoutId,
+        newLayoutId,
+        language,
+        reason,
+      },
+      userId
+    ) as LayoutSwitchedEvent;
   }
 
   static personalBestAchieved(
     userId: string,
     mode: TypingMode,
     language: LanguageCode,
-    metric: 'wpm' | 'accuracy' | 'consistency',
+    metric: "wpm" | "accuracy" | "consistency",
     newValue: number,
     previousValue: number
   ): PersonalBestAchievedEvent {
-    return this.createEvent('user.personal_best.achieved', userId, {
+    return this.createEvent(
+      "user.personal_best.achieved",
       userId,
-      mode,
-      language,
-      metric,
-      newValue,
-      previousValue,
-      improvement: newValue - previousValue
-    }, userId) as PersonalBestAchievedEvent;
+      {
+        userId,
+        mode,
+        language,
+        metric,
+        newValue,
+        previousValue,
+        improvement: newValue - previousValue,
+      },
+      userId
+    ) as PersonalBestAchievedEvent;
   }
 }
 

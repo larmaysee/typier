@@ -132,9 +132,6 @@ export interface LanguageLayoutFactory {
 
   /** Validate a language definition */
   validateDefinition(definition: LanguageLayoutDefinition): boolean;
-
-  /** Parse legacy layout format to new definition */
-  parseLegacyLayout(legacyLayout: unknown, language: LanguageCode): LanguageLayoutDefinition;
 }
 
 /**

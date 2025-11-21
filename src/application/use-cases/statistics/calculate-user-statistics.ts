@@ -1,12 +1,9 @@
-import { ITypingRepository, IUserRepository, TestFilters } from "@/domain/interfaces/repositories";
 import { GetUserStatsQueryDTO } from "@/application/dto/queries.dto";
 import { UserStatisticsResponseDTO } from "@/application/dto/statistics.dto";
+import { ITypingRepository, IUserRepository, TestFilters } from "@/domain/interfaces/repositories";
 
 export class CalculateUserStatisticsUseCase {
-  constructor(
-    private typingRepository: ITypingRepository,
-    private userRepository: IUserRepository
-  ) { }
+  constructor(private typingRepository: ITypingRepository, private userRepository: IUserRepository) {}
 
   async execute(query: GetUserStatsQueryDTO): Promise<UserStatisticsResponseDTO> {
     const { userId, language, mode, layoutId, timeRange } = query;
@@ -22,7 +19,7 @@ export class CalculateUserStatisticsUseCase {
       ...(language && { language }),
       ...(mode && { mode }),
       ...(layoutId && { layoutId }),
-      ...(timeRange && { startDate: timeRange.start, endDate: timeRange.end })
+      ...(timeRange && { startDate: timeRange.start, endDate: timeRange.end }),
     };
 
     // 3. Get user's typing tests for detailed analysis
@@ -35,12 +32,12 @@ export class CalculateUserStatisticsUseCase {
     const recentTests = userTests
       .sort((a, b) => b.timestamp - a.timestamp)
       .slice(0, 10)
-      .map(test => ({
+      .map((test) => ({
         date: new Date(test.timestamp),
         wpm: test.results.wpm,
         accuracy: test.results.accuracy,
         mode: test.mode,
-        language: test.language
+        language: test.language,
       }));
 
     // 6. Calculate improvement rate
@@ -59,14 +56,17 @@ export class CalculateUserStatisticsUseCase {
       improvementRate,
       lastTestDate: new Date(userStats.lastUpdated),
       layoutStats,
-      recentTests
+      recentTests,
     };
   }
 
-  async getUserPerformanceAnalysis(userId: string, depth: 'basic' | 'detailed' | 'comprehensive' = 'basic'): Promise<{
+  async getUserPerformanceAnalysis(
+    userId: string,
+    depth: "basic" | "detailed" | "comprehensive" = "basic"
+  ): Promise<{
     overallPerformance: {
       score: number;
-      level: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+      level: "beginner" | "intermediate" | "advanced" | "expert";
       strengths: string[];
       weaknesses: string[];
     };
@@ -78,7 +78,7 @@ export class CalculateUserStatisticsUseCase {
     improvementSuggestions?: Array<{
       category: string;
       suggestion: string;
-      priority: 'high' | 'medium' | 'low';
+      priority: "high" | "medium" | "low";
       estimatedImpact: number;
     }>;
   }> {
@@ -88,10 +88,10 @@ export class CalculateUserStatisticsUseCase {
       return {
         overallPerformance: {
           score: 0,
-          level: 'beginner',
+          level: "beginner",
           strengths: [],
-          weaknesses: ['No typing tests completed yet']
-        }
+          weaknesses: ["No typing tests completed yet"],
+        },
       };
     }
 
@@ -99,73 +99,98 @@ export class CalculateUserStatisticsUseCase {
     const avgWpm = userTests.reduce((sum, test) => sum + test.results.wpm, 0) / userTests.length;
     const avgAccuracy = userTests.reduce((sum, test) => sum + test.results.accuracy, 0) / userTests.length;
 
-    const overallScore = Math.round((avgWpm * 0.6) + (avgAccuracy * 0.4));
+    const overallScore = Math.round(avgWpm * 0.6 + avgAccuracy * 0.4);
     const level = this.determineSkillLevel(avgWpm, avgAccuracy);
     const { strengths, weaknesses } = this.analyzeStrengthsWeaknesses(userTests);
 
-    const result: any = {
+    const result: {
+      overallPerformance: {
+        score: number;
+        level: "beginner" | "intermediate" | "advanced" | "expert";
+        strengths: string[];
+        weaknesses: string[];
+      };
+      consistencyAnalysis?: {
+        consistencyScore: number;
+        speedVariation: number;
+        accuracyStability: number;
+      };
+      improvementSuggestions?: Array<{
+        category: string;
+        suggestion: string;
+        priority: "high" | "medium" | "low";
+        estimatedImpact: number;
+      }>;
+    } = {
       overallPerformance: {
         score: overallScore,
         level,
         strengths,
-        weaknesses
-      }
+        weaknesses,
+      },
     };
 
-    if (depth === 'detailed' || depth === 'comprehensive') {
+    if (depth === "detailed" || depth === "comprehensive") {
       result.consistencyAnalysis = this.analyzeConsistency(userTests);
     }
 
-    if (depth === 'comprehensive') {
-      result.improvementSuggestions = this.generateImprovementSuggestions(userTests, level);
+    if (depth === "comprehensive") {
+      result.improvementSuggestions = this.generateImprovementSuggestions(userTests);
     }
 
     return result;
   }
 
-  private calculateLayoutStats(tests: any[]): Array<{
+  private calculateLayoutStats(
+    tests: { keyboardLayoutId?: string; results: { wpm: number; accuracy: number } }[]
+  ): Array<{
     layoutId: string;
     layoutName: string;
     testsCount: number;
     averageWpm: number;
     averageAccuracy: number;
   }> {
-    const layoutMap = new Map<string, {
-      layoutId: string;
-      layoutName: string;
-      tests: any[];
-    }>();
+    const layoutMap = new Map<
+      string,
+      {
+        layoutId: string;
+        layoutName: string;
+        tests: { results: { wpm: number; accuracy: number } }[];
+      }
+    >();
 
     // Group tests by layout
-    tests.forEach(test => {
-      const layoutId = test.keyboardLayoutId || 'unknown';
+    tests.forEach((test) => {
+      const layoutId = test.keyboardLayoutId || "unknown";
       if (!layoutMap.has(layoutId)) {
         layoutMap.set(layoutId, {
           layoutId,
           layoutName: layoutId, // In real implementation, get layout name from repository
-          tests: []
+          tests: [],
         });
       }
       layoutMap.get(layoutId)!.tests.push(test);
     });
 
     // Calculate statistics for each layout
-    return Array.from(layoutMap.values()).map(layoutData => {
-      const testsCount = layoutData.tests.length;
-      const totalWpm = layoutData.tests.reduce((sum, test) => sum + test.results.wpm, 0);
-      const totalAccuracy = layoutData.tests.reduce((sum, test) => sum + test.results.accuracy, 0);
+    return Array.from(layoutMap.values())
+      .map((layoutData) => {
+        const testsCount = layoutData.tests.length;
+        const totalWpm = layoutData.tests.reduce((sum, test) => sum + test.results.wpm, 0);
+        const totalAccuracy = layoutData.tests.reduce((sum, test) => sum + test.results.accuracy, 0);
 
-      return {
-        layoutId: layoutData.layoutId,
-        layoutName: layoutData.layoutName,
-        testsCount,
-        averageWpm: testsCount > 0 ? Math.round(totalWpm / testsCount) : 0,
-        averageAccuracy: testsCount > 0 ? Math.round((totalAccuracy / testsCount) * 100) / 100 : 0
-      };
-    }).sort((a, b) => b.testsCount - a.testsCount); // Sort by test count desc
+        return {
+          layoutId: layoutData.layoutId,
+          layoutName: layoutData.layoutName,
+          testsCount,
+          averageWpm: testsCount > 0 ? Math.round(totalWpm / testsCount) : 0,
+          averageAccuracy: testsCount > 0 ? Math.round((totalAccuracy / testsCount) * 100) / 100 : 0,
+        };
+      })
+      .sort((a, b) => b.testsCount - a.testsCount); // Sort by test count desc
   }
 
-  private calculateImprovementRate(tests: any[]): number {
+  private calculateImprovementRate(tests: { timestamp: number; results: { wpm: number } }[]): number {
     if (tests.length < 2) {
       return 0;
     }
@@ -185,14 +210,17 @@ export class CalculateUserStatisticsUseCase {
     return Math.round(improvementRate * 100) / 100;
   }
 
-  private determineSkillLevel(avgWpm: number, avgAccuracy: number): 'beginner' | 'intermediate' | 'advanced' | 'expert' {
-    if (avgWpm < 20 || avgAccuracy < 80) return 'beginner';
-    if (avgWpm < 40 || avgAccuracy < 90) return 'intermediate';
-    if (avgWpm < 70 || avgAccuracy < 95) return 'advanced';
-    return 'expert';
+  private determineSkillLevel(
+    avgWpm: number,
+    avgAccuracy: number
+  ): "beginner" | "intermediate" | "advanced" | "expert" {
+    if (avgWpm < 20 || avgAccuracy < 80) return "beginner";
+    if (avgWpm < 40 || avgAccuracy < 90) return "intermediate";
+    if (avgWpm < 70 || avgAccuracy < 95) return "advanced";
+    return "expert";
   }
 
-  private analyzeStrengthsWeaknesses(tests: any[]): {
+  private analyzeStrengthsWeaknesses(tests: { results: { wpm: number; accuracy: number; consistency: number } }[]): {
     strengths: string[];
     weaknesses: string[];
   } {
@@ -204,19 +232,19 @@ export class CalculateUserStatisticsUseCase {
     const avgConsistency = tests.reduce((sum, test) => sum + test.results.consistency, 0) / tests.length;
 
     // Analyze strengths
-    if (avgWpm > 60) strengths.push('High typing speed');
-    if (avgAccuracy > 95) strengths.push('Excellent accuracy');
-    if (avgConsistency > 80) strengths.push('Consistent typing rhythm');
+    if (avgWpm > 60) strengths.push("High typing speed");
+    if (avgAccuracy > 95) strengths.push("Excellent accuracy");
+    if (avgConsistency > 80) strengths.push("Consistent typing rhythm");
 
-    // Analyze weaknesses  
-    if (avgWpm < 30) weaknesses.push('Typing speed needs improvement');
-    if (avgAccuracy < 90) weaknesses.push('Accuracy needs attention');
-    if (avgConsistency < 60) weaknesses.push('Inconsistent typing rhythm');
+    // Analyze weaknesses
+    if (avgWpm < 30) weaknesses.push("Typing speed needs improvement");
+    if (avgAccuracy < 90) weaknesses.push("Accuracy needs attention");
+    if (avgConsistency < 60) weaknesses.push("Inconsistent typing rhythm");
 
     return { strengths, weaknesses };
   }
 
-  private analyzeConsistency(tests: any[]): {
+  private analyzeConsistency(tests: { results: { wpm: number; accuracy: number } }[]): {
     consistencyScore: number;
     speedVariation: number;
     accuracyStability: number;
@@ -225,12 +253,12 @@ export class CalculateUserStatisticsUseCase {
       return {
         consistencyScore: 100,
         speedVariation: 0,
-        accuracyStability: 100
+        accuracyStability: 100,
       };
     }
 
-    const speeds = tests.map(test => test.results.wpm);
-    const accuracies = tests.map(test => test.results.accuracy);
+    const speeds = tests.map((test) => test.results.wpm);
+    const accuracies = tests.map((test) => test.results.accuracy);
 
     // Calculate coefficient of variation for speed
     const avgSpeed = speeds.reduce((a, b) => a + b) / speeds.length;
@@ -240,7 +268,8 @@ export class CalculateUserStatisticsUseCase {
 
     // Calculate accuracy stability
     const avgAccuracy = accuracies.reduce((a, b) => a + b) / accuracies.length;
-    const accuracyVariance = accuracies.reduce((acc, acc_val) => acc + Math.pow(acc_val - avgAccuracy, 2), 0) / accuracies.length;
+    const accuracyVariance =
+      accuracies.reduce((acc, acc_val) => acc + Math.pow(acc_val - avgAccuracy, 2), 0) / accuracies.length;
     const accuracyStdDev = Math.sqrt(accuracyVariance);
     const accuracyStability = Math.max(0, 100 - accuracyStdDev);
 
@@ -250,20 +279,20 @@ export class CalculateUserStatisticsUseCase {
     return {
       consistencyScore: Math.round(consistencyScore),
       speedVariation: Math.round(speedVariation * 100) / 100,
-      accuracyStability: Math.round(accuracyStability * 100) / 100
+      accuracyStability: Math.round(accuracyStability * 100) / 100,
     };
   }
 
-  private generateImprovementSuggestions(tests: any[], level: string): Array<{
+  private generateImprovementSuggestions(tests: { results: { wpm: number; accuracy: number } }[]): Array<{
     category: string;
     suggestion: string;
-    priority: 'high' | 'medium' | 'low';
+    priority: "high" | "medium" | "low";
     estimatedImpact: number;
   }> {
     const suggestions: Array<{
       category: string;
       suggestion: string;
-      priority: 'high' | 'medium' | 'low';
+      priority: "high" | "medium" | "low";
       estimatedImpact: number;
     }> = [];
 
@@ -273,20 +302,20 @@ export class CalculateUserStatisticsUseCase {
     // Speed improvement suggestions
     if (avgWpm < 40) {
       suggestions.push({
-        category: 'Speed',
-        suggestion: 'Focus on increasing typing speed through regular practice with simple texts',
-        priority: 'high',
-        estimatedImpact: 15
+        category: "Speed",
+        suggestion: "Focus on increasing typing speed through regular practice with simple texts",
+        priority: "high",
+        estimatedImpact: 15,
       });
     }
 
     // Accuracy improvement suggestions
     if (avgAccuracy < 95) {
       suggestions.push({
-        category: 'Accuracy',
-        suggestion: 'Slow down and focus on accuracy. Use practice mode to identify problem keys',
-        priority: 'high',
-        estimatedImpact: 20
+        category: "Accuracy",
+        suggestion: "Slow down and focus on accuracy. Use practice mode to identify problem keys",
+        priority: "high",
+        estimatedImpact: 20,
       });
     }
 
@@ -295,10 +324,10 @@ export class CalculateUserStatisticsUseCase {
     if (layoutStats.length > 1) {
       const bestLayout = layoutStats[0];
       suggestions.push({
-        category: 'Layout',
+        category: "Layout",
         suggestion: `Consider using ${bestLayout.layoutName} more often as you perform better with it`,
-        priority: 'medium',
-        estimatedImpact: 10
+        priority: "medium",
+        estimatedImpact: 10,
       });
     }
 

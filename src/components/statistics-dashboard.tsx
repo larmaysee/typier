@@ -29,7 +29,7 @@ interface StatCardProps {
   trend?: number;
 }
 
-const StatCard: React.FC<StatCardProps> = ({ title, value, description, icon, trend }) => {
+const StatCard: React.FC<StatCardProps> = ({ title, value, icon, trend }) => {
   return (
     <Card className="hover:shadow-md transition-all duration-200 bg-muted/10 px-2 py-2 border border-dashed rounded-xl">
       <div className="flex flex-row items-center gap-2">
@@ -246,26 +246,14 @@ export default function StatisticsDashboard() {
         <StatCard
           title="Average Speed"
           value={statistics.averageWpm}
-          description="words per minute"
           icon={<Zap className="h-4 w-4" />}
           trend={statistics.improvementTrend}
         />
-        <StatCard
-          title="Best Speed"
-          value={statistics.bestWpm}
-          description="personal record"
-          icon={<Award className="h-4 w-4" />}
-        />
-        <StatCard
-          title="Accuracy"
-          value={`${statistics.averageAccuracy}%`}
-          description="average precision"
-          icon={<Target className="h-4 w-4" />}
-        />
+        <StatCard title="Best Speed" value={statistics.bestWpm} icon={<Award className="h-4 w-4" />} />
+        <StatCard title="Accuracy" value={`${statistics.averageAccuracy}%`} icon={<Target className="h-4 w-4" />} />
         <StatCard
           title="Practice Time"
           value={formatTime(statistics.totalTimeTyped)}
-          description="total time typed"
           icon={<Clock className="h-4 w-4" />}
         />
       </div>

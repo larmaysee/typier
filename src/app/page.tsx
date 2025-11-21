@@ -7,8 +7,6 @@ import SiteToolbox from "@/components/site-toolbox";
 import StatisticsDashboard from "@/components/statistics-dashboard";
 import { TypingStatisticsProvider } from "@/components/typing-statistics";
 import { cn } from "@/lib/utils";
-import { AnalyticsDashboard } from "@/presentation/components/analytics/analytics-dashboard";
-import { CompetitionHub } from "@/presentation/components/competitions/competition-hub";
 import { Leaderboard } from "@/presentation/components/leaderboard/leaderboard";
 import { TypingWithKeyboard } from "@/presentation/components/typing/typing-with-keyboard";
 import { useEffect, useState } from "react";
@@ -49,10 +47,6 @@ export default function Home() {
                   <StatisticsDashboard />
                 ) : currentView === "leaderboard" ? (
                   <Leaderboard />
-                ) : currentView === "competitions" ? (
-                  <CompetitionHub />
-                ) : currentView === "analytics" ? (
-                  <AnalyticsDashboard />
                 ) : (
                   <SettingsPage />
                 )}

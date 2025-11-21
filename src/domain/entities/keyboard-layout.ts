@@ -126,19 +126,9 @@ export class KeyboardLayout {
   private validateLanguageCompatibility(): void {
     // Define expected variants for each language
     const expectedVariants: Record<LanguageCode, LayoutVariant[]> = {
-      [LanguageCode.EN]: [LayoutVariant.US, LayoutVariant.UK, LayoutVariant.INTERNATIONAL],
-      [LanguageCode.LI]: [
-        LayoutVariant.SIL_BASIC,
-        LayoutVariant.SIL_STANDARD,
-        LayoutVariant.UNICODE_STANDARD,
-        LayoutVariant.TRADITIONAL,
-      ],
-      [LanguageCode.MY]: [
-        LayoutVariant.MYANMAR3,
-        LayoutVariant.ZAWGYI,
-        LayoutVariant.UNICODE_MYANMAR,
-        LayoutVariant.WININNWA,
-      ],
+      [LanguageCode.EN]: [LayoutVariant.US],
+      [LanguageCode.LI]: [LayoutVariant.SIL_BASIC],
+      [LanguageCode.MY]: [LayoutVariant.UNICODE_MYANMAR],
     };
 
     const validVariants = expectedVariants[this.language] || [];

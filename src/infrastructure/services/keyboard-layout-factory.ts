@@ -85,13 +85,6 @@ export class KeyboardLayoutFactory implements LanguageLayoutFactory {
   }
 
   /**
-   * Parse legacy layout format to new definition (delegated to parser)
-   */
-  parseLegacyLayout(legacyLayout: any, language: LanguageCode): LanguageLayoutDefinition {
-    throw new Error("This method should be called on LanguageLayoutParser instead");
-  }
-
-  /**
    * Convert language definition to KeyMapping array
    */
   private convertToKeyMappings(definition: LanguageLayoutDefinition): KeyMapping[] {

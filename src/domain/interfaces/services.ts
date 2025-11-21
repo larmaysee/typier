@@ -1,5 +1,4 @@
 import { LanguageCode } from "@/domain/enums/languages";
-import { CompetitionRules } from "../entities/competition";
 import { KeyboardLayout } from "../entities/keyboard-layout";
 import { DifficultyLevel, TextType } from "../enums";
 import { ValidationResult } from "./repositories";
@@ -113,19 +112,6 @@ export interface PerformancePrediction {
   predictedAccuracy: number;
   confidence: number;
   factors: string[];
-}
-
-export interface CreateCompetitionData {
-  name: string;
-  description: string;
-  type: string;
-  startDate: number;
-  endDate: number;
-  language: LanguageCode;
-  textContent: string;
-  requiredLayout?: string;
-  maxParticipants?: number;
-  rules: CompetitionRules;
 }
 
 export interface CustomLayoutConfig {

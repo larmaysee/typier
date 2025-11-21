@@ -1,20 +1,13 @@
 // Domain Entities
-export { KeyboardLayout } from './keyboard-layout';
-export type { LayoutMetadata, KeyMapping, KeyPosition } from './keyboard-layout';
+export { KeyboardLayout } from "./keyboard-layout";
+export type { KeyMapping, KeyPosition, LayoutMetadata } from "./keyboard-layout";
 
-export {
-  TypingTest,
-  TypingSession,
-  TypingResults
-} from "./typing";
-export type { TypingMistake, LiveTypingStats } from "./typing";
+export { TypingResults, TypingSession, TypingTest } from "./typing";
+export type { LiveTypingStats, TypingMistake } from "./typing";
 
-export { User } from './user';
-export type { UserProfile, UserPreferences } from './user';
-
-export { Competition, CompetitionEntry } from './competition';
-export type { CompetitionRules, PrizeTier, CompetitionMetadata } from './competition';
+export { User } from "./user";
+export type { UserPreferences, UserProfile } from "./user";
 
 // Re-export enums for convenience
-export { TypingMode, DifficultyLevel } from "../enums";
+export { DifficultyLevel, TypingMode } from "../enums";
 export { SessionStatus } from "../enums/session-status";

@@ -4,10 +4,10 @@
  */
 
 import { LanguageCode } from "@/domain";
-import { DifficultyLevel, TypingMode } from "../enums";
-import { SessionStatus } from "../enums/session-status";
-import { CursorPosition, FocusState } from "../value-objects/cursor-position";
-import { Accuracy, Duration, WPM } from "../value-objects/typing-metrics";
+import { DifficultyLevel, TypingMode } from "@/domain/enums";
+import { SessionStatus } from "@/domain/enums/session-status";
+import { CursorPosition, FocusState } from "@/domain/value-objects/cursor-position";
+import { Accuracy, Duration, WPM } from "@/domain/value-objects/typing-metrics";
 import { KeyboardLayout } from "./keyboard-layout";
 
 // Re-export SessionStatus for use cases

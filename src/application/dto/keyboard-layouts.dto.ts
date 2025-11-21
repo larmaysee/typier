@@ -1,5 +1,5 @@
-import { KeyboardLayout } from "@/domain/entities/keyboard-layout";
 import { LanguageCode } from "@/domain";
+import { KeyboardLayout } from "@/domain/entities/keyboard-layout";
 
 export interface LayoutsResponseDTO {
   layouts: Array<{
@@ -7,7 +7,6 @@ export interface LayoutsResponseDTO {
     name: string;
     displayName: string;
     language: LanguageCode;
-    layoutType: string;
     variant: string;
     isCustom: boolean;
     popularity: number;

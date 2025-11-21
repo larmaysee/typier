@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Parser for converting legacy keyboard layout files to the new standardized format
  */
@@ -35,7 +36,7 @@ export class LanguageLayoutParser {
     const metadata = this.generateMetadata(language, variant);
 
     // Extract modifier keys
-    const modifiers = this.extractModifiers(defaultLayout, shiftLayout);
+    const modifiers = this.extractModifiers(defaultLayout);
 
     // Extract special keys
     const specialKeys = this.extractSpecialKeys(defaultLayout);
@@ -155,7 +156,7 @@ export class LanguageLayoutParser {
   /**
    * Extract modifier keys from layout
    */
-  private static extractModifiers(defaultLayout: (string | string[])[], shiftLayout: (string | string[])[]) {
+  private static extractModifiers(defaultLayout: (string | string[])[]) {
     const modifiers = {
       shift: [] as string[],
       alt: [] as string[],
@@ -315,16 +316,8 @@ export class LanguageLayoutParser {
 
     const variantNames = {
       [LayoutVariant.US]: "US",
-      [LayoutVariant.UK]: "UK",
-      [LayoutVariant.INTERNATIONAL]: "International",
       [LayoutVariant.SIL_BASIC]: "SIL Basic",
-      [LayoutVariant.SIL_STANDARD]: "SIL Standard",
-      [LayoutVariant.UNICODE_STANDARD]: "Unicode Standard",
-      [LayoutVariant.TRADITIONAL]: "Traditional",
-      [LayoutVariant.MYANMAR3]: "Myanmar3",
-      [LayoutVariant.ZAWGYI]: "Zawgyi",
       [LayoutVariant.UNICODE_MYANMAR]: "Unicode Myanmar",
-      [LayoutVariant.WININNWA]: "WinInnwa",
     };
 
     const languageName = languageNames[language] || language;

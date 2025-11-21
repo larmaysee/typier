@@ -1,0 +1,3 @@
+// For unused parameters that are part of interface or may be used in future
+// Use /* eslint-disable @typescript-eslint/no-unused-vars */ before the line
+// Or use @typescript-eslint/no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] in config

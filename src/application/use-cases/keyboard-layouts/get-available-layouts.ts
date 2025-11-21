@@ -24,7 +24,7 @@ export class GetAvailableLayoutsUseCase {
     }
 
     // 3. Get user-specific statistics for layouts (if available)
-    const layoutStats = userId ? await this.getUserLayoutStats(userId, language) : new Map();
+    const layoutStats = userId ? await this.getUserLayoutStats() : new Map();
 
     // 4. Process and enrich layout information
     const enrichedLayouts = allLayouts.map((layout) => {
@@ -36,7 +36,7 @@ export class GetAvailableLayoutsUseCase {
         name: layout.name,
         displayName: layout.displayName,
         language: layout.language,
-        variant: layout.variant,
+        variant: typeof layout.variant === "string" ? layout.variant : (String(layout.variant) as LayoutVariant),
         isCustom: layout.isCustom,
         popularity: layout.metadata.popularity,
         isRecommended,
@@ -66,10 +66,7 @@ export class GetAvailableLayoutsUseCase {
     };
   }
 
-  private async getUserLayoutStats(
-    userId: string,
-    language: LanguageCode
-  ): Promise<
+  private async getUserLayoutStats(): Promise<
     Map<
       string,
       {
@@ -108,13 +105,31 @@ export class GetAvailableLayoutsUseCase {
   private sortLayoutsByPreference(
     layouts: Array<{
       id: string;
+      name: string;
+      displayName: string;
+      language: LanguageCode;
+      variant: LayoutVariant;
+      isCustom: boolean;
       popularity: number;
       isRecommended: boolean;
       userTestsCount: number;
-      [key: string]: any;
+      userAverageWpm?: number;
+      userAverageAccuracy?: number;
     }>,
     preferredLayoutId: string | null
-  ): Array<any> {
+  ): Array<{
+    id: string;
+    name: string;
+    displayName: string;
+    language: LanguageCode;
+    variant: LayoutVariant;
+    isCustom: boolean;
+    popularity: number;
+    isRecommended: boolean;
+    userTestsCount: number;
+    userAverageWpm?: number;
+    userAverageAccuracy?: number;
+  }> {
     return layouts.sort((a, b) => {
       // 1. Preferred layout comes first
       if (preferredLayoutId) {

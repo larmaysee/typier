@@ -74,7 +74,7 @@ const initialState: TypingSessionState = {
 };
 
 export function useTypingSession() {
-  const { config, setConfig } = useSiteConfig();
+  const { config } = useSiteConfig();
   const { addTestResult } = useTypingStatistics();
   const { resolve, serviceTokens } = useDependencyInjection();
   const { user } = useAuth();
@@ -293,7 +293,6 @@ export function useTypingSession() {
 
       // Check for word-based completion
       if (config.testMode === TestMode.WORDS && state.currentData && !state.testCompleted && !isCompletingRef.current) {
-        const totalWords = state.currentData.split(" ").filter((word) => word.length > 0).length;
         const typedWords = sessionDto.currentInput
           .trim()
           .split(" ")

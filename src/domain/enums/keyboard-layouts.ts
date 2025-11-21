@@ -5,20 +5,12 @@
 export enum LayoutVariant {
   // English variants
   US = "us",
-  UK = "uk",
-  INTERNATIONAL = "international",
 
   // Lisu variants
   SIL_BASIC = "sil_basic",
-  SIL_STANDARD = "sil_standard",
-  UNICODE_STANDARD = "unicode_standard",
-  TRADITIONAL = "traditional",
 
   // Myanmar variants
-  MYANMAR3 = "myanmar3",
-  ZAWGYI = "zawgyi",
   UNICODE_MYANMAR = "unicode_myanmar",
-  WININNWA = "wininnwa",
 }
 
 export enum FingerAssignment {
