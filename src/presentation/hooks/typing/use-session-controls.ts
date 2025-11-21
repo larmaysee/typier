@@ -15,6 +15,9 @@ interface UseSessionControlsProps {
   processInput: (input: string) => Promise<void>; // Required - no fallback
   allowDeletion?: boolean; // Whether to allow backspace/delete keys
   onTimeChange?: () => void; // Callback to restart session when time changes
+  onWordCountChange?: () => void; // Callback to restart session when word count changes
+  onManualComplete?: () => void; // Callback to manually complete the session
+  onConfigUpdate?: (updates: { selectedTime?: number; selectedWords?: number }) => void; // Callback to update config
 }
 
 export function useSessionControls({
@@ -25,6 +28,9 @@ export function useSessionControls({
   processInput,
   allowDeletion = true,
   onTimeChange,
+  onWordCountChange,
+  onManualComplete,
+  onConfigUpdate,
 }: UseSessionControlsProps) {
   const getActiveWordIndex = useCallback(() => {
     const words = session.typedText.split(" ");
@@ -93,6 +99,15 @@ export function useSessionControls({
         return;
       }
 
+      // Handle ESC key to manually complete the session
+      if (e.key === "Escape") {
+        e.preventDefault();
+        if (onManualComplete && session.startTime !== null) {
+          onManualComplete();
+        }
+        return;
+      }
+
       // Block backspace/delete keys if allowDeletion is false
       if (!allowDeletion && (e.key === "Backspace" || e.key === "Delete")) {
         e.preventDefault();
@@ -149,7 +164,15 @@ export function useSessionControls({
         }
       }
     },
-    [session.typedText, session.currentData, getActiveWordIndex, setState, allowDeletion]
+    [
+      session.typedText,
+      session.currentData,
+      session.startTime,
+      getActiveWordIndex,
+      setState,
+      allowDeletion,
+      onManualComplete,
+    ]
   );
 
   const handleFocus = useCallback(() => {
@@ -194,6 +217,11 @@ export function useSessionControls({
         showResults: false,
       }));
 
+      // Save to config
+      if (onConfigUpdate) {
+        onConfigUpdate({ selectedTime: time });
+      }
+
       // Restart the session with new time
       if (onTimeChange) {
         // Use setTimeout to ensure state update completes first
@@ -202,7 +230,32 @@ export function useSessionControls({
         }, 0);
       }
     },
-    [setState, onTimeChange]
+    [setState, onTimeChange, onConfigUpdate]
+  );
+
+  const setSelectedWords = useCallback(
+    (words: number) => {
+      setState((prev) => ({
+        ...prev,
+        selectedWords: words,
+        testCompleted: false,
+        showResults: false,
+      }));
+
+      // Save to config
+      if (onConfigUpdate) {
+        onConfigUpdate({ selectedWords: words });
+      }
+
+      // Restart the session with new word count
+      if (onWordCountChange) {
+        // Use setTimeout to ensure state update completes first
+        setTimeout(() => {
+          onWordCountChange();
+        }, 0);
+      }
+    },
+    [setState, onWordCountChange, onConfigUpdate]
   );
 
   return {
@@ -213,6 +266,7 @@ export function useSessionControls({
     handleRefresh,
     closeResults,
     setSelectedTime,
+    setSelectedWords,
     getActiveWordIndex,
     getLetterClass,
     getWordClass,

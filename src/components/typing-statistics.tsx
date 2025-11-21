@@ -20,6 +20,9 @@ export interface TypingTestResult {
   textType?: string; // e.g., 'words', 'sentences', 'chars'
   difficulty?: string; // e.g., 'easy', 'medium', 'hard'
   practiceMode?: boolean;
+  testMode?: string; // 'time' or 'words'
+  selectedTime?: number; // Selected time duration in seconds
+  selectedWords?: number; // Selected word count
 }
 
 export interface TypingStatistics {
@@ -363,12 +366,18 @@ export const TypingStatisticsProvider: React.FC<{ children: ReactNode }> = ({ ch
       textType: result.textType || "words",
       difficulty: result.difficulty || "medium",
       practiceMode: result.practiceMode ?? false,
+      testMode: result.testMode || "time",
+      selectedTime: result.selectedTime,
+      selectedWords: result.selectedWords,
     };
 
     console.log("💾 Saving test result to storage:", {
       textType: newResult.textType,
       difficulty: newResult.difficulty,
       practiceMode: newResult.practiceMode,
+      testMode: newResult.testMode,
+      selectedTime: newResult.selectedTime,
+      selectedWords: newResult.selectedWords,
     });
 
     try {

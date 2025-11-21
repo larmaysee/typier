@@ -77,6 +77,10 @@ export interface UserSettingsDocument {
   allow_deletion?: boolean;
   text_type?: "chars" | "words" | "numbers" | "sentences" | "paragraphs" | "code";
   difficulty_level?: "easy" | "medium" | "hard";
+  test_mode?: "time" | "words";
+  selected_time?: number;
+  selected_words?: number;
+  show_input_box?: boolean;
   color_theme?: string;
   $createdAt: string;
   $updatedAt: string;

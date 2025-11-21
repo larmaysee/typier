@@ -312,6 +312,11 @@ export default function TypingDisplay({
           onFocus={onFocus}
           onBlur={onBlur}
           onKeyDown={onKeyDown}
+          onPaste={(e) => e.preventDefault()}
+          onCopy={(e) => e.preventDefault()}
+          onCut={(e) => e.preventDefault()}
+          onDrop={(e) => e.preventDefault()}
+          onDragOver={(e) => e.preventDefault()}
           className="bg-muted/10 border border-primary/10 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 w-full h-10 font-sans text-xl"
           disabled={testCompleted}
           autoFocus

@@ -21,3 +21,8 @@ export enum TextType {
   CHARS = "chars",
   CODE = "code",
 }
+
+export enum TestMode {
+  TIME = "time",
+  WORDS = "words",
+}

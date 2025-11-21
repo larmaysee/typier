@@ -1,9 +1,5 @@
-import {
-  DifficultyLevel,
-  TextType,
-  TypingMode,
-} from "@/domain/enums/typing-mode";
 import { LanguageCode } from "@/domain";
+import { DifficultyLevel, TextType, TypingMode } from "@/domain/enums/typing-mode";
 
 export interface StartSessionCommand {
   userId: string;
@@ -13,6 +9,7 @@ export interface StartSessionCommand {
   keyboardLayoutId?: string;
   duration: number;
   textType: TextType;
+  contentLength?: number; // Number of words/chars to generate (optional, defaults to duration-based estimate)
 }
 
 export interface ProcessInputCommand {

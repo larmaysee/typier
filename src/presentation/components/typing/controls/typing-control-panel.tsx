@@ -1,9 +1,11 @@
 "use client";
 
-import TimerOptions from "@/components/time-options";
+import { useSiteConfig } from "@/components/site-config";
+import TestModeOptions from "@/components/test-mode-options";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { TestMode } from "@/domain";
 import { TypingSessionState } from "@/presentation/hooks/typing/use-typing-session";
 import { memo } from "react";
 import { PracticeModeToggle } from "./practice-mode-toggle";
@@ -16,6 +18,7 @@ interface TypingControlPanelProps {
   textContent: string | null;
   onRefresh: () => void;
   onTimeChange: (time: number) => void;
+  onWordCountChange: (words: number) => void;
   onLayoutChange?: (layoutId: string) => void;
 }
 
@@ -25,8 +28,11 @@ export const TypingControlPanel = memo(function TypingControlPanel({
   textContent,
   onRefresh,
   onTimeChange,
+  onWordCountChange,
   onLayoutChange,
 }: TypingControlPanelProps) {
+  const { config } = useSiteConfig();
+
   // Calculate word counts
   const totalWords = textContent ? textContent.split(" ").filter((word) => word.length > 0).length : 0;
   const typedWords = session.typedText
@@ -36,25 +42,35 @@ export const TypingControlPanel = memo(function TypingControlPanel({
         .filter((word) => word.length > 0).length
     : 0;
 
+  const isTimeMode = config.testMode === TestMode.TIME;
+  const wordsLeft = totalWords - typedWords;
+
   return (
     <Card className="border-0 shadow-none">
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          <TimerOptions
+          <TestModeOptions
             selectedTime={session.selectedTime}
             setSelectedTime={onTimeChange}
+            selectedWords={session.selectedWords || 50}
+            setSelectedWords={onWordCountChange}
             disabled={testCompleted}
             showCountdown={session.startTime !== null && !testCompleted}
             timeLeft={session.timeLeft}
+            wordsLeft={wordsLeft}
           />
 
           {/* Word Count Display */}
-          <Separator orientation="vertical" className="h-6 hidden sm:block" />
-          <div className="flex items-center gap-2 text-sm">
-            <Button variant="secondary" size="sm">
-              {typedWords} / {totalWords}
-            </Button>
-          </div>
+          {!isTimeMode && (
+            <>
+              <Separator orientation="vertical" className="h-6 hidden sm:block" />
+              <div className="flex items-center gap-2 text-sm">
+                <Button variant="secondary" size="sm" disabled>
+                  {typedWords} / {totalWords}
+                </Button>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-2">

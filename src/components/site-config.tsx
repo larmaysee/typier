@@ -1,7 +1,7 @@
 "use client";
 
 import themesConfig from "@/config/themes.json";
-import { DifficultyLevel, LANGUAGE_DISPLAY_NAMES, LanguageCode, TextType } from "@/domain";
+import { DifficultyLevel, LANGUAGE_DISPLAY_NAMES, LanguageCode, TestMode, TextType } from "@/domain";
 import { dbToLanguageCode, languageCodeToDb, TypingDatabaseService } from "@/lib/appwrite";
 import { applyThemeColors } from "@/lib/utils";
 import { useTheme } from "next-themes";
@@ -26,6 +26,9 @@ interface SiteConfig {
   showInputBox?: boolean; // Show/hide typing display input box
   textType: TextType; // What type of content to generate
   difficultyLevel: DifficultyLevel; // How difficult the content should be
+  testMode: TestMode; // Time-based or word-based test
+  selectedTime?: number; // Selected time duration in seconds
+  selectedWords?: number; // Selected word count
   // Keyboard layout preferences per language
   preferredLayouts?: {
     [LanguageCode.EN]?: string;
@@ -57,6 +60,9 @@ const defaultConfig: SiteConfig = {
   showInputBox: true, // Default to showing input box
   textType: TextType.CHARS, // Default to characters
   difficultyLevel: DifficultyLevel.EASY, // Default to easy difficulty
+  testMode: TestMode.TIME, // Default to time-based test
+  selectedTime: 30, // Default 30 seconds
+  selectedWords: 50, // Default 50 words
   preferredLayouts: {
     [LanguageCode.EN]: "en-us",
     [LanguageCode.LI]: "li-sil-basic",
@@ -120,6 +126,9 @@ export const SiteConfigProvider: React.FC<SiteConfigProviderProps> = ({ children
             showInputBox: userSettings.show_input_box ?? true,
             textType: (userSettings.text_type as TextType) ?? TextType.CHARS,
             difficultyLevel: (userSettings.difficulty_level as DifficultyLevel) ?? DifficultyLevel.EASY,
+            testMode: (userSettings.test_mode as TestMode) ?? TestMode.TIME,
+            selectedTime: userSettings.selected_time ?? 30,
+            selectedWords: userSettings.selected_words ?? 50,
           };
           setConfig(loadedConfig);
 
@@ -207,6 +216,9 @@ export const SiteConfigProvider: React.FC<SiteConfigProviderProps> = ({ children
           show_input_box: newConfig.showInputBox,
           text_type: newConfig.textType,
           difficulty_level: newConfig.difficultyLevel,
+          test_mode: newConfig.testMode,
+          selected_time: newConfig.selectedTime ?? 30,
+          selected_words: newConfig.selectedWords ?? 50,
           color_theme: colorTheme,
         });
       }

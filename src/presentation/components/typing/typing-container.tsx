@@ -7,6 +7,7 @@ import { ResultsModal } from "@/components/results-modal";
 import { useSiteConfig } from "@/components/site-config";
 import { useSessionControls } from "@/presentation/hooks/typing/use-session-controls";
 import { useTypingSession } from "@/presentation/hooks/typing/use-typing-session";
+import { useCallback } from "react";
 import { TypingControlPanel } from "./controls/typing-control-panel";
 import { ErrorBoundary } from "./error-boundary";
 import { LoadingSpinner } from "./loading-spinner";
@@ -23,7 +24,7 @@ export function TypingContainer() {
 }
 
 function TypingContainerInner() {
-  const { config } = useSiteConfig();
+  const { config, setConfig } = useSiteConfig();
   const {
     session,
     textContent,
@@ -40,15 +41,29 @@ function TypingContainerInner() {
     completeSession,
   } = useTypingSession();
 
-  const { handleInput, handleRefresh, handleFocus, handleBlur, handleKeyDown, setSelectedTime } = useSessionControls({
-    session,
-    setState,
-    inputRef,
-    getRandomData,
-    processInput,
-    allowDeletion: config.allowDeletion,
-    onTimeChange: getRandomData, // Restart session when time changes
-  });
+  const handleConfigUpdate = useCallback(
+    (updates: { selectedTime?: number; selectedWords?: number }) => {
+      setConfig((prev) => ({
+        ...prev,
+        ...updates,
+      }));
+    },
+    [setConfig]
+  );
+
+  const { handleInput, handleRefresh, handleFocus, handleBlur, handleKeyDown, setSelectedTime, setSelectedWords } =
+    useSessionControls({
+      session,
+      setState,
+      inputRef,
+      getRandomData,
+      processInput,
+      allowDeletion: config.allowDeletion,
+      onTimeChange: getRandomData, // Restart session when time changes
+      onWordCountChange: getRandomData, // Restart session when word count changes
+      onManualComplete: completeSession, // Complete session when ESC is pressed
+      onConfigUpdate: handleConfigUpdate, // Save time/words to config
+    });
 
   const handleFocusOverlayClick = () => {
     if (inputRef.current) {
@@ -113,6 +128,7 @@ function TypingContainerInner() {
           textContent={textContent}
           onRefresh={handleRefresh}
           onTimeChange={setSelectedTime}
+          onWordCountChange={setSelectedWords}
         />
         <ModernKeyboard />
       </div>

@@ -47,11 +47,14 @@ export class StartTypingSessionUseCase {
     }
 
     // 3. Generate text content
+    // Use contentLength if provided, otherwise estimate from duration (time in seconds)
+    const textLength = command.contentLength ?? Math.ceil((command.duration / 60) * 40);
+
     const generatedText = await this.textGenerationService.generate({
       language: command.language,
       difficulty: command.difficulty,
       textType: command.textType,
-      length: command.duration,
+      length: textLength,
       mode: command.mode,
       userId: command.userId,
     });

@@ -9,7 +9,7 @@ import { useAuth } from "@/components/auth-provider";
 import { useSiteConfig } from "@/components/site-config";
 import { useTypingStatistics } from "@/components/typing-statistics";
 import { LanguageCode } from "@/domain";
-import { DifficultyLevel, TextType, TypingMode } from "@/domain/enums/typing-mode";
+import { DifficultyLevel, TestMode, TextType, TypingMode } from "@/domain/enums/typing-mode";
 import { useDependencyInjection } from "@/presentation/hooks/core/use-dependency-injection";
 import GraphemeSplitter from "grapheme-splitter";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -27,6 +27,7 @@ export interface TypingSessionState {
   startTime: number | null;
   isFocused: boolean;
   selectedTime: number;
+  selectedWords: number;
   timeLeft: number;
   cursorPosition: {
     wordIndex: number;
@@ -61,6 +62,7 @@ const initialState: TypingSessionState = {
   startTime: null,
   isFocused: false,
   selectedTime: 30,
+  selectedWords: 50,
   timeLeft: 30,
   cursorPosition: { wordIndex: 0, charIndex: 0, isSpacePosition: false },
   testCompleted: false,
@@ -72,12 +74,17 @@ const initialState: TypingSessionState = {
 };
 
 export function useTypingSession() {
-  const { config } = useSiteConfig();
+  const { config, setConfig } = useSiteConfig();
   const { addTestResult } = useTypingStatistics();
   const { resolve, serviceTokens } = useDependencyInjection();
   const { user } = useAuth();
 
-  const [state, setState] = useState<TypingSessionState>(initialState);
+  const [state, setState] = useState<TypingSessionState>({
+    ...initialState,
+    selectedTime: config.selectedTime ?? 30,
+    selectedWords: config.selectedWords ?? 50,
+    timeLeft: config.selectedTime ?? 30,
+  });
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -113,11 +120,21 @@ export function useTypingSession() {
         practiceMode: config.practiceMode,
         textType: config.textType,
         difficultyLevel: config.difficultyLevel,
+        testMode: config.testMode,
         selectedTime: selectedTimeRef.current,
+        selectedWords: selectedWordsRef.current,
       });
 
       setIsLoading(true);
       setError(null);
+
+      // Calculate content length based on test mode
+      // For WORDS mode: generate extra text (150% of target) so users don't run out
+      // For TIME mode: estimate based on average WPM (40 WPM baseline), minimum 200 words
+      const contentLength =
+        config.testMode === TestMode.WORDS
+          ? Math.ceil(selectedWordsRef.current * 1.5) // Generate 50% more words
+          : Math.max(200, Math.ceil((selectedTimeRef.current / 60) * 40)); // Minimum 200 words
 
       const command: StartSessionCommand = {
         userId: user?.id || "anonymous",
@@ -126,9 +143,10 @@ export function useTypingSession() {
         language: config.language.code as LanguageCode,
         duration: selectedTimeRef.current,
         textType: getTextType(),
+        contentLength: contentLength, // Pass the calculated content length
       };
 
-      console.log("🚀 [startNewSession] Executing StartSessionCommand:", command);
+      console.log("🚀 [startNewSession] Executing StartSessionCommand:", { ...command, contentLength });
 
       const response = await startSessionUseCase.execute(command);
 
@@ -273,6 +291,26 @@ export function useTypingSession() {
         }, 0);
       }
 
+      // Check for word-based completion
+      if (config.testMode === TestMode.WORDS && state.currentData && !state.testCompleted && !isCompletingRef.current) {
+        const totalWords = state.currentData.split(" ").filter((word) => word.length > 0).length;
+        const typedWords = sessionDto.currentInput
+          .trim()
+          .split(" ")
+          .filter((word) => word.length > 0).length;
+
+        // Complete if user has typed the target number of words
+        if (typedWords >= state.selectedWords) {
+          console.log("🏁 Word target reached, completing session...", {
+            typedWords,
+            targetWords: state.selectedWords,
+          });
+          setTimeout(() => {
+            completeSession();
+          }, 0);
+        }
+      }
+
       // Ensure input field value is synchronized (for uncontrolled scenarios)
       if (inputRef.current && inputRef.current.value !== sessionDto.currentInput) {
         inputRef.current.value = sessionDto.currentInput;
@@ -290,6 +328,7 @@ export function useTypingSession() {
   const typedTextRef = useRef<string>("");
   const languageRef = useRef<string>(config.language.code);
   const selectedTimeRef = useRef<number>(initialState.selectedTime);
+  const selectedWordsRef = useRef<number>(initialState.selectedWords);
 
   useEffect(() => {
     typedTextRef.current = state.typedText;
@@ -302,6 +341,10 @@ export function useTypingSession() {
   useEffect(() => {
     selectedTimeRef.current = state.selectedTime;
   }, [state.selectedTime]);
+
+  useEffect(() => {
+    selectedWordsRef.current = state.selectedWords;
+  }, [state.selectedWords]);
 
   // Complete session
   const completeSession = useCallback(async () => {
@@ -363,6 +406,9 @@ export function useTypingSession() {
         textType: config.textType,
         difficultyLevel: config.difficultyLevel,
         practiceMode: config.practiceMode,
+        testMode: config.testMode,
+        selectedTime: state.selectedTime,
+        selectedWords: state.selectedWords,
       });
 
       const testResult = {
@@ -378,6 +424,9 @@ export function useTypingSession() {
         textType: config.textType,
         difficulty: config.difficultyLevel,
         practiceMode: config.practiceMode,
+        testMode: config.testMode,
+        selectedTime: state.selectedTime,
+        selectedWords: state.selectedWords,
       };
 
       console.log("📊 Test result calculated", testResult);
@@ -478,10 +527,10 @@ export function useTypingSession() {
     // Will be re-added when practice mode is refactored to clean architecture
   }, [config.practiceMode, state.currentData]);
 
-  // Timer countdown (optional in practice mode)
+  // Timer countdown (only in TIME mode and not in practice mode)
   useEffect(() => {
-    // Only run timer if not in practice mode, or if user has explicitly started timing
-    const shouldRunTimer = !config.practiceMode;
+    // Only run timer if in TIME mode and not in practice mode
+    const shouldRunTimer = config.testMode === TestMode.TIME && !config.practiceMode;
 
     if (shouldRunTimer && state.startTime !== null && state.timeLeft > 0 && !state.testCompleted) {
       const timer = setInterval(() => {
@@ -493,14 +542,15 @@ export function useTypingSession() {
 
       return () => clearInterval(timer);
     }
-  }, [state.startTime, state.testCompleted, state.timeLeft, config.practiceMode]);
+  }, [state.startTime, state.testCompleted, state.timeLeft, config.practiceMode, config.testMode]);
 
-  // Auto-complete when time runs out (not in practice mode)
+  // Auto-complete when time runs out (only in TIME mode and not in practice mode)
   useEffect(() => {
-    const shouldAutoComplete = !config.practiceMode;
+    const shouldAutoComplete = config.testMode === TestMode.TIME && !config.practiceMode;
 
     console.log("⏰ Timer check:", {
       shouldAutoComplete,
+      testMode: config.testMode,
       timeLeft: state.timeLeft,
       testCompleted: state.testCompleted,
       sessionId: state.sessionId,
@@ -522,7 +572,7 @@ export function useTypingSession() {
     }
     // completeSession is stable, doesn't need to be in deps
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.timeLeft, state.testCompleted, state.sessionId, state.showResults]);
+  }, [state.timeLeft, state.testCompleted, state.sessionId, state.showResults, config.testMode]);
 
   return {
     session: state,

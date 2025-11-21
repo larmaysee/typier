@@ -300,7 +300,7 @@ export default function StatisticsDashboard() {
       </div>
 
       {/* Recent Tests - Full Width */}
-      <Card className="bg-muted/10 border-none">
+      <Card className="bg-muted/10 border border-dashed">
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2 border-b border-dashed pb-3">
             <div className="p-1.5 rounded-md bg-primary/10">
