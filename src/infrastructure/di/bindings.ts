@@ -233,9 +233,9 @@ function createEnvironmentConfig(): EnvironmentConfig {
   return {
     isDevelopment,
     isProduction,
-    appwriteEndpoint: process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT,
-    appwriteProjectId: process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID,
-    appwriteDatabaseId: process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
+    appwriteEndpoint: process.env.APPWRITE_ENDPOINT,
+    appwriteProjectId: process.env.APPWRITE_PROJECT_ID,
+    appwriteDatabaseId: process.env.APPWRITE_DATABASE_ID,
     enableOfflineMode: !isProduction, // Enable offline mode in development by default
     enableAnalytics: isProduction, // Enable analytics only in production
     debugLevel: isDevelopment ? "debug" : "error",

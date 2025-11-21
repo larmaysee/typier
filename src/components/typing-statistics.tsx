@@ -207,7 +207,7 @@ export const TypingStatisticsProvider: React.FC<{ children: ReactNode }> = ({ ch
 
   // Check if Appwrite is available and user is authenticated
   const canUseDatabase = useCallback(() => {
-    return user && process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT && process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID;
+    return user && process.env.APPWRITE_ENDPOINT && process.env.APPWRITE_PROJECT_ID;
   }, [user]);
 
   const updateStatistics = useCallback(async () => {

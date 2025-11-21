@@ -7,7 +7,7 @@ This directory contains the implementation of Phase 2 of the Typoria Clean Archi
 The infrastructure layer implements the Repository Pattern with three key strategies:
 
 1. **Appwrite Repositories** - Cloud-based data persistence
-2. **LocalStorage Repositories** - Offline data persistence  
+2. **LocalStorage Repositories** - Offline data persistence
 3. **Hybrid Repositories** - Seamless online/offline operation
 
 ## 📁 Directory Structure
@@ -68,7 +68,7 @@ The `HybridTypingRepository` provides:
 ### 1. Import and Configure
 
 ```typescript
-import { container, configureServices } from '@/infrastructure';
+import { container, configureServices } from "@/infrastructure";
 
 // Configure services (automatically detects Appwrite availability)
 configureServices();
@@ -77,21 +77,21 @@ configureServices();
 ### 2. Use Repositories
 
 ```typescript
-import type { ITypingRepository } from '@/domain/interfaces';
+import type { ITypingRepository } from "@/domain/interfaces";
 
 // Resolve repository from DI container
-const typingRepository = container.resolve<ITypingRepository>('TypingRepository');
+const typingRepository = container.resolve<ITypingRepository>("TypingRepository");
 
 // Save a typing test (works offline)
 await typingRepository.save({
-  id: 'test-123',
-  userId: 'user-456',
-  mode: 'normal',
+  id: "test-123",
+  userId: "user-456",
+  mode: "normal",
   // ... other properties
 });
 
 // Get user tests (hybrid online/offline)
-const tests = await typingRepository.getUserTests('user-456');
+const tests = await typingRepository.getUserTests("user-456");
 ```
 
 ### 3. Environment Configuration
@@ -99,9 +99,9 @@ const tests = await typingRepository.getUserTests('user-456');
 Set these environment variables for Appwrite integration:
 
 ```env
-NEXT_PUBLIC_APPWRITE_ENDPOINT=https://cloud.appwrite.io/v1
-NEXT_PUBLIC_APPWRITE_PROJECT_ID=your-project-id
-NEXT_PUBLIC_APPWRITE_DATABASE_ID=typoria-db
+APPWRITE_ENDPOINT=https://cloud.appwrite.io/v1
+APPWRITE_PROJECT_ID=your-project-id
+APPWRITE_DATABASE_ID=typoria-db
 ```
 
 Without these variables, the app automatically uses localStorage-only mode.
@@ -160,14 +160,14 @@ All repositories include comprehensive logging:
 
 ```typescript
 // Enable debug logging in development
-const logger = container.resolve<ILogger>('Logger');
-logger.info('Repository operation completed');
+const logger = container.resolve<ILogger>("Logger");
+logger.info("Repository operation completed");
 ```
 
 ### Health Checks
 
 ```typescript
-const client = container.resolve<AppwriteDatabaseClient>('AppwriteClient');
+const client = container.resolve<AppwriteDatabaseClient>("AppwriteClient");
 const isHealthy = await client.isHealthy();
 ```
 
@@ -183,7 +183,7 @@ const mockRepository: ITypingRepository = {
   // ... other methods
 };
 
-container.register('TypingRepository', mockRepository);
+container.register("TypingRepository", mockRepository);
 ```
 
 ## 🔒 Security Considerations
@@ -215,7 +215,7 @@ Ready for Phase 3 (Application Layer):
 
 ```typescript
 // Use cases can resolve repositories
-const typingRepository = container.resolve<ITypingRepository>('TypingRepository');
+const typingRepository = container.resolve<ITypingRepository>("TypingRepository");
 ```
 
 ## 📚 Additional Resources

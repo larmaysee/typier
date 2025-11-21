@@ -1,7 +1,7 @@
 "use client";
-import React, { createContext, ReactNode, useContext, useEffect, useState } from "react";
 import { account, TypingDatabaseService, UserDocument } from "@/lib/appwrite";
 import { ID, Models } from "appwrite";
+import React, { createContext, ReactNode, useContext, useEffect, useState } from "react";
 
 export type User = {
   name: string;
@@ -23,11 +23,9 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const GUEST_USER_KEY = 'typoria_guest_user';
+const GUEST_USER_KEY = "typoria_guest_user";
 
-export const AuthProvider: React.FC<{ children: ReactNode }> = ({
-  children,
-}) => {
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -45,7 +43,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       setLoading(true);
 
       // Check if Appwrite is configured
-      if (!process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT || !process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID) {
+      if (!process.env.APPWRITE_ENDPOINT || !process.env.APPWRITE_PROJECT_ID) {
         // No Appwrite config, check for guest user
         const guestUser = localStorage.getItem(GUEST_USER_KEY);
         if (guestUser) {
@@ -57,14 +55,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       }
 
       // Try to get current session
-      const session = await account.getSession('current');
+      const session = await account.getSession("current");
 
       if (session) {
         const accountData = await account.get();
         await loadUserProfile(accountData);
       }
     } catch {
-      console.log('No active session found');
+      console.log("No active session found");
       // Check for guest user
       const guestUser = localStorage.getItem(GUEST_USER_KEY);
       if (guestUser) {
@@ -86,7 +84,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         userProfile = await TypingDatabaseService.createUser({
           userId: accountData.$id,
           username: accountData.name,
-          email: accountData.email
+          email: accountData.email,
         });
       }
 
@@ -94,15 +92,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         id: accountData.$id,
         name: accountData.name,
         email: accountData.email,
-        profile: userProfile
+        profile: userProfile,
       });
     } catch (error) {
-      console.error('Error loading user profile:', error);
+      console.error("Error loading user profile:", error);
       // Set user without profile
       setUser({
         id: accountData.$id,
         name: accountData.name,
-        email: accountData.email
+        email: accountData.email,
       });
     }
   };
@@ -112,8 +110,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       setLoading(true);
       setError(null);
 
-      if (!process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT || !process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID) {
-        throw new Error('Authentication service not configured');
+      if (!process.env.APPWRITE_ENDPOINT || !process.env.APPWRITE_PROJECT_ID) {
+        throw new Error("Authentication service not configured");
       }
 
       // Create account
@@ -124,10 +122,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
       // Load user profile
       await loadUserProfile(accountData);
-
     } catch (error: unknown) {
-      console.error('Registration error:', error);
-      setError(error instanceof Error ? error.message : 'Registration failed');
+      console.error("Registration error:", error);
+      setError(error instanceof Error ? error.message : "Registration failed");
       throw error;
     } finally {
       setLoading(false);
@@ -139,8 +136,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       setLoading(true);
       setError(null);
 
-      if (!process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT || !process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID) {
-        throw new Error('Authentication service not configured');
+      if (!process.env.APPWRITE_ENDPOINT || !process.env.APPWRITE_PROJECT_ID) {
+        throw new Error("Authentication service not configured");
       }
 
       // Create session
@@ -154,10 +151,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
       // Clear any guest user data
       localStorage.removeItem(GUEST_USER_KEY);
-
     } catch (error: unknown) {
-      console.error('Login error:', error);
-      setError(error instanceof Error ? error.message : 'Login failed');
+      console.error("Login error:", error);
+      setError(error instanceof Error ? error.message : "Login failed");
       throw error;
     } finally {
       setLoading(false);
@@ -167,7 +163,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const loginAsGuest = (guestName: string) => {
     const guestUser: User = {
       id: `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      name: guestName
+      name: guestName,
     };
 
     // Save guest user to localStorage
@@ -184,36 +180,36 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       localStorage.removeItem(GUEST_USER_KEY);
 
       // If Appwrite is configured and user is authenticated, delete session
-      if (user && !user.id.startsWith('guest_') &&
-        process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT &&
-        process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID) {
+      if (user && !user.id.startsWith("guest_") && process.env.APPWRITE_ENDPOINT && process.env.APPWRITE_PROJECT_ID) {
         try {
-          await account.deleteSession('current');
+          await account.deleteSession("current");
         } catch {
-          console.log('No active session to delete');
+          console.log("No active session to delete");
         }
       }
 
       setUser(null);
     } catch {
-      console.error('Logout error');
-      setError('Logout failed');
+      console.error("Logout error");
+      setError("Logout failed");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      login,
-      register,
-      logout,
-      loginAsGuest,
-      loading,
-      error,
-      clearError
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        login,
+        register,
+        logout,
+        loginAsGuest,
+        loading,
+        error,
+        clearError,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

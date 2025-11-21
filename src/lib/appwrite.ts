@@ -4,8 +4,8 @@ import { Account, Client, Databases, ID, Query } from "appwrite";
 const client = new Client();
 
 // Check if environment variables are available
-const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT;
-const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID;
+const endpoint = process.env.APPWRITE_ENDPOINT;
+const projectId = process.env.APPWRITE_PROJECT_ID;
 
 if (endpoint && projectId) {
   client.setEndpoint(endpoint).setProject(projectId);
@@ -17,12 +17,12 @@ const account = new Account(client);
 const databases = new Databases(client);
 
 // Database configuration
-export const DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID || "typoria-db";
+export const DATABASE_ID = process.env.APPWRITE_DATABASE_ID || "typoria-db";
 export const COLLECTIONS = {
-  USERS: process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_USERS || "users",
-  TYPING_TESTS: process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_TYPING_TESTS || "typing_tests",
-  LEADERBOARDS: process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_LEADERBOARDS || "leaderboards",
-  USER_SETTINGS: process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_USER_SETTINGS || "user_settings",
+  USERS: process.env.APPWRITE_COLLECTION_USERS || "users",
+  TYPING_TESTS: process.env.APPWRITE_COLLECTION_TYPING_TESTS || "typing_tests",
+  LEADERBOARDS: process.env.APPWRITE_COLLECTION_LEADERBOARDS || "leaderboards",
+  USER_SETTINGS: process.env.APPWRITE_COLLECTION_USER_SETTINGS || "user_settings",
 } as const;
 
 // Type definitions for database documents

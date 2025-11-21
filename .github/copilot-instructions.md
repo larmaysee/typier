@@ -96,9 +96,9 @@ function useTypingSession() {
 
 ### Environment Setup (Optional Appwrite)
 ```env
-NEXT_PUBLIC_APPWRITE_ENDPOINT=https://cloud.appwrite.io/v1
-NEXT_PUBLIC_APPWRITE_PROJECT_ID=your-project-id
-NEXT_PUBLIC_APPWRITE_DATABASE_ID=typoria-db
+APPWRITE_ENDPOINT=https://cloud.appwrite.io/v1
+APPWRITE_PROJECT_ID=your-project-id
+APPWRITE_DATABASE_ID=typoria-db
 ```
 **App works offline without Appwrite** - uses localStorage fallback.
 

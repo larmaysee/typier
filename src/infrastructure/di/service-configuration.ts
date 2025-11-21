@@ -1,20 +1,20 @@
-import { container } from "./service-container";
 import { ConsoleLogger } from "@/shared/utils/console-logger";
 import { AppwriteDatabaseClient } from "../persistence/appwrite/database-client";
 import { LocalStorageClient } from "../persistence/local-storage/storage-client";
+import { container } from "./service-container";
 
 // Repository implementations
+import { AppwriteKeyboardLayoutRepository } from "../repositories/appwrite/appwrite-keyboard-layout.repository";
 import { AppwriteTypingRepository } from "../repositories/appwrite/appwrite-typing.repository";
 import { AppwriteUserRepository } from "../repositories/appwrite/appwrite-user.repository";
-import { AppwriteKeyboardLayoutRepository } from "../repositories/appwrite/appwrite-keyboard-layout.repository";
+import { HybridTypingRepository } from "../repositories/hybrid/hybrid-typing.repository";
+import { LocalKeyboardLayoutRepository } from "../repositories/local-storage/local-keyboard-layout.repository";
 import { LocalTypingRepository } from "../repositories/local-storage/local-typing.repository";
 import { LocalUserPreferencesRepository } from "../repositories/local-storage/local-user-preferences.repository";
-import { LocalKeyboardLayoutRepository } from "../repositories/local-storage/local-keyboard-layout.repository";
-import { HybridTypingRepository } from "../repositories/hybrid/hybrid-typing.repository";
 
 // Types
+import type { IKeyboardLayoutRepository, ITypingRepository, IUserRepository } from "@/domain/interfaces";
 import type { ILogger } from "@/shared/utils/logger";
-import type { ITypingRepository, IUserRepository, IKeyboardLayoutRepository } from "@/domain/interfaces";
 
 export function configureServices(): void {
   // Clear existing services
@@ -24,9 +24,9 @@ export function configureServices(): void {
   container.register<ILogger>("Logger", new ConsoleLogger());
 
   // Register Appwrite client if configuration is available
-  const appwriteEndpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT;
-  const appwriteProjectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID;
-  const appwriteDatabaseId = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID || 'typoria-db';
+  const appwriteEndpoint = process.env.APPWRITE_ENDPOINT;
+  const appwriteProjectId = process.env.APPWRITE_PROJECT_ID;
+  const appwriteDatabaseId = process.env.APPWRITE_DATABASE_ID || "typoria-db";
 
   if (appwriteEndpoint && appwriteProjectId) {
     container.registerFactory<AppwriteDatabaseClient>("AppwriteClient", () => {
@@ -35,7 +35,7 @@ export function configureServices(): void {
         {
           endpoint: appwriteEndpoint,
           projectId: appwriteProjectId,
-          databaseId: appwriteDatabaseId
+          databaseId: appwriteDatabaseId,
         },
         logger
       );
@@ -67,7 +67,7 @@ export function configureServices(): void {
     return new LocalStorageClient(
       {
         version: "1.0.0",
-        keyPrefix: "typoria"
+        keyPrefix: "typoria",
       },
       logger
     );

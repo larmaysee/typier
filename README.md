@@ -81,9 +81,9 @@ src/
    Configure Appwrite settings:
 
    ```env
-   NEXT_PUBLIC_APPWRITE_ENDPOINT=https://cloud.appwrite.io/v1
-   NEXT_PUBLIC_APPWRITE_PROJECT_ID=your-project-id
-   NEXT_PUBLIC_APPWRITE_DATABASE_ID=typoria-db
+   APPWRITE_ENDPOINT=https://cloud.appwrite.io/v1
+   APPWRITE_PROJECT_ID=your-project-id
+   APPWRITE_DATABASE_ID=typoria-db
    ```
 
 4. **Start Development Server**
@@ -138,9 +138,7 @@ export class StartTypingSessionUseCase {
     private textGenerationService: ITextGenerationService
   ) {}
 
-  async execute(
-    command: StartSessionCommand
-  ): Promise<StartSessionResponseDto> {
+  async execute(command: StartSessionCommand): Promise<StartSessionResponseDto> {
     // Business logic implementation
   }
 }
@@ -201,9 +199,7 @@ function useTypingSession() {
   const { container } = useDependencyInjection();
   const [session, setSession] = useState<TypingSessionState | null>(null);
 
-  const startSessionUseCase = container.resolve<StartTypingSessionUseCase>(
-    "StartTypingSessionUseCase"
-  );
+  const startSessionUseCase = container.resolve<StartTypingSessionUseCase>("StartTypingSessionUseCase");
 
   // Hook implementation
 }
@@ -229,8 +225,7 @@ container.registerSingleton(SERVICE_TOKENS.TYPING_REPOSITORY, () => {
 
 // Service resolution in components
 const { container } = useDependencyInjection();
-const typingRepository =
-  container.resolve<ITypingRepository>("TypingRepository");
+const typingRepository = container.resolve<ITypingRepository>("TypingRepository");
 ```
 
 ### Key Development Patterns
@@ -239,9 +234,7 @@ const typingRepository =
 
 ```typescript
 // Always use use cases for complex operations
-const completeSessionUseCase = container.resolve<CompleteTypingSessionUseCase>(
-  "CompleteTypingSessionUseCase"
-);
+const completeSessionUseCase = container.resolve<CompleteTypingSessionUseCase>("CompleteTypingSessionUseCase");
 
 await completeSessionUseCase.execute({
   sessionId: session.id,
@@ -279,9 +272,7 @@ function TypingDisplay({ session, onInput }: TypingDisplayProps) {
 
 ```typescript
 // Layout switching via use cases
-const switchLayoutUseCase = container.resolve<SwitchKeyboardLayoutUseCase>(
-  "SwitchKeyboardLayoutUseCase"
-);
+const switchLayoutUseCase = container.resolve<SwitchKeyboardLayoutUseCase>("SwitchKeyboardLayoutUseCase");
 
 await switchLayoutUseCase.execute({
   sessionId: session.id,
@@ -311,15 +302,15 @@ Configure these environment variables:
 
 ```env
 # Appwrite Configuration
-NEXT_PUBLIC_APPWRITE_ENDPOINT=https://cloud.appwrite.io/v1
-NEXT_PUBLIC_APPWRITE_PROJECT_ID=your-project-id
-NEXT_PUBLIC_APPWRITE_DATABASE_ID=typoria-db
+APPWRITE_ENDPOINT=https://cloud.appwrite.io/v1
+APPWRITE_PROJECT_ID=your-project-id
+APPWRITE_DATABASE_ID=typoria-db
 
 # Collection IDs (optional - defaults provided)
-NEXT_PUBLIC_APPWRITE_COLLECTION_USERS=users
-NEXT_PUBLIC_APPWRITE_COLLECTION_TYPING_TESTS=typing_tests
-NEXT_PUBLIC_APPWRITE_COLLECTION_LEADERBOARDS=leaderboards
-NEXT_PUBLIC_APPWRITE_COLLECTION_USER_SETTINGS=user_settings
+APPWRITE_COLLECTION_USERS=users
+APPWRITE_COLLECTION_TYPING_TESTS=typing_tests
+APPWRITE_COLLECTION_LEADERBOARDS=leaderboards
+APPWRITE_COLLECTION_USER_SETTINGS=user_settings
 ```
 
 ### Testing & Debugging
