@@ -32,6 +32,62 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const clearError = () => setError(null);
 
+  // Sync localStorage settings to Appwrite after OAuth login
+  const syncLocalSettingsToAppwrite = async (userId: string) => {
+    try {
+      console.log("[AuthProvider] Syncing local settings to Appwrite...");
+      const STORAGE_KEY = "typoria_site_config";
+      const localSettings = localStorage.getItem(STORAGE_KEY);
+
+      if (!localSettings) {
+        console.log("[AuthProvider] No local settings to sync");
+        return;
+      }
+
+      const parsedSettings = JSON.parse(localSettings);
+      const colorTheme = localStorage.getItem("selectedColorTheme") || "default";
+
+      // Check if user already has settings in Appwrite
+      const existingSettings = await TypingDatabaseService.getUserSettings(userId);
+
+      if (existingSettings) {
+        console.log("[AuthProvider] User already has cloud settings, skipping sync");
+        return;
+      }
+
+      // Sync to Appwrite
+      await TypingDatabaseService.createOrUpdateUserSettings(userId, {
+        theme: parsedSettings.theme || "system",
+        preferred_language:
+          parsedSettings.language?.code === "li"
+            ? "lisu"
+            : parsedSettings.language?.code === "my"
+            ? "myanmar"
+            : "english",
+        default_test_duration: 60,
+        show_leaderboard: true,
+        show_shift_label: parsedSettings.showShiftLabel ?? false,
+        practice_mode: parsedSettings.practiceMode ?? false,
+        allow_deletion: parsedSettings.allowDeletion ?? true,
+        show_input_box: parsedSettings.showInputBox ?? true,
+        text_type: parsedSettings.textType || "chars",
+        difficulty_level: parsedSettings.difficultyLevel || "easy",
+        test_mode: parsedSettings.testMode || "time",
+        selected_time: parsedSettings.selectedTime ?? 30,
+        selected_words: parsedSettings.selectedWords ?? 50,
+        color_theme: colorTheme,
+        preferred_layouts: parsedSettings.preferredLayouts
+          ? JSON.stringify(parsedSettings.preferredLayouts)
+          : undefined,
+      });
+
+      console.log("[AuthProvider] Local settings synced to Appwrite successfully");
+    } catch (error) {
+      console.error("[AuthProvider] Error syncing local settings:", error);
+      // Non-critical error, don't throw
+    }
+  };
+
   // Check for existing session on mount
   useEffect(() => {
     checkAuthStatus();
@@ -100,6 +156,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           avatarUrl: undefined,
         });
         console.log("[AuthProvider] New user created:", userProfile.username);
+
+        // Sync local settings to Appwrite for new user
+        await syncLocalSettingsToAppwrite(accountData.$id);
       } else {
         console.log("[AuthProvider] User profile found, updating last login...");
         // Update last login for existing user

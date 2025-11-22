@@ -39,8 +39,11 @@ interface SiteConfig {
 
 interface SiteConfigContextType {
   config: SiteConfig;
-  setConfig: (newConfig: SiteConfig | ((prev: SiteConfig) => SiteConfig)) => Promise<void>;
+  setConfig: (newConfig: SiteConfig | ((prev: SiteConfig) => SiteConfig)) => void;
   loading: boolean;
+  saving: boolean;
+  hasUnsavedChanges: boolean;
+  syncToCloud: () => Promise<void>;
   saveSettings: (newConfig: SiteConfig) => Promise<void>;
 }
 
@@ -72,16 +75,22 @@ const defaultConfig: SiteConfig = {
 
 const SiteConfigContext = createContext<SiteConfigContextType>({
   config: defaultConfig,
-  setConfig: async () => {},
+  setConfig: () => {},
   loading: false,
+  saving: false,
+  hasUnsavedChanges: false,
+  syncToCloud: async () => {},
   saveSettings: async () => {},
 });
 
 export const SiteConfigProvider: React.FC<SiteConfigProviderProps> = ({ children }) => {
-  const [config, setConfig] = useState<SiteConfig>(defaultConfig);
+  const [config, setConfigState] = useState<SiteConfig>(defaultConfig);
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const { user } = useAuth();
   const { theme } = useTheme();
+  const syncTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
   const STORAGE_KEY = "typoria_site_config";
 
@@ -129,8 +138,12 @@ export const SiteConfigProvider: React.FC<SiteConfigProviderProps> = ({ children
             testMode: (userSettings.test_mode as TestMode) ?? TestMode.TIME,
             selectedTime: userSettings.selected_time ?? 30,
             selectedWords: userSettings.selected_words ?? 50,
+            preferredLayouts: userSettings.preferred_layouts
+              ? JSON.parse(userSettings.preferred_layouts)
+              : defaultConfig.preferredLayouts,
           };
-          setConfig(loadedConfig);
+          setConfigState(loadedConfig);
+          setHasUnsavedChanges(false);
 
           // Also save color theme if present and apply it
           if (userSettings.color_theme) {
@@ -147,7 +160,8 @@ export const SiteConfigProvider: React.FC<SiteConfigProviderProps> = ({ children
         if (saved) {
           try {
             const parsedConfig = JSON.parse(saved);
-            setConfig({ ...defaultConfig, ...parsedConfig });
+            setConfigState({ ...defaultConfig, ...parsedConfig });
+            setHasUnsavedChanges(false);
 
             // Apply saved color theme for guest users
             applyColorTheme();
@@ -166,7 +180,8 @@ export const SiteConfigProvider: React.FC<SiteConfigProviderProps> = ({ children
       if (saved) {
         try {
           const parsedConfig = JSON.parse(saved);
-          setConfig({ ...defaultConfig, ...parsedConfig });
+          setConfigState({ ...defaultConfig, ...parsedConfig });
+          setHasUnsavedChanges(false);
 
           // Apply color theme from localStorage fallback
           applyColorTheme();
@@ -197,49 +212,81 @@ export const SiteConfigProvider: React.FC<SiteConfigProviderProps> = ({ children
     }
   }, [theme, applyColorTheme]);
 
-  const saveSettings = async (newConfig: SiteConfig) => {
-    setLoading(true);
+  // Sync to cloud (Appwrite)
+  const syncToCloud = useCallback(async () => {
+    if (!user || user.id.startsWith("guest_") || user.id.startsWith("anonymous")) {
+      return; // Skip for guest users
+    }
+
+    setSaving(true);
     try {
-      if (user && !user.id.startsWith("guest_") && !user.id.startsWith("anonymous")) {
-        // Get the current color theme from localStorage
-        const colorTheme = localStorage.getItem("selectedColorTheme") || "default";
+      console.log("[SiteConfig] Syncing to Appwrite...");
+      const colorTheme = localStorage.getItem("selectedColorTheme") || "default";
 
-        // Save to Appwrite for authenticated users
-        await TypingDatabaseService.createOrUpdateUserSettings(user.id, {
-          theme: newConfig.theme === ThemeMode.LIGHT ? "light" : newConfig.theme === ThemeMode.DARK ? "dark" : "system",
-          preferred_language: languageCodeToDb(newConfig.language.code),
-          default_test_duration: 60, // Default value, could be made configurable
-          show_leaderboard: true, // Default value, could be made configurable
-          show_shift_label: newConfig.showShiftLabel,
-          practice_mode: newConfig.practiceMode,
-          allow_deletion: newConfig.allowDeletion,
-          show_input_box: newConfig.showInputBox,
-          text_type: newConfig.textType,
-          difficulty_level: newConfig.difficultyLevel,
-          test_mode: newConfig.testMode,
-          selected_time: newConfig.selectedTime ?? 30,
-          selected_words: newConfig.selectedWords ?? 50,
-          color_theme: colorTheme,
-        });
-      }
+      await TypingDatabaseService.createOrUpdateUserSettings(user.id, {
+        theme: config.theme === ThemeMode.LIGHT ? "light" : config.theme === ThemeMode.DARK ? "dark" : "system",
+        preferred_language: languageCodeToDb(config.language.code),
+        default_test_duration: 60,
+        show_leaderboard: true,
+        show_shift_label: config.showShiftLabel,
+        practice_mode: config.practiceMode,
+        allow_deletion: config.allowDeletion,
+        show_input_box: config.showInputBox,
+        text_type: config.textType,
+        difficulty_level: config.difficultyLevel,
+        test_mode: config.testMode,
+        selected_time: config.selectedTime ?? 30,
+        selected_words: config.selectedWords ?? 50,
+        color_theme: colorTheme,
+        preferred_layouts: config.preferredLayouts ? JSON.stringify(config.preferredLayouts) : undefined,
+      });
 
-      // Always save to localStorage as backup/fallback
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(newConfig));
-      setConfig(newConfig);
+      setHasUnsavedChanges(false);
+      console.log("[SiteConfig] Synced to Appwrite successfully");
     } catch (error) {
-      console.error("Error saving settings:", error);
-      // Fall back to localStorage only
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(newConfig));
-      setConfig(newConfig);
+      console.error("[SiteConfig] Error syncing to Appwrite:", error);
+      // Keep hasUnsavedChanges true so user can retry
     } finally {
-      setLoading(false);
+      setSaving(false);
+    }
+  }, [user, config]);
+
+  const saveSettings = async (newConfig: SiteConfig) => {
+    try {
+      // Always save to localStorage immediately (fast, no blocking)
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(newConfig));
+      setConfigState(newConfig);
+
+      // Mark as having unsaved changes for cloud sync
+      if (user && !user.id.startsWith("guest_") && !user.id.startsWith("anonymous")) {
+        setHasUnsavedChanges(true);
+
+        // Debounced background sync (5 seconds after last change)
+        if (syncTimeoutRef.current) {
+          clearTimeout(syncTimeoutRef.current);
+        }
+        syncTimeoutRef.current = setTimeout(() => {
+          syncToCloud();
+        }, 5000);
+      }
+    } catch (error) {
+      console.error("Error saving settings to localStorage:", error);
     }
   };
 
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (syncTimeoutRef.current) {
+        clearTimeout(syncTimeoutRef.current);
+      }
+    };
+  }, []);
+
   // Wrap setConfig to use saveSettings
-  const handleConfigChange = async (newConfig: SiteConfig | ((prev: SiteConfig) => SiteConfig)) => {
+  const handleConfigChange = (newConfig: SiteConfig | ((prev: SiteConfig) => SiteConfig)) => {
     const configToSave = typeof newConfig === "function" ? newConfig(config) : newConfig;
-    await saveSettings(configToSave);
+    saveSettings(configToSave);
   };
 
   return (
@@ -248,6 +295,9 @@ export const SiteConfigProvider: React.FC<SiteConfigProviderProps> = ({ children
         config,
         setConfig: handleConfigChange,
         loading,
+        saving,
+        hasUnsavedChanges,
+        syncToCloud,
         saveSettings,
       }}
     >

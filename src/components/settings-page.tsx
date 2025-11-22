@@ -19,7 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
-  const { config, setConfig, loading } = useSiteConfig();
+  const { config, setConfig, loading, saving, hasUnsavedChanges, syncToCloud } = useSiteConfig();
   const { user } = useAuth();
   const [selectedTheme, setSelectedTheme] = useState("default");
   const [mounted, setMounted] = useState(false);
@@ -102,10 +102,17 @@ export default function SettingsPage() {
           </div>
           <div className="flex items-center gap-2">
             {user && !user.id.startsWith("guest_") && !user.id.startsWith("anonymous") ? (
-              <Badge variant="outline" className="flex items-center gap-1">
-                <Cloud className="h-3 w-3" />
-                Synced to Cloud
-              </Badge>
+              <>
+                <Badge variant="outline" className="flex items-center gap-1">
+                  <Cloud className="h-3 w-3" />
+                  {hasUnsavedChanges ? "Pending Sync" : "Synced"}
+                </Badge>
+                {hasUnsavedChanges && (
+                  <Button size="sm" onClick={syncToCloud} disabled={saving} className="h-7">
+                    {saving ? "Syncing..." : "Save to Cloud"}
+                  </Button>
+                )}
+              </>
             ) : (
               <Badge variant="secondary" className="flex items-center gap-1">
                 <HardDrive className="h-3 w-3" />

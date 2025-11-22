@@ -84,6 +84,7 @@ export interface UserSettingsDocument {
   selected_words?: number;
   show_input_box?: boolean;
   color_theme?: string;
+  preferred_layouts?: string; // JSON string of keyboard layout preferences
   $createdAt: string;
   $updatedAt: string;
 }
