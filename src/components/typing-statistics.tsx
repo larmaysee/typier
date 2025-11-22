@@ -257,22 +257,35 @@ export const TypingStatisticsProvider: React.FC<{ children: ReactNode }> = ({ ch
 
   // Sync pending data when user comes online or authenticates
   const syncWithDatabase = useCallback(async () => {
-    console.log("sync with database");
+    console.log("🔄 Starting sync with database...");
 
-    if (!canUseDatabase() || isSyncing) return;
+    if (!canUseDatabase()) {
+      console.log("❌ Cannot sync: User not authenticated or Appwrite not configured");
+      return;
+    }
+
+    if (isSyncing) {
+      console.log("⚠️ Sync already in progress, skipping...");
+      return;
+    }
 
     setIsSyncing(true);
     try {
-      const pendingTests = getPendingSyncData();
+      // Get unsynced tests from localStorage (not just pending queue)
+      const allTests = getStoredData();
+      const currentUserId = getCurrentUserId();
+      const userTests = allTests.filter((test) => test.userId === currentUserId);
+      const unsyncedTests = userTests.filter((test) => !test.syncedToCloud);
+
+      console.log(`📊 Found ${unsyncedTests.length} unsynced tests in localStorage`);
+
       const syncedIds: string[] = [];
 
-      if (pendingTests.length > 0) {
-        const currentUserId = getCurrentUserId();
+      if (unsyncedTests.length > 0) {
+        console.log(`🔄 Syncing ${unsyncedTests.length} unsynced tests to cloud...`);
 
-        console.log(`🔄 Syncing ${pendingTests.length} pending tests to cloud...`);
-
-        // Sync each pending test
-        for (const test of pendingTests) {
+        // Sync each unsynced test
+        for (const test of unsyncedTests) {
           try {
             // Convert language string to LanguageCode enum
             let languageCode: LanguageCode;
@@ -336,20 +349,20 @@ export const TypingStatisticsProvider: React.FC<{ children: ReactNode }> = ({ ch
         // Clear pending data after successful sync
         clearPendingSyncData();
 
-        // Update localStorage: mark synced records and remove guest records
-        const allTests = getStoredData();
-        const updatedTests = allTests
-          .map((test) => {
-            if (test.syncId && syncedIds.includes(test.syncId)) {
-              return { ...test, syncedToCloud: true };
-            }
-            return test;
-          })
-          .filter((test) => test.userId !== currentUserId || test.syncedToCloud);
+        // Update localStorage: mark synced records
+        const allTestsToUpdate = getStoredData();
+        const updatedTests = allTestsToUpdate.map((test) => {
+          if (test.syncId && syncedIds.includes(test.syncId)) {
+            return { ...test, syncedToCloud: true };
+          }
+          return test;
+        });
 
         saveToStorage(updatedTests);
 
-        console.log(`✅ Sync complete: ${syncedIds.length}/${pendingTests.length} tests synced`);
+        console.log(`✅ Sync complete: ${syncedIds.length}/${unsyncedTests.length} tests synced`);
+      } else {
+        console.log("ℹ️ No unsynced tests to sync");
       }
 
       setIsOnline(true);

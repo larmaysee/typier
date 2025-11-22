@@ -2,7 +2,6 @@
 import {
   Activity,
   Award,
-  BarChart3,
   Brain,
   Calendar,
   Clock,
@@ -19,7 +18,7 @@ import TooltipWrapper from "./tooltip-wrapper";
 import { TypingTestResult, useTypingStatistics } from "./typing-statistics";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Card, CardTitle } from "./ui/card";
 import { Separator } from "./ui/separator";
 
 interface StatCardProps {
@@ -28,13 +27,22 @@ interface StatCardProps {
   description?: string;
   icon: React.ReactNode;
   trend?: number;
+  iconColor?: string;
+  bgColor?: string;
 }
 
-const StatCard: React.FC<StatCardProps> = ({ title, value, icon, trend }) => {
+const StatCard: React.FC<StatCardProps> = ({
+  title,
+  value,
+  icon,
+  trend,
+  iconColor = "text-primary",
+  bgColor = "bg-primary/10",
+}) => {
   return (
     <Card className="hover:shadow-md transition-all duration-200 bg-muted/10 px-2 py-2 border border-dashed rounded-xl">
       <div className="flex flex-row items-center gap-2">
-        <div className="p-2.5 rounded-md bg-primary/10 text-primary">{icon}</div>
+        <div className={`p-2.5 rounded-md ${bgColor} ${iconColor}`}>{icon}</div>
         <div>
           <div className="text-md font-bold flex items-baseline gap-1">
             {value}
@@ -256,9 +264,6 @@ export default function StatisticsDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <BarChart3 className="h-6 w-6 text-primary" />
-            </div>
             Typing Analytics
             {!isOnline && (
               <Badge variant="outline" className="text-xs">
@@ -306,194 +311,214 @@ export default function StatisticsDashboard() {
           value={statistics.averageWpm}
           icon={<Zap className="h-4 w-4" />}
           trend={statistics.improvementTrend}
+          iconColor="text-blue-600 dark:text-blue-400"
+          bgColor="bg-blue-500/10"
         />
-        <StatCard title="Best Speed" value={statistics.bestWpm} icon={<Award className="h-4 w-4" />} />
-        <StatCard title="Accuracy" value={`${statistics.averageAccuracy}%`} icon={<Target className="h-4 w-4" />} />
+        <StatCard
+          title="Best Speed"
+          value={statistics.bestWpm}
+          icon={<Award className="h-4 w-4" />}
+          iconColor="text-yellow-600 dark:text-yellow-400"
+          bgColor="bg-yellow-500/10"
+        />
+        <StatCard
+          title="Accuracy"
+          value={`${statistics.averageAccuracy}%`}
+          icon={<Target className="h-4 w-4" />}
+          iconColor="text-green-600 dark:text-green-400"
+          bgColor="bg-green-500/10"
+        />
         <StatCard
           title="Practice Time"
           value={formatTime(statistics.totalTimeTyped)}
           icon={<Clock className="h-4 w-4" />}
+          iconColor="text-purple-600 dark:text-purple-400"
+          bgColor="bg-purple-500/10"
         />
       </div>
 
-      <div className="flex justify-between items-center">
-        <Button variant="outline" size={"sm"} className="border border-dashed">
-          Current Streak - 🔥 {streakData.current} Day{streakData.current !== 1 ? "s" : ""}
-        </Button>
+      <div className="flex flex-col gap-3">
+        <div className="flex justify-between items-center">
+          <Button variant="outline" size={"sm"} className="border border-dashed">
+            Current Streak - 🔥 {streakData.current} Day{streakData.current !== 1 ? "s" : ""}
+          </Button>
 
-        <div className="flex items-center gap-2 border border-dashed px-3 py-1 rounded-md">
-          <div className={`flex items-center gap-1 font-normal text-sm ${performanceLevel.color}`}>
-            {performanceLevel.icon}
-            <span>{performanceLevel.level}</span>
-          </div>
-          <Separator orientation="vertical" className="h-5" />
-          <div className="text-xs text-muted-foreground">
-            Typed Words: {formatLargeNumber(statistics.totalWordsTyped)}
-          </div>
+          <div className="flex items-center gap-2 border border-dashed px-3 py-1 rounded-md">
+            <div className={`flex items-center gap-1 font-normal text-sm ${performanceLevel.color}`}>
+              {performanceLevel.icon}
+              <span>{performanceLevel.level}</span>
+            </div>
+            <Separator orientation="vertical" className="h-5" />
+            <div className="text-xs text-muted-foreground">
+              Typed Words: {formatLargeNumber(statistics.totalWordsTyped)}
+            </div>
 
-          <Separator orientation="vertical" className="h-5" />
-          <div className="text-xs text-muted-foreground">
-            Typed Chars: {formatLargeNumber(statistics.totalCharactersTyped)}
-          </div>
-          <Separator orientation="vertical" className="h-5" />
-          <div className="text-xs text-muted-foreground">
-            Errors: {formatLargeNumber(statistics.totalErrors)} ({errorRate.toFixed(2)}%)
-          </div>
+            <Separator orientation="vertical" className="h-5" />
+            <div className="text-xs text-muted-foreground">
+              Typed Chars: {formatLargeNumber(statistics.totalCharactersTyped)}
+            </div>
+            <Separator orientation="vertical" className="h-5" />
+            <div className="text-xs text-muted-foreground">
+              Errors: {formatLargeNumber(statistics.totalErrors)} ({errorRate.toFixed(2)}%)
+            </div>
 
-          <Separator orientation="vertical" className="h-5" />
-          <div className="text-xs text-muted-foreground">Taken: {statistics.totalTests}</div>
+            <Separator orientation="vertical" className="h-5" />
+            <div className="text-xs text-muted-foreground">Taken: {statistics.totalTests}</div>
+          </div>
+        </div>
+
+        {/* Recent Tests - Full Width */}
+        <div className="border-none p-0">
+          <div className="pb-3">
+            <CardTitle className="text-base flex items-center justify-between border-b border-dashed pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-md bg-primary/10">
+                  <Calendar className="h-4 w-4 text-primary" />
+                </div>
+                Typing History
+              </div>
+              <Badge variant="secondary" className="text-xs">
+                {totalTests} total
+              </Badge>
+            </CardTitle>
+          </div>
+          <div className="pb-4">
+            {isLoading ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Clock className="h-8 w-8 mx-auto mb-2 opacity-50 animate-pulse" />
+                <p className="text-sm">Loading tests...</p>
+              </div>
+            ) : recentTests.length > 0 ? (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  {recentTests.map((test, index) => (
+                    <div
+                      key={test.id}
+                      className="flex items-center justify-between px-3 py-1 bg-muted/30 rounded-md hover:bg-muted/30 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-1.5 text-muted-foreground font-medium">
+                          {(currentPage - 1) * pageSize + index + 1}.
+                        </div>
+                        {!test.syncedToCloud && (
+                          <TooltipWrapper tooltip="Not synced to cloud yet">
+                            <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
+                          </TooltipWrapper>
+                        )}
+                        {test.syncedToCloud && (
+                          <TooltipWrapper tooltip="Synced to cloud">
+                            <div className="w-2 h-2 rounded-full bg-green-500" />
+                          </TooltipWrapper>
+                        )}
+                        <div className="flex items-center gap-1.5">
+                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm text-muted-foreground">{formatDate(test.timestamp)}</span>
+                        </div>
+                        <Badge variant="outline" className="text-xs h-5 font-normal">
+                          {test.language.toUpperCase()}
+                        </Badge>
+                        <Badge variant="secondary" className="text-xs h-5 capitalize font-normal">
+                          {test.textType || "words"}
+                        </Badge>
+                        <Badge
+                          variant="outline"
+                          className={`text-xs h-5 capitalize font-normal ${
+                            test.difficulty === "easy"
+                              ? "border-green-500/50 text-green-700 dark:text-green-400"
+                              : test.difficulty === "hard"
+                              ? "border-red-500/50 text-red-700 dark:text-red-400"
+                              : "border-yellow-500/50 text-yellow-700 dark:text-yellow-400"
+                          }`}
+                        >
+                          {test.difficulty || "medium"}
+                        </Badge>
+                        {test.practiceMode ? (
+                          <Badge className="text-xs h-5 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 font-normal">
+                            Practice
+                          </Badge>
+                        ) : (
+                          <Badge className="text-xs h-5 bg-primary/10 text-primary font-normal">Normal</Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="text-center">
+                          <div className="text-sm font-semibold">{test.wpm}</div>
+                          <div className="text-xs text-muted-foreground">WPM</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-sm font-semibold">{test.accuracy}%</div>
+                          <div className="text-xs text-muted-foreground">ACC</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-sm font-semibold">{test.testDuration}s</div>
+                          <div className="text-xs text-muted-foreground">TIME</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-sm font-semibold text-red-600 dark:text-red-400">{test.errors}</div>
+                          <div className="text-xs text-muted-foreground">ERR</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Pagination Controls */}
+                {totalTests > pageSize && (
+                  <div className="flex items-center justify-between pt-4 border-t border-dashed">
+                    <div className="text-sm text-muted-foreground">
+                      Showing {(currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, totalTests)} of{" "}
+                      {totalTests}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                        disabled={currentPage === 1 || isLoading}
+                      >
+                        Previous
+                      </Button>
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: Math.min(5, Math.ceil(totalTests / pageSize)) }, (_, i) => {
+                          const pageNum = i + 1;
+                          return (
+                            <Button
+                              key={pageNum}
+                              variant={currentPage === pageNum ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => setCurrentPage(pageNum)}
+                              disabled={isLoading}
+                              className="w-8 h-8 p-0"
+                            >
+                              {pageNum}
+                            </Button>
+                          );
+                        })}
+                        {Math.ceil(totalTests / pageSize) > 5 && (
+                          <span className="text-muted-foreground px-2">...</span>
+                        )}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage((p) => p + 1)}
+                        disabled={!hasMore || isLoading}
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Target className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">No tests available</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-
-      {/* Recent Tests - Full Width */}
-      <Card className="bg-muted/10 border border-dashed">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center justify-between border-b border-dashed pb-3">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-md bg-primary/10">
-                <Calendar className="h-4 w-4 text-primary" />
-              </div>
-              Typing Tests History
-            </div>
-            <Badge variant="secondary" className="text-xs">
-              {totalTests} total
-            </Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pb-4">
-          {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Clock className="h-8 w-8 mx-auto mb-2 opacity-50 animate-pulse" />
-              <p className="text-sm">Loading tests...</p>
-            </div>
-          ) : recentTests.length > 0 ? (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                {recentTests.map((test, index) => (
-                  <div
-                    key={test.id}
-                    className="flex items-center justify-between px-3 py-1 bg-muted/30 rounded-md hover:bg-muted/30 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-1.5 text-muted-foreground font-medium">
-                        {(currentPage - 1) * pageSize + index + 1}.
-                      </div>
-                      {!test.syncedToCloud && (
-                        <TooltipWrapper tooltip="Not synced to cloud yet">
-                          <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
-                        </TooltipWrapper>
-                      )}
-                      {test.syncedToCloud && (
-                        <TooltipWrapper tooltip="Synced to cloud">
-                          <div className="w-2 h-2 rounded-full bg-green-500" />
-                        </TooltipWrapper>
-                      )}
-                      <div className="flex items-center gap-1.5">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">{formatDate(test.timestamp)}</span>
-                      </div>
-                      <Badge variant="outline" className="text-xs h-5 font-normal">
-                        {test.language.toUpperCase()}
-                      </Badge>
-                      <Badge variant="secondary" className="text-xs h-5 capitalize font-normal">
-                        {test.textType || "words"}
-                      </Badge>
-                      <Badge
-                        variant="outline"
-                        className={`text-xs h-5 capitalize font-normal ${
-                          test.difficulty === "easy"
-                            ? "border-green-500/50 text-green-700 dark:text-green-400"
-                            : test.difficulty === "hard"
-                            ? "border-red-500/50 text-red-700 dark:text-red-400"
-                            : "border-yellow-500/50 text-yellow-700 dark:text-yellow-400"
-                        }`}
-                      >
-                        {test.difficulty || "medium"}
-                      </Badge>
-                      {test.practiceMode ? (
-                        <Badge className="text-xs h-5 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 font-normal">
-                          Practice
-                        </Badge>
-                      ) : (
-                        <Badge className="text-xs h-5 bg-primary/10 text-primary font-normal">Normal</Badge>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-center">
-                        <div className="text-sm font-semibold">{test.wpm}</div>
-                        <div className="text-xs text-muted-foreground">WPM</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-sm font-semibold">{test.accuracy}%</div>
-                        <div className="text-xs text-muted-foreground">ACC</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-sm font-semibold">{test.testDuration}s</div>
-                        <div className="text-xs text-muted-foreground">TIME</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-sm font-semibold text-red-600 dark:text-red-400">{test.errors}</div>
-                        <div className="text-xs text-muted-foreground">ERR</div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Pagination Controls */}
-              {totalTests > pageSize && (
-                <div className="flex items-center justify-between pt-4 border-t border-dashed">
-                  <div className="text-sm text-muted-foreground">
-                    Showing {(currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, totalTests)} of{" "}
-                    {totalTests}
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                      disabled={currentPage === 1 || isLoading}
-                    >
-                      Previous
-                    </Button>
-                    <div className="flex items-center gap-1">
-                      {Array.from({ length: Math.min(5, Math.ceil(totalTests / pageSize)) }, (_, i) => {
-                        const pageNum = i + 1;
-                        return (
-                          <Button
-                            key={pageNum}
-                            variant={currentPage === pageNum ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => setCurrentPage(pageNum)}
-                            disabled={isLoading}
-                            className="w-8 h-8 p-0"
-                          >
-                            {pageNum}
-                          </Button>
-                        );
-                      })}
-                      {Math.ceil(totalTests / pageSize) > 5 && <span className="text-muted-foreground px-2">...</span>}
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage((p) => p + 1)}
-                      disabled={!hasMore || isLoading}
-                    >
-                      Next
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              <Target className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">No tests available</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 }

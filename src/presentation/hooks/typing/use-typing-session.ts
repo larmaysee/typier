@@ -436,11 +436,7 @@ export function useTypingSession() {
         lastTestResult: testResult,
       });
 
-      // Save test result to database/localStorage
-      console.log("💾 Saving test result...");
-      await addTestResult(testResult);
-      console.log("✅ Test result saved successfully");
-
+      // Show results modal immediately
       setState((prev) => ({
         ...prev,
         lastTestResult: testResult,
@@ -450,7 +446,19 @@ export function useTypingSession() {
         incorrectWords: results.incorrectWords,
       }));
 
-      console.log("✅ State updated - should show results modal now");
+      console.log("✅ State updated - results modal shown");
+
+      // Save test result in background (non-blocking)
+      console.log("💾 Saving test result in background...");
+      addTestResult(testResult)
+        .then(() => {
+          console.log("✅ Test result saved successfully");
+        })
+        .catch((err) => {
+          console.error("❌ Error saving test result:", err);
+        });
+
+      console.log("✅ Complete session finished - modal is open");
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to complete session";
       setError(errorMessage);
