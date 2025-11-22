@@ -1,7 +1,6 @@
 "use client";
 import { Share2 } from "lucide-react";
 import { Icons } from "./icons";
-import Profile from "./profile";
 import { ThemeToggler } from "./theme-toggler";
 import { Button } from "./ui/button";
 import ViewToggler from "./view-toggler";
@@ -53,7 +52,7 @@ export default function SiteToolbox({ currentView, onViewChange }: SiteToolboxPr
                 <Share2 className="h-[1.2rem] w-[1.2rem]" />
               </Button>
               <ThemeToggler />
-              <Profile />
+              {/* <Profile /> */}
             </div>
           </div>
         </div>
