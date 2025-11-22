@@ -41,7 +41,7 @@ export const TypingControlPanel = memo(function TypingControlPanel({
   const wordsLeft = totalWords - typedWords;
 
   return (
-    <Card className="border-0 shadow-none">
+    <Card className="border-0 shadow-none bg-transparent">
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <TestModeOptions

@@ -23,6 +23,8 @@ export interface TypingTestResult {
   testMode?: string; // 'time' or 'words'
   selectedTime?: number; // Selected time duration in seconds
   selectedWords?: number; // Selected word count
+  syncId?: string; // Unique ID for tracking sync status
+  syncedToCloud?: boolean; // Whether this record has been synced to cloud
 }
 
 export interface TypingStatistics {
@@ -45,7 +47,12 @@ interface TypingStatisticsContextProps {
   getStatistics: () => TypingStatistics;
   clearStatistics: () => Promise<void>;
   getTestHistory: (limit?: number) => Promise<TypingTestResult[]>;
+  getPaginatedTestHistory: (
+    page: number,
+    pageSize: number
+  ) => Promise<{ tests: TypingTestResult[]; total: number; hasMore: boolean }>;
   syncWithDatabase: () => Promise<void>;
+  getUnsyncedCount: () => number;
   isOnline: boolean;
   isSyncing: boolean;
 }
@@ -120,6 +127,14 @@ const dbDocumentToTypingTestResult = (doc: TypingTestDocument): TypingTestResult
   timestamp: new Date(doc.test_date).getTime(),
   charactersTyped: doc.characters_typed,
   errors: doc.errors,
+  textType: doc.text_type,
+  difficulty: doc.difficulty,
+  practiceMode: doc.practice_mode,
+  testMode: doc.test_mode,
+  selectedTime: doc.selected_time,
+  selectedWords: doc.selected_words,
+  syncId: doc.$id, // Use Appwrite document ID as sync ID
+  syncedToCloud: true, // Data from DB is already synced
 });
 
 const calculateStatistics = (tests: TypingTestResult[]): TypingStatistics => {
@@ -247,9 +262,12 @@ export const TypingStatisticsProvider: React.FC<{ children: ReactNode }> = ({ ch
     setIsSyncing(true);
     try {
       const pendingTests = getPendingSyncData();
+      const syncedIds: string[] = [];
 
       if (pendingTests.length > 0) {
         const currentUserId = getCurrentUserId();
+
+        console.log(`🔄 Syncing ${pendingTests.length} pending tests to cloud...`);
 
         // Sync each pending test
         for (const test of pendingTests) {
@@ -271,7 +289,7 @@ export const TypingStatisticsProvider: React.FC<{ children: ReactNode }> = ({ ch
                 break;
             }
 
-            await TypingDatabaseService.createTypingTest({
+            const dbDoc = await TypingDatabaseService.createTypingTest({
               userId: currentUserId,
               wpm: test.wpm,
               accuracy: test.accuracy,
@@ -282,7 +300,20 @@ export const TypingStatisticsProvider: React.FC<{ children: ReactNode }> = ({ ch
               language: languageCode,
               charactersTyped: test.charactersTyped,
               errors: test.errors,
+              textType: test.textType,
+              difficulty: test.difficulty,
+              practiceMode: test.practiceMode,
+              testMode: test.testMode,
+              selectedTime: test.selectedTime,
+              selectedWords: test.selectedWords,
             });
+
+            // Track successfully synced test
+            if (test.syncId) {
+              syncedIds.push(test.syncId);
+            }
+
+            console.log("✅ Synced test:", { localSyncId: test.syncId, cloudId: dbDoc.$id });
 
             // Update leaderboard if this is a personal best
             const userStats = await TypingDatabaseService.getUserStatistics(currentUserId);
@@ -296,17 +327,27 @@ export const TypingStatisticsProvider: React.FC<{ children: ReactNode }> = ({ ch
               );
             }
           } catch (syncError) {
-            console.error("Error syncing individual test:", syncError);
+            console.error("❌ Error syncing test:", { syncId: test.syncId, error: syncError });
           }
         }
 
         // Clear pending data after successful sync
         clearPendingSyncData();
 
-        // Remove synced data from localStorage
+        // Update localStorage: mark synced records and remove guest records
         const allTests = getStoredData();
-        const otherUserTests = allTests.filter((test) => test.userId !== currentUserId);
-        saveToStorage(otherUserTests);
+        const updatedTests = allTests
+          .map((test) => {
+            if (test.syncId && syncedIds.includes(test.syncId)) {
+              return { ...test, syncedToCloud: true };
+            }
+            return test;
+          })
+          .filter((test) => test.userId !== currentUserId || test.syncedToCloud);
+
+        saveToStorage(updatedTests);
+
+        console.log(`✅ Sync complete: ${syncedIds.length}/${pendingTests.length} tests synced`);
       }
 
       setIsOnline(true);
@@ -357,6 +398,7 @@ export const TypingStatisticsProvider: React.FC<{ children: ReactNode }> = ({ ch
   }, []); // Empty deps - handlers are stable
 
   const addTestResult = async (result: Omit<TypingTestResult, "id" | "userId" | "timestamp">) => {
+    const syncId = `sync_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const newResult: TypingTestResult = {
       ...result,
       id: `test_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -369,6 +411,8 @@ export const TypingStatisticsProvider: React.FC<{ children: ReactNode }> = ({ ch
       testMode: result.testMode || "time",
       selectedTime: result.selectedTime,
       selectedWords: result.selectedWords,
+      syncId: syncId,
+      syncedToCloud: false, // Not synced yet
     };
 
     console.log("💾 Saving test result to storage:", {
@@ -402,7 +446,7 @@ export const TypingStatisticsProvider: React.FC<{ children: ReactNode }> = ({ ch
             break;
         }
 
-        await TypingDatabaseService.createTypingTest({
+        const dbDoc = await TypingDatabaseService.createTypingTest({
           userId: currentUserId,
           wpm: result.wpm,
           accuracy: result.accuracy,
@@ -413,7 +457,24 @@ export const TypingStatisticsProvider: React.FC<{ children: ReactNode }> = ({ ch
           language: languageCode,
           charactersTyped: result.charactersTyped,
           errors: result.errors,
+          textType: newResult.textType,
+          difficulty: newResult.difficulty,
+          practiceMode: newResult.practiceMode,
+          testMode: newResult.testMode,
+          selectedTime: newResult.selectedTime,
+          selectedWords: newResult.selectedWords,
         });
+
+        // Mark as synced and update syncId with Appwrite document ID
+        newResult.syncedToCloud = true;
+        newResult.syncId = dbDoc.$id;
+
+        // Update localStorage with synced status
+        const allTests = getStoredData();
+        const updatedTests = [...allTests, newResult];
+        saveToStorage(updatedTests);
+
+        console.log("✅ Test synced to cloud:", { syncId: newResult.syncId, cloudId: dbDoc.$id });
 
         // Update leaderboard if this is a personal best
         const userStats = await TypingDatabaseService.getUserStatistics(currentUserId);
@@ -512,6 +573,67 @@ export const TypingStatisticsProvider: React.FC<{ children: ReactNode }> = ({ ch
     }
   };
 
+  const getUnsyncedCount = useCallback((): number => {
+    const allTests = getStoredData();
+    const userTests = getUserTests(allTests);
+    return userTests.filter((test) => !test.syncedToCloud).length;
+  }, [getUserTests]);
+
+  const getPaginatedTestHistory = async (
+    page: number,
+    pageSize: number
+  ): Promise<{ tests: TypingTestResult[]; total: number; hasMore: boolean }> => {
+    try {
+      // Always check localStorage first
+      const allTests = getStoredData();
+      const userTests = getUserTests(allTests);
+
+      // If no localStorage data and user is authenticated, try cloud
+      if (userTests.length === 0 && canUseDatabase() && isOnline) {
+        const dbTests = await TypingDatabaseService.getUserTypingTests(getCurrentUserId(), 1000); // Get large batch
+        const mappedTests = dbTests.map(dbDocumentToTypingTestResult);
+        const sortedTests = mappedTests.sort((a, b) => b.timestamp - a.timestamp);
+
+        const startIndex = (page - 1) * pageSize;
+        const endIndex = startIndex + pageSize;
+        const paginatedTests = sortedTests.slice(startIndex, endIndex);
+
+        return {
+          tests: paginatedTests,
+          total: sortedTests.length,
+          hasMore: endIndex < sortedTests.length,
+        };
+      }
+
+      // Use localStorage data
+      const sortedTests = userTests.sort((a, b) => b.timestamp - a.timestamp);
+      const startIndex = (page - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      const paginatedTests = sortedTests.slice(startIndex, endIndex);
+
+      return {
+        tests: paginatedTests,
+        total: sortedTests.length,
+        hasMore: endIndex < sortedTests.length,
+      };
+    } catch (error) {
+      console.error("Error getting paginated test history:", error);
+      // Fallback to localStorage
+      const allTests = getStoredData();
+      const userTests = getUserTests(allTests);
+      const sortedTests = userTests.sort((a, b) => b.timestamp - a.timestamp);
+      const startIndex = (page - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      const paginatedTests = sortedTests.slice(startIndex, endIndex);
+
+      return {
+        tests: paginatedTests,
+        total: sortedTests.length,
+        hasMore: endIndex < sortedTests.length,
+      };
+    }
+  };
+
   return (
     <TypingStatisticsContext.Provider
       value={{
@@ -520,7 +642,9 @@ export const TypingStatisticsProvider: React.FC<{ children: ReactNode }> = ({ ch
         getStatistics,
         clearStatistics,
         getTestHistory,
+        getPaginatedTestHistory,
         syncWithDatabase,
+        getUnsyncedCount,
         isOnline,
         isSyncing,
       }}

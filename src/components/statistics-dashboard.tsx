@@ -6,6 +6,7 @@ import {
   Brain,
   Calendar,
   Clock,
+  Cloud,
   Crown,
   RotateCcw,
   Target,
@@ -18,7 +19,7 @@ import TooltipWrapper from "./tooltip-wrapper";
 import { TypingTestResult, useTypingStatistics } from "./typing-statistics";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Separator } from "./ui/separator";
 
 interface StatCardProps {
@@ -163,26 +164,65 @@ const getStreakData = (tests: TypingTestResult[]): { current: number; best: numb
 };
 
 export default function StatisticsDashboard() {
-  const { statistics, clearStatistics, getTestHistory } = useTypingStatistics();
+  const {
+    statistics,
+    clearStatistics,
+    getTestHistory,
+    getPaginatedTestHistory,
+    syncWithDatabase,
+    getUnsyncedCount,
+    isOnline,
+    isSyncing,
+  } = useTypingStatistics();
   const [recentTests, setRecentTests] = useState<TypingTestResult[]>([]);
   const [allTests, setAllTests] = useState<TypingTestResult[]>([]);
+  const [unsyncedCount, setUnsyncedCount] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalTests, setTotalTests] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const pageSize = 10;
 
   useEffect(() => {
     const loadTestData = async () => {
+      setIsLoading(true);
       try {
-        const recent = await getTestHistory(5);
-        const all = await getTestHistory(50); // Get more for streak calculation
-        setRecentTests(recent);
+        const all = await getTestHistory(50); // Get for streak calculation
         setAllTests(all);
-      } catch (error) {
-        console.error("Failed to load test data:", error);
+
+        // Load paginated data
+        const paginated = await getPaginatedTestHistory(currentPage, pageSize);
+        setRecentTests(paginated.tests);
+        setTotalTests(paginated.total);
+        setHasMore(paginated.hasMore);
+      } catch {
+        console.error("Failed to load test data");
         setRecentTests([]);
         setAllTests([]);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     loadTestData();
-  }, [getTestHistory, statistics.totalTests]);
+  }, [getTestHistory, getPaginatedTestHistory, statistics.totalTests, currentPage]);
+
+  useEffect(() => {
+    // Check for unsynced tests
+    const checkUnsyncedTests = () => {
+      try {
+        const count = getUnsyncedCount();
+        setUnsyncedCount(count);
+      } catch {
+        setUnsyncedCount(0);
+      }
+    };
+
+    checkUnsyncedTests();
+    // Recheck when sync status changes or tests are updated
+    const interval = setInterval(checkUnsyncedTests, 2000);
+    return () => clearInterval(interval);
+  }, [isSyncing, getUnsyncedCount, statistics.totalTests]);
 
   const handleClearStats = () => {
     if (window.confirm("Are you sure you want to clear all your typing statistics? This action cannot be undone.")) {
@@ -198,27 +238,16 @@ export default function StatisticsDashboard() {
 
   if (statistics.totalTests === 0) {
     return (
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5" />
-            Typing Statistics
-          </CardTitle>
-          <CardDescription>Complete a typing test to see your performance statistics</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-12">
-            <div className="bg-muted/20 rounded-full w-24 h-24 mx-auto mb-6 flex items-center justify-center">
-              <Target className="h-12 w-12 text-muted-foreground opacity-50" />
-            </div>
-            <h3 className="text-lg font-semibold mb-2">No typing tests completed yet</h3>
-            <p className="text-muted-foreground mb-6">Start typing to track your progress and unlock insights!</p>
-            <Badge variant="outline" className="text-xs">
-              Ready to begin your typing journey?
-            </Badge>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="text-center py-12">
+        <div className="bg-muted/20 rounded-full w-24 h-24 mx-auto mb-6 flex items-center justify-center">
+          <Target className="h-12 w-12 text-muted-foreground opacity-50" />
+        </div>
+        <h3 className="text-lg font-semibold mb-2">No typing tests completed yet</h3>
+        <p className="text-muted-foreground mb-6">Start typing to track your progress and unlock insights!</p>
+        <Badge variant="outline" className="text-xs">
+          Ready to begin your typing journey?
+        </Badge>
+      </div>
     );
   }
 
@@ -231,14 +260,43 @@ export default function StatisticsDashboard() {
               <BarChart3 className="h-6 w-6 text-primary" />
             </div>
             Typing Analytics
+            {!isOnline && (
+              <Badge variant="outline" className="text-xs">
+                Offline
+              </Badge>
+            )}
+            {isSyncing && (
+              <Badge variant="secondary" className="text-xs">
+                Syncing...
+              </Badge>
+            )}
           </h1>
         </div>
-        <TooltipWrapper tooltip="Clear all statistics">
-          <Button variant="secondary" size="sm" onClick={handleClearStats} className="bg-destructive text-white">
-            <RotateCcw className="h-4 w-4 mr-2" />
-            Clear Stats
-          </Button>
-        </TooltipWrapper>
+        <div className="flex gap-2">
+          <TooltipWrapper tooltip="Sync local data to cloud">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={syncWithDatabase}
+              disabled={isSyncing || !isOnline || unsyncedCount === 0}
+              className="border-dashed"
+            >
+              <Cloud className={`h-4 w-4 mr-2 ${isSyncing ? "animate-pulse" : ""}`} />
+              {isSyncing ? "Syncing..." : "Sync to Cloud"}
+              {unsyncedCount > 0 && (
+                <Badge variant="destructive" className="ml-2 h-5 text-xs">
+                  {unsyncedCount}
+                </Badge>
+              )}
+            </Button>
+          </TooltipWrapper>
+          <TooltipWrapper tooltip="Clear all statistics">
+            <Button variant="secondary" size="sm" onClick={handleClearStats} className="bg-destructive text-white">
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Clear Stats
+            </Button>
+          </TooltipWrapper>
+        </div>
       </div>
 
       {/* Main Overview Cards */}
@@ -290,78 +348,148 @@ export default function StatisticsDashboard() {
       {/* Recent Tests - Full Width */}
       <Card className="bg-muted/10 border border-dashed">
         <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2 border-b border-dashed pb-3">
-            <div className="p-1.5 rounded-md bg-primary/10">
-              <Calendar className="h-4 w-4 text-primary" />
+          <CardTitle className="text-base flex items-center justify-between border-b border-dashed pb-3">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-md bg-primary/10">
+                <Calendar className="h-4 w-4 text-primary" />
+              </div>
+              Typing Tests History
             </div>
-            Recent Typing Tests
+            <Badge variant="secondary" className="text-xs">
+              {totalTests} total
+            </Badge>
           </CardTitle>
         </CardHeader>
         <CardContent className="pb-4">
-          {recentTests.length > 0 ? (
-            <div className="space-y-2">
-              {recentTests.map((test, index) => (
-                <div
-                  key={test.id}
-                  className="flex items-center justify-between px-3 py-1 bg-muted/30 rounded-md hover:bg-muted/30 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1.5 text-muted-foreground font-medium">{index + 1}.</div>
-                    <div className="flex items-center gap-1.5">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">{formatDate(test.timestamp)}</span>
-                    </div>
-                    <Badge variant="outline" className="text-xs h-5 font-normal">
-                      {test.language.toUpperCase()}
-                    </Badge>
-                    <Badge variant="secondary" className="text-xs h-5 capitalize font-normal">
-                      {test.textType || "words"}
-                    </Badge>
-                    <Badge
-                      variant="outline"
-                      className={`text-xs h-5 capitalize font-normal ${
-                        test.difficulty === "easy"
-                          ? "border-green-500/50 text-green-700 dark:text-green-400"
-                          : test.difficulty === "hard"
-                          ? "border-red-500/50 text-red-700 dark:text-red-400"
-                          : "border-yellow-500/50 text-yellow-700 dark:text-yellow-400"
-                      }`}
-                    >
-                      {test.difficulty || "medium"}
-                    </Badge>
-                    {test.practiceMode ? (
-                      <Badge className="text-xs h-5 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 font-normal">
-                        Practice
+          {isLoading ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Clock className="h-8 w-8 mx-auto mb-2 opacity-50 animate-pulse" />
+              <p className="text-sm">Loading tests...</p>
+            </div>
+          ) : recentTests.length > 0 ? (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                {recentTests.map((test, index) => (
+                  <div
+                    key={test.id}
+                    className="flex items-center justify-between px-3 py-1 bg-muted/30 rounded-md hover:bg-muted/30 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1.5 text-muted-foreground font-medium">
+                        {(currentPage - 1) * pageSize + index + 1}.
+                      </div>
+                      {!test.syncedToCloud && (
+                        <TooltipWrapper tooltip="Not synced to cloud yet">
+                          <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
+                        </TooltipWrapper>
+                      )}
+                      {test.syncedToCloud && (
+                        <TooltipWrapper tooltip="Synced to cloud">
+                          <div className="w-2 h-2 rounded-full bg-green-500" />
+                        </TooltipWrapper>
+                      )}
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">{formatDate(test.timestamp)}</span>
+                      </div>
+                      <Badge variant="outline" className="text-xs h-5 font-normal">
+                        {test.language.toUpperCase()}
                       </Badge>
-                    ) : (
-                      <Badge className="text-xs h-5 bg-primary/10 text-primary font-normal">Normal</Badge>
-                    )}
+                      <Badge variant="secondary" className="text-xs h-5 capitalize font-normal">
+                        {test.textType || "words"}
+                      </Badge>
+                      <Badge
+                        variant="outline"
+                        className={`text-xs h-5 capitalize font-normal ${
+                          test.difficulty === "easy"
+                            ? "border-green-500/50 text-green-700 dark:text-green-400"
+                            : test.difficulty === "hard"
+                            ? "border-red-500/50 text-red-700 dark:text-red-400"
+                            : "border-yellow-500/50 text-yellow-700 dark:text-yellow-400"
+                        }`}
+                      >
+                        {test.difficulty || "medium"}
+                      </Badge>
+                      {test.practiceMode ? (
+                        <Badge className="text-xs h-5 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 font-normal">
+                          Practice
+                        </Badge>
+                      ) : (
+                        <Badge className="text-xs h-5 bg-primary/10 text-primary font-normal">Normal</Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="text-center">
+                        <div className="text-sm font-semibold">{test.wpm}</div>
+                        <div className="text-xs text-muted-foreground">WPM</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-sm font-semibold">{test.accuracy}%</div>
+                        <div className="text-xs text-muted-foreground">ACC</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-sm font-semibold">{test.testDuration}s</div>
+                        <div className="text-xs text-muted-foreground">TIME</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-sm font-semibold text-red-600 dark:text-red-400">{test.errors}</div>
+                        <div className="text-xs text-muted-foreground">ERR</div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-center">
-                      <div className="text-sm font-semibold">{test.wpm}</div>
-                      <div className="text-xs text-muted-foreground">WPM</div>
+                ))}
+              </div>
+
+              {/* Pagination Controls */}
+              {totalTests > pageSize && (
+                <div className="flex items-center justify-between pt-4 border-t border-dashed">
+                  <div className="text-sm text-muted-foreground">
+                    Showing {(currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, totalTests)} of{" "}
+                    {totalTests}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage === 1 || isLoading}
+                    >
+                      Previous
+                    </Button>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: Math.min(5, Math.ceil(totalTests / pageSize)) }, (_, i) => {
+                        const pageNum = i + 1;
+                        return (
+                          <Button
+                            key={pageNum}
+                            variant={currentPage === pageNum ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setCurrentPage(pageNum)}
+                            disabled={isLoading}
+                            className="w-8 h-8 p-0"
+                          >
+                            {pageNum}
+                          </Button>
+                        );
+                      })}
+                      {Math.ceil(totalTests / pageSize) > 5 && <span className="text-muted-foreground px-2">...</span>}
                     </div>
-                    <div className="text-center">
-                      <div className="text-sm font-semibold">{test.accuracy}%</div>
-                      <div className="text-xs text-muted-foreground">ACC</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-sm font-semibold">{test.testDuration}s</div>
-                      <div className="text-xs text-muted-foreground">TIME</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-sm font-semibold text-red-600 dark:text-red-400">{test.errors}</div>
-                      <div className="text-xs text-muted-foreground">ERR</div>
-                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage((p) => p + 1)}
+                      disabled={!hasMore || isLoading}
+                    >
+                      Next
+                    </Button>
                   </div>
                 </div>
-              ))}
+              )}
             </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
               <Target className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">No recent tests available</p>
+              <p className="text-sm">No tests available</p>
             </div>
           )}
         </CardContent>

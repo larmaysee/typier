@@ -52,6 +52,12 @@ export interface TypingTestDocument {
   characters_typed: number;
   errors: number;
   test_date: string;
+  text_type?: "chars" | "words" | "numbers" | "sentences" | "paragraphs" | "code";
+  difficulty?: "easy" | "medium" | "hard";
+  practice_mode?: boolean;
+  test_mode?: "time" | "words";
+  selected_time?: number;
+  selected_words?: number;
   $createdAt: string;
   $updatedAt: string;
 }
@@ -236,6 +242,12 @@ export class TypingDatabaseService {
     language: LanguageCode;
     charactersTyped: number;
     errors: number;
+    textType?: string;
+    difficulty?: string;
+    practiceMode?: boolean;
+    testMode?: string;
+    selectedTime?: number;
+    selectedWords?: number;
   }): Promise<TypingTestDocument> {
     try {
       return (await databases.createDocument(DATABASE_ID, COLLECTIONS.TYPING_TESTS, ID.unique(), {
@@ -250,6 +262,12 @@ export class TypingDatabaseService {
         characters_typed: testData.charactersTyped,
         errors: testData.errors,
         test_date: new Date().toISOString(),
+        text_type: testData.textType,
+        difficulty: testData.difficulty,
+        practice_mode: testData.practiceMode ?? false,
+        test_mode: testData.testMode,
+        selected_time: testData.selectedTime,
+        selected_words: testData.selectedWords,
       })) as unknown as TypingTestDocument;
     } catch (error) {
       console.error("Error creating typing test:", error);
