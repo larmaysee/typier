@@ -82,7 +82,7 @@ export default memo(function TestModeOptions({
           variant="outline"
           size="sm"
           disabled={disabled}
-          className={cn("gap-2 min-w-[100px]", showCountdown && shouldShowTimer && isTimeMode && "font-mono")}
+          className={cn("gap-2", showCountdown && shouldShowTimer && isTimeMode && "font-mono")}
         >
           {isTimeMode ? (
             <>

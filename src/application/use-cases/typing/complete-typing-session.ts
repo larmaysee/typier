@@ -179,10 +179,18 @@ export class CompleteTypingSessionUseCase {
       firstTypedWord: typedWords[0] || "N/A",
     });
 
-    // WPM calculation (using net WPM: (correct chars / 5 - errors) / time in minutes)
+    // WPM calculation with fallback strategies
     const timeInMinutes = totalDurationSeconds / 60;
+
+    // Strategy 1: Use correct words directly (most accurate for word-based typing)
+    const wordBasedWPM = timeInMinutes > 0 ? correctWords / timeInMinutes : 0;
+
+    // Strategy 2: Use character-based calculation (fallback)
     const grossWPM = timeInMinutes > 0 ? correctChars / 5 / timeInMinutes : 0;
     const netWPM = timeInMinutes > 0 ? Math.max(0, grossWPM - mistakes.length / timeInMinutes) : 0;
+
+    // Use word-based WPM if available and valid, otherwise use character-based
+    const finalWPM = correctWords > 0 ? wordBasedWPM : netWPM;
 
     // Accuracy calculation
     const accuracy = typedChars > 0 ? (correctChars / typedChars) * 100 : 100;
@@ -197,16 +205,18 @@ export class CompleteTypingSessionUseCase {
       correctChars,
       typedChars,
       timeInMinutes,
+      correctWords,
+      wordBasedWPM,
       grossWPM,
       netWPM,
+      finalWPM,
       accuracy,
-      correctWords,
       incorrectWords,
       mistakesLength: mistakes.length,
     });
 
     const finalResults = TypingResults.create({
-      wpm: Math.round(netWPM),
+      wpm: Math.round(finalWPM),
       accuracy: Math.round(accuracy * 100) / 100,
       correctWords,
       incorrectWords,
@@ -219,8 +229,10 @@ export class CompleteTypingSessionUseCase {
     });
 
     console.log("🧮 [calculateFinalResults] Raw calculation values before TypingResults.create:", {
+      finalWPM: finalWPM,
+      wordBasedWPM: wordBasedWPM,
       netWPM: netWPM,
-      wpmRounded: Math.round(netWPM),
+      wpmRounded: Math.round(finalWPM),
       accuracy: accuracy,
       accuracyProcessed: Math.round(accuracy * 100) / 100,
       correctWords,

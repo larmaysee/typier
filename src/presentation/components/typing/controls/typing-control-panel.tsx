@@ -61,7 +61,7 @@ export const TypingControlPanel = memo(function TypingControlPanel({
           />
 
           {/* Word Count Display */}
-          {!isTimeMode && (
+          {
             <>
               <Separator orientation="vertical" className="h-6 hidden sm:block" />
               <div className="flex items-center gap-2 text-sm">
@@ -70,7 +70,7 @@ export const TypingControlPanel = memo(function TypingControlPanel({
                 </Button>
               </div>
             </>
-          )}
+          }
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
