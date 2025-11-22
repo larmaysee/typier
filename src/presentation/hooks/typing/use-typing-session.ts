@@ -436,7 +436,10 @@ export function useTypingSession() {
         lastTestResult: testResult,
       });
 
-      addTestResult(testResult);
+      // Save test result to database/localStorage
+      console.log("💾 Saving test result...");
+      await addTestResult(testResult);
+      console.log("✅ Test result saved successfully");
 
       setState((prev) => ({
         ...prev,

@@ -42,7 +42,7 @@ export const TypingControlPanel = memo(function TypingControlPanel({
 
   return (
     <Card className="border-0 shadow-none bg-transparent">
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <TestModeOptions
             selectedTime={session.selectedTime}

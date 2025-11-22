@@ -52,7 +52,7 @@ interface SiteConfigProviderProps {
 }
 
 const defaultConfig: SiteConfig = {
-  theme: ThemeMode.LIGHT,
+  theme: ThemeMode.DARK,
   language: {
     code: LanguageCode.LI,
     name: LANGUAGE_DISPLAY_NAMES[LanguageCode.LI] || "Lisu",
@@ -220,7 +220,7 @@ export const SiteConfigProvider: React.FC<SiteConfigProviderProps> = ({ children
 
     setSaving(true);
     try {
-      console.log("[SiteConfig] Syncing to Appwrite...");
+      console.log("[SiteConfig] Syncing to Appwrite...", { practiceMode: config.practiceMode });
       const colorTheme = localStorage.getItem("selectedColorTheme") || "default";
 
       await TypingDatabaseService.createOrUpdateUserSettings(user.id, {
@@ -251,8 +251,63 @@ export const SiteConfigProvider: React.FC<SiteConfigProviderProps> = ({ children
     }
   }, [user, config]);
 
+  // Sync to cloud with explicit config (avoids stale closure)
+  const syncToCloudWithConfig = useCallback(
+    async (configToSync: SiteConfig) => {
+      if (!user || user.id.startsWith("guest_") || user.id.startsWith("anonymous")) {
+        return; // Skip for guest users
+      }
+
+      setSaving(true);
+      try {
+        console.log("[SiteConfig] Syncing to Appwrite with explicit config...", {
+          practiceMode: configToSync.practiceMode,
+        });
+        const colorTheme = localStorage.getItem("selectedColorTheme") || "default";
+
+        await TypingDatabaseService.createOrUpdateUserSettings(user.id, {
+          theme:
+            configToSync.theme === ThemeMode.LIGHT
+              ? "light"
+              : configToSync.theme === ThemeMode.DARK
+              ? "dark"
+              : "system",
+          preferred_language: languageCodeToDb(configToSync.language.code),
+          default_test_duration: 60,
+          show_leaderboard: true,
+          show_shift_label: configToSync.showShiftLabel,
+          practice_mode: configToSync.practiceMode,
+          allow_deletion: configToSync.allowDeletion,
+          show_input_box: configToSync.showInputBox,
+          text_type: configToSync.textType,
+          difficulty_level: configToSync.difficultyLevel,
+          test_mode: configToSync.testMode,
+          selected_time: configToSync.selectedTime ?? 30,
+          selected_words: configToSync.selectedWords ?? 50,
+          color_theme: colorTheme,
+          preferred_layouts: configToSync.preferredLayouts ? JSON.stringify(configToSync.preferredLayouts) : undefined,
+        });
+
+        setHasUnsavedChanges(false);
+        console.log("[SiteConfig] Synced to Appwrite successfully with explicit config");
+      } catch (error) {
+        console.error("[SiteConfig] Error syncing to Appwrite:", error);
+        // Keep hasUnsavedChanges true so user can retry
+      } finally {
+        setSaving(false);
+      }
+    },
+    [user]
+  );
+
   const saveSettings = async (newConfig: SiteConfig) => {
     try {
+      console.log("[SiteConfig] saveSettings called with:", {
+        practiceMode: newConfig.practiceMode,
+        textType: newConfig.textType,
+        difficultyLevel: newConfig.difficultyLevel,
+      });
+
       // Always save to localStorage immediately (fast, no blocking)
       localStorage.setItem(STORAGE_KEY, JSON.stringify(newConfig));
       setConfigState(newConfig);
@@ -266,7 +321,18 @@ export const SiteConfigProvider: React.FC<SiteConfigProviderProps> = ({ children
           clearTimeout(syncTimeoutRef.current);
         }
         syncTimeoutRef.current = setTimeout(() => {
-          syncToCloud();
+          console.log("[SiteConfig] Debounced sync triggered after 5 seconds");
+          // Read the latest config from localStorage to avoid stale closure
+          const latestConfig = localStorage.getItem(STORAGE_KEY);
+          if (latestConfig) {
+            const parsedConfig = JSON.parse(latestConfig);
+            console.log("[SiteConfig] Syncing with latest config from localStorage:", {
+              practiceMode: parsedConfig.practiceMode,
+            });
+            syncToCloudWithConfig(parsedConfig);
+          } else {
+            syncToCloud();
+          }
         }, 5000);
       }
     } catch (error) {

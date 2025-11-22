@@ -222,7 +222,7 @@ export const TypingStatisticsProvider: React.FC<{ children: ReactNode }> = ({ ch
 
   // Check if Appwrite is available and user is authenticated
   const canUseDatabase = useCallback(() => {
-    return user && process.env.APPWRITE_ENDPOINT && process.env.APPWRITE_PROJECT_ID;
+    return user && process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT && process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID;
   }, [user]);
 
   const updateStatistics = useCallback(async () => {
@@ -257,6 +257,8 @@ export const TypingStatisticsProvider: React.FC<{ children: ReactNode }> = ({ ch
 
   // Sync pending data when user comes online or authenticates
   const syncWithDatabase = useCallback(async () => {
+    console.log("sync with database");
+
     if (!canUseDatabase() || isSyncing) return;
 
     setIsSyncing(true);
@@ -488,7 +490,8 @@ export const TypingStatisticsProvider: React.FC<{ children: ReactNode }> = ({ ch
           );
         }
 
-        await updateStatistics();
+        // Update statistics in background (non-blocking)
+        updateStatistics().catch((err) => console.error("Error updating statistics:", err));
       } else {
         // Save to localStorage and pending sync
         const allTests = getStoredData();
@@ -501,7 +504,7 @@ export const TypingStatisticsProvider: React.FC<{ children: ReactNode }> = ({ ch
           savePendingSyncData([...pendingTests, newResult]);
         }
 
-        // Update local statistics
+        // Update local statistics immediately (synchronous)
         const currentUserId = getCurrentUserId();
         const userTests = updatedTests.filter((test) => test.userId === currentUserId);
         const newStats = calculateStatistics(userTests);
@@ -513,7 +516,12 @@ export const TypingStatisticsProvider: React.FC<{ children: ReactNode }> = ({ ch
       const allTests = getStoredData();
       const updatedTests = [...allTests, newResult];
       saveToStorage(updatedTests);
-      updateStatistics();
+
+      // Update statistics immediately (synchronous)
+      const currentUserId = getCurrentUserId();
+      const userTests = updatedTests.filter((test) => test.userId === currentUserId);
+      const newStats = calculateStatistics(userTests);
+      setStatistics(newStats);
     }
   };
 
