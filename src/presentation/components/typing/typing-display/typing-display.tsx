@@ -328,7 +328,7 @@ export default function TypingDisplay({
           <div
             ref={cursorRef}
             className={cn(
-              "absolute w-0.5 bg-primary pointer-events-none z-10 animate-cursor transition-all duration-100",
+              "absolute w-0.5 bg-primary pointer-events-none z-5 animate-cursor transition-all duration-100",
               !isFocused && "opacity-30",
               testCompleted && "hidden"
             )}
