@@ -260,7 +260,7 @@ export default function StatisticsDashboard() {
 
       <div className="flex justify-between items-center">
         <Button variant="outline" size={"sm"} className="border border-dashed">
-          Current Streak - 🔥 {streakData.recent} Day{streakData.recent !== 1 ? "s" : ""}
+          Current Streak - 🔥 {streakData.current} Day{streakData.current !== 1 ? "s" : ""}
         </Button>
 
         <div className="flex items-center gap-2 border border-dashed px-3 py-1 rounded-md">
