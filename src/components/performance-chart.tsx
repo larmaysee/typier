@@ -45,7 +45,7 @@ export function PerformanceChart({ wpm, accuracy, correctWords, incorrectWords, 
   return (
     <div className="bg-gradient-to-br from-muted/50 to-muted/30 rounded-xl p-6 border border-dashed bg-muted/50">
       {/* Header Stats */}
-      <div className="grid grid-cols-4 gap-4 mb-4">
+      <div className="grid grid-cols-4 gap-4">
         <div className="text-center">
           <div className="font-bold">{wpm}</div>
           <div className="text-xs text-muted-foreground font-medium uppercase">WPM</div>
