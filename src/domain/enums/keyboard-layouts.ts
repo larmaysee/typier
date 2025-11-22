@@ -24,4 +24,6 @@ export enum FingerAssignment {
   RIGHT_MIDDLE = "right_middle",
   RIGHT_RING = "right_ring",
   RIGHT_PINKY = "right_pinky",
+  PINKY = "PINKY",
+  RING = "RING",
 }

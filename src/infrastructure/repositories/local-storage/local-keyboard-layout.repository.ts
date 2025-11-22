@@ -1,5 +1,6 @@
-import { LanguageCode } from "@/domain";
+import { DifficultyLevel, FingerAssignment, LanguageCode, LayoutVariant } from "@/domain";
 import { KeyboardLayout } from "@/domain/entities";
+import type { KeyMapping } from "@/domain/entities/keyboard-layout";
 import { IKeyboardLayoutRepository } from "@/domain/interfaces";
 import { NotFoundError, RepositoryError } from "@/shared/errors";
 import type { ILogger } from "@/shared/utils/logger";
@@ -204,7 +205,7 @@ export class LocalKeyboardLayoutRepository implements IKeyboardLayoutRepository 
         name: "QWERTY US",
         displayName: "QWERTY (US)",
         language: LanguageCode.EN,
-        variant: "us" as any,
+        variant: "us" as LayoutVariant,
         keyMappings: this.createQwertyUSMappings(),
         metadata: {
           description: "Standard US QWERTY keyboard layout",
@@ -214,7 +215,7 @@ export class LocalKeyboardLayoutRepository implements IKeyboardLayoutRepository 
           lastModified: Date.now(),
           compatibility: ["Windows", "macOS", "Linux", "Web"],
           tags: ["standard", "qwerty", "english"],
-          difficulty: "easy" as any,
+          difficulty: "easy" as DifficultyLevel,
           popularity: 100,
         },
         isCustom: false,
@@ -229,7 +230,7 @@ export class LocalKeyboardLayoutRepository implements IKeyboardLayoutRepository 
         name: "SIL Basic",
         displayName: "SIL Basic",
         language: LanguageCode.LI,
-        variant: "sil_basic" as any,
+        variant: "sil_basic" as LayoutVariant,
         keyMappings: this.createSILBasicMappings(),
         metadata: {
           description: "SIL Basic keyboard layout for Lisu",
@@ -239,7 +240,7 @@ export class LocalKeyboardLayoutRepository implements IKeyboardLayoutRepository 
           lastModified: Date.now(),
           compatibility: ["Windows", "macOS", "Linux", "Web"],
           tags: ["sil", "basic", "lisu"],
-          difficulty: "medium" as any,
+          difficulty: "medium" as DifficultyLevel,
           popularity: 80,
         },
         isCustom: false,
@@ -251,20 +252,20 @@ export class LocalKeyboardLayoutRepository implements IKeyboardLayoutRepository 
     ];
   }
 
-  private createQwertyUSMappings(): any[] {
+  private createQwertyUSMappings(): KeyMapping[] {
     // Simplified mapping for demonstration
     return [
-      { key: "q", character: "q", position: { row: 1, column: 1, finger: "pinky" as const, hand: "left" as const } },
-      { key: "w", character: "w", position: { row: 1, column: 2, finger: "ring" as const, hand: "left" as const } },
+      { key: "q", character: "q", position: { row: 1, column: 1, finger: FingerAssignment.PINKY, hand: "left" } },
+      { key: "w", character: "w", position: { row: 1, column: 2, finger: FingerAssignment.RING, hand: "left" } },
       // ... more mappings would be added here
     ];
   }
 
-  private createSILBasicMappings(): any[] {
+  private createSILBasicMappings(): KeyMapping[] {
     // Simplified mapping for demonstration
     return [
-      { key: "q", character: "ꓕ", position: { row: 1, column: 1, finger: "pinky" as const, hand: "left" as const } },
-      { key: "w", character: "ꓪ", position: { row: 1, column: 2, finger: "ring" as const, hand: "left" as const } },
+      { key: "q", character: "ꓕ", position: { row: 1, column: 1, finger: FingerAssignment.PINKY, hand: "left" } },
+      { key: "w", character: "ꓪ", position: { row: 1, column: 2, finger: FingerAssignment.RING, hand: "left" } },
       // ... more mappings would be added here
     ];
   }

@@ -1,4 +1,4 @@
-import { LanguageCode } from "@/domain";
+import { LanguageCode, LayoutVariant } from "@/domain";
 import { KeyboardLayout } from "@/domain/entities";
 import { IKeyboardLayoutRepository } from "@/domain/interfaces";
 import { AppwriteKeyboardLayoutDocument, COLLECTIONS } from "@/infrastructure/persistence/appwrite/collections.config";
@@ -170,7 +170,7 @@ export class AppwriteKeyboardLayoutRepository implements IKeyboardLayoutReposito
       name: doc.name,
       displayName: doc.display_name,
       language: doc.language as LanguageCode,
-      variant: doc.variant as any,
+      variant: doc.variant as LayoutVariant,
       keyMappings: JSON.parse(doc.key_mappings),
       metadata: JSON.parse(doc.metadata),
       isCustom: doc.is_custom,

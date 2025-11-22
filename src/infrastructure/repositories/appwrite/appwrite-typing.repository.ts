@@ -1,4 +1,4 @@
-import { LanguageCode } from "@/domain";
+import { DifficultyLevel, LanguageCode, TypingMode } from "@/domain";
 import { TypingResults, TypingTest } from "@/domain/entities";
 import { LeaderboardEntry } from "@/domain/entities/statistics";
 import { ITypingRepository, LeaderboardFilters, TestFilters } from "@/domain/interfaces";
@@ -118,8 +118,8 @@ export class AppwriteTypingRepository implements ITypingRepository {
               username: username,
               bestWPM: doc.wpm,
               averageAccuracy: doc.accuracy,
-              language: doc.language as any,
-              mode: doc.mode as any,
+              language: doc.language as LanguageCode,
+              mode: doc.mode as TypingMode,
               rank: 1, // Will be updated when sorting
               totalTests: 1, // This is simplified - in reality we'd count all tests
               lastImproved: new Date(doc.$createdAt).getTime(),
@@ -218,8 +218,8 @@ export class AppwriteTypingRepository implements ITypingRepository {
     return TypingTest.create({
       id: doc.$id,
       userId: doc.user_id,
-      mode: doc.mode as any,
-      difficulty: doc.difficulty as any,
+      mode: doc.mode as TypingMode,
+      difficulty: doc.difficulty as DifficultyLevel,
       language: doc.language as LanguageCode,
       keyboardLayout: doc.keyboard_layout_id,
       textContent: doc.text_content,
@@ -243,7 +243,7 @@ export class AppwriteTypingRepository implements ITypingRepository {
   private async getUsernameById(userId: string): Promise<string> {
     try {
       const userDoc = await this.client.getDocument(COLLECTIONS.USERS, userId);
-      return (userDoc as any)?.username || "Unknown User";
+      return (userDoc as { username?: string })?.username || "Unknown User";
     } catch {
       return "Unknown User";
     }

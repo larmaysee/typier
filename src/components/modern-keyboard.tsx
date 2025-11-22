@@ -536,8 +536,8 @@ export default function ModernKeyboard() {
               <div>
                 <h3 className="font-semibold text-sm mb-2">Proper Hand Position</h3>
                 <p className="text-sm text-muted-foreground mb-3">
-                  Place your fingers on the home row keys and use the correct finger for each key. Enable "Finger Guide"
-                  mode to see color-coded home row keys.
+                  Place your fingers on the home row keys and use the correct finger for each key. Enable &quot;Finger
+                  Guide&quot; mode to see color-coded home row keys.
                 </p>
                 <div className="space-y-3">
                   {/* Home Row Keys Description */}

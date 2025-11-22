@@ -17,15 +17,15 @@ export interface ILayoutManagerService {
 }
 
 export interface IPerformanceAnalyzerService {
-  analyzeTypingPerformance(tests: any[], options?: AnalysisOptions): Promise<PerformanceAnalysis>;
-  calculateImprovement(oldStats: any, newStats: any): Promise<ImprovementMetrics>;
+  analyzeTypingPerformance(tests: unknown[], options?: AnalysisOptions): Promise<PerformanceAnalysis>;
+  calculateImprovement(oldStats: unknown, newStats: unknown): Promise<ImprovementMetrics>;
   recommendPractice(analysis: PerformanceAnalysis): Promise<PracticeRecommendation[]>;
 }
 
 export interface IEventBus {
   publish(event: DomainEvent): Promise<void>;
   subscribe<T extends DomainEvent>(eventType: string, handler: (event: T) => Promise<void>): void;
-  unsubscribe(eventType: string, handler: (event: any) => Promise<void>): void;
+  unsubscribe(eventType: string, handler: (event: unknown) => Promise<void>): void;
 }
 
 // Supporting types
@@ -158,7 +158,7 @@ export interface ReminderData {
   actionUrl?: string;
 }
 
-export interface DomainEvent<T = any> {
+export interface DomainEvent<T = unknown> {
   id: string;
   type: string;
   aggregateId: string;

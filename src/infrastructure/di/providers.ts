@@ -41,7 +41,7 @@ export class ServiceProvider {
       enableInfrastructureServices: true,
       enableKeyboardLayoutServices: true,
       enableExternalServices: true,
-      environment: (process.env.NODE_ENV as any) || "development",
+      environment: (process.env.NODE_ENV as "development" | "production" | "test") || "development",
       ...options,
     };
 
@@ -62,13 +62,7 @@ export class ServiceProvider {
    * Register all service categories based on options
    */
   private static registerAllServices(): void {
-    const {
-      enableRepositories,
-      enableUseCases,
-      enableInfrastructureServices,
-      enableKeyboardLayoutServices,
-      enableExternalServices,
-    } = this.registrationOptions;
+    const { enableRepositories, enableUseCases, enableKeyboardLayoutServices } = this.registrationOptions;
 
     // Always register core services
     registerCoreServices();
@@ -245,7 +239,7 @@ export class ServiceFactory {
   /**
    * Create multiple services at once
    */
-  static createBatch<T extends Record<string, any>>(tokens: Record<keyof T, string>): T {
+  static createBatch<T extends Record<string, unknown>>(tokens: Record<keyof T, string>): T {
     const result = {} as T;
 
     for (const [key, token] of Object.entries(tokens)) {

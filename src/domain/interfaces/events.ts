@@ -7,7 +7,7 @@ import { LanguageCode } from "../enums/languages";
 import { TypingMode } from "../enums/typing-mode";
 
 // Base domain event interface
-export interface DomainEvent<T = any> {
+export interface DomainEvent<T = unknown> {
   readonly id: string;
   readonly type: string;
   readonly aggregateId: string;
@@ -128,8 +128,8 @@ export interface UserPreferencesUpdatedEvent
   extends DomainEvent<{
     userId: string;
     changedFields: string[];
-    previousValues: Record<string, any>;
-    newValues: Record<string, any>;
+    previousValues: Record<string, unknown>;
+    newValues: Record<string, unknown>;
   }> {
   type: "user.preferences.updated";
 }
@@ -253,7 +253,7 @@ export interface ErrorOccurredEvent
     userId?: string;
     sessionId?: string;
     severity: "low" | "medium" | "high" | "critical";
-    context: Record<string, any>;
+    context: Record<string, unknown>;
   }> {
   type: "system.error.occurred";
 }
@@ -351,7 +351,7 @@ export class DomainEvents {
 }
 
 // Event handler type
-export interface EventHandler<T = any> {
+export interface EventHandler<T = unknown> {
   (event: DomainEvent<T>): Promise<void> | void;
 }
 
@@ -359,5 +359,5 @@ export interface EventHandler<T = any> {
 export interface IEventBus {
   publish<T>(event: DomainEvent<T>): Promise<void>;
   subscribe<T>(eventType: string, handler: EventHandler<T>): void;
-  unsubscribe(eventType: string, handler: EventHandler<any>): void;
+  unsubscribe(eventType: string, handler: EventHandler<unknown>): void;
 }

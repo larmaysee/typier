@@ -1,7 +1,7 @@
 // Simple service container for dependency injection
 export class ServiceContainer {
-  private services = new Map<string, any>();
-  private factories = new Map<string, () => any>();
+  private services = new Map<string, unknown>();
+  private factories = new Map<string, () => unknown>();
 
   // Register a singleton service
   register<T>(name: string, instance: T): void {

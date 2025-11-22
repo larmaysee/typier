@@ -193,7 +193,7 @@ export class AppwriteUserRepository implements IUserRepository {
     return {
       defaultLanguage: doc.default_language as LanguageCode,
       preferredLayouts: JSON.parse(doc.keyboard_layouts || "{}"),
-      theme: doc.theme as any,
+      theme: doc.theme as "system" | "light" | "dark",
       soundEnabled: doc.sound_enabled,
       showKeyboard: true, // Default value since not in document
       difficulty: DifficultyLevel.MEDIUM, // Default value since not in document

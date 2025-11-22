@@ -1,11 +1,9 @@
 "use client";
 
-import { useSiteConfig } from "@/components/site-config";
 import TestModeOptions from "@/components/test-mode-options";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { TestMode } from "@/domain";
 import { TypingSessionState } from "@/presentation/hooks/typing/use-typing-session";
 import { memo } from "react";
 import { PracticeModeToggle } from "./practice-mode-toggle";
@@ -31,8 +29,6 @@ export const TypingControlPanel = memo(function TypingControlPanel({
   onWordCountChange,
   onLayoutChange,
 }: TypingControlPanelProps) {
-  const { config } = useSiteConfig();
-
   // Calculate word counts
   const totalWords = textContent ? textContent.split(" ").filter((word) => word.length > 0).length : 0;
   const typedWords = session.typedText
@@ -42,7 +38,6 @@ export const TypingControlPanel = memo(function TypingControlPanel({
         .filter((word) => word.length > 0).length
     : 0;
 
-  const isTimeMode = config.testMode === TestMode.TIME;
   const wordsLeft = totalWords - typedWords;
 
   return (
