@@ -27,8 +27,14 @@ import { StartTypingSessionUseCase } from "../../application/use-cases/typing/st
 import { MockKeyboardLayoutRepository } from "@/infrastructure/repositories/mock/mock-keyboard-layout.repository";
 import { MockSessionRepository } from "@/infrastructure/repositories/mock/mock-session.repository";
 import { MockStatisticsRepository } from "@/infrastructure/repositories/mock/mock-statistics.repository";
-import { MockTypingRepository } from "@/infrastructure/repositories/mock/mock-typing.repository";
 import { MockUserRepository } from "@/infrastructure/repositories/mock/mock-user.repository";
+
+// Real repositories
+import { AppwriteDatabaseClient } from "@/infrastructure/persistence/appwrite/database-client";
+import { LocalStorageClient } from "@/infrastructure/persistence/local-storage/storage-client";
+import { AppwriteTypingRepository } from "@/infrastructure/repositories/appwrite/appwrite-typing.repository";
+import { HybridTypingRepository } from "@/infrastructure/repositories/hybrid/hybrid-typing.repository";
+import { LocalTypingRepository } from "@/infrastructure/repositories/local-storage/local-typing.repository";
 
 // Mock services for now (will be replaced in Phase 2)
 import { MockAnalyticsService } from "@/infrastructure/services/mock/mock-analytics.service";
@@ -128,8 +134,49 @@ export function registerCoreServices(): void {
 }
 
 export function registerRepositories(): void {
-  // Repository services using mock implementations for development
-  container.registerSingleton(SERVICE_TOKENS.TYPING_REPOSITORY, () => new MockTypingRepository());
+  // Get logger
+  const logger = container.resolve<Console>(SERVICE_TOKENS.LOGGER);
+  const envConfig = container.resolve<EnvironmentConfig>(SERVICE_TOKENS.ENVIRONMENT_CONFIG);
+
+  // Create LocalStorage client and repository
+  const localStorageClient = new LocalStorageClient(
+    {
+      version: "1.0.0",
+      keyPrefix: "typoria",
+    },
+    logger
+  );
+
+  // Create Appwrite client if credentials are available
+  let appwriteTypingRepo: AppwriteTypingRepository | null = null;
+  if (envConfig.appwriteEndpoint && envConfig.appwriteProjectId && envConfig.appwriteDatabaseId) {
+    const appwriteClient = new AppwriteDatabaseClient(
+      {
+        endpoint: envConfig.appwriteEndpoint,
+        projectId: envConfig.appwriteProjectId,
+        databaseId: envConfig.appwriteDatabaseId,
+      },
+      logger
+    );
+    appwriteTypingRepo = new AppwriteTypingRepository(appwriteClient, logger);
+  }
+
+  const localTypingRepo = new LocalTypingRepository(localStorageClient, logger);
+
+  // Create Hybrid repository (falls back to local if Appwrite unavailable)
+  if (appwriteTypingRepo) {
+    const hybridRepo = new HybridTypingRepository(appwriteTypingRepo, localTypingRepo, logger, {
+      getItem: async (key: string) => await localStorageClient.getItem(key),
+      setItem: async (key: string, value: unknown) => await localStorageClient.setItem(key, value),
+    });
+    container.registerSingleton(SERVICE_TOKENS.TYPING_REPOSITORY, () => hybridRepo);
+  } else {
+    // If no Appwrite credentials, use local repository only
+    container.registerSingleton(SERVICE_TOKENS.TYPING_REPOSITORY, () => localTypingRepo);
+    logger.warn("Appwrite credentials not found, using LocalStorage only for typing repository");
+  }
+
+  // Other repositories still using mocks
   container.registerSingleton(SERVICE_TOKENS.KEYBOARD_LAYOUT_REPOSITORY, () => new MockKeyboardLayoutRepository());
   container.registerSingleton(SERVICE_TOKENS.USER_REPOSITORY, () => new MockUserRepository());
   container.registerSingleton(SERVICE_TOKENS.SESSION_REPOSITORY, () => new MockSessionRepository());

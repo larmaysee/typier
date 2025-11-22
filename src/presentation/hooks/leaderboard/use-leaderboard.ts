@@ -31,19 +31,16 @@ export function useLeaderboard() {
       // Resolve repository inside the function to avoid dependency issues
       const repository = resolve<ITypingRepository>(serviceTokens.TYPING_REPOSITORY);
 
-      // Build filters without duration (repository doesn't support it yet)
+      // Build filters including duration
       const repoFilters: LeaderboardFilters = {
         language: filters.language,
         timeFrame: filters.timeFrame,
+        duration: filters.duration,
         limit: filters.limit,
       };
 
       const entries = await repository.getLeaderboard(repoFilters);
-
-      // Client-side filtering by duration if needed
       const filteredEntries = entries;
-      // Note: Duration filtering would require test duration to be part of LeaderboardEntry
-      // For now, we'll display all entries and implement duration filtering when backend supports it
 
       setLeaderboard(filteredEntries);
     } catch (err) {

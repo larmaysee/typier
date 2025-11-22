@@ -15,7 +15,8 @@ export interface TestFilters {
 export interface LeaderboardFilters {
   language?: LanguageCode;
   mode?: string;
-  timeFrame?: 'day' | 'week' | 'month' | 'all';
+  timeFrame?: "day" | "week" | "month" | "all";
+  duration?: number; // Test duration in seconds (15, 30, 60, 120, etc.)
   limit?: number;
 }
 

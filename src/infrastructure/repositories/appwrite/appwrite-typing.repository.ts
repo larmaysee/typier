@@ -71,6 +71,11 @@ export class AppwriteTypingRepository implements ITypingRepository {
       if (filters.mode) {
         queries.push(Query.equal("mode", filters.mode));
       }
+      if (filters.duration) {
+        // Filter by test duration (with 1 second tolerance)
+        queries.push(Query.greaterThanEqual("duration", filters.duration - 1));
+        queries.push(Query.lessThanEqual("duration", filters.duration + 1));
+      }
 
       // Handle time frame filtering
       if (filters.timeFrame && filters.timeFrame !== "all") {
@@ -110,12 +115,13 @@ export class AppwriteTypingRepository implements ITypingRepository {
         const existing = userBestScores.get(doc.user_id);
 
         if (!existing || doc.wpm > existing.bestWPM) {
-          const username = await this.getUsernameById(doc.user_id);
+          const { username, displayName } = await this.getUserDetailsById(doc.user_id);
           userBestScores.set(
             doc.user_id,
             LeaderboardEntry.create({
               userId: doc.user_id,
               username: username,
+              displayName: displayName,
               bestWPM: doc.wpm,
               averageAccuracy: doc.accuracy,
               language: doc.language as LanguageCode,
@@ -240,12 +246,16 @@ export class AppwriteTypingRepository implements ITypingRepository {
     });
   }
 
-  private async getUsernameById(userId: string): Promise<string> {
+  private async getUserDetailsById(userId: string): Promise<{ username: string; displayName: string }> {
     try {
       const userDoc = await this.client.getDocument(COLLECTIONS.USERS, userId);
-      return (userDoc as { username?: string })?.username || "Unknown User";
+      const userData = userDoc as { username?: string; name?: string; displayName?: string };
+      const username = userData?.username || "Unknown User";
+      // Try display name or name field, fallback to username
+      const displayName = userData?.displayName || userData?.name || username;
+      return { username, displayName };
     } catch {
-      return "Unknown User";
+      return { username: "Unknown User", displayName: "Unknown User" };
     }
   }
 }

@@ -278,6 +278,10 @@ export class LocalTypingRepository implements ITypingRepository {
       // Apply filters
       if (filters.language && test.language !== filters.language) continue;
       if (filters.mode && test.mode !== filters.mode) continue;
+      if (filters.duration) {
+        // Filter by test duration (with 1 second tolerance)
+        if (Math.abs(test.results.duration - filters.duration) > 1) continue;
+      }
 
       const existing = userBestScores.get(test.userId);
       if (!existing || test.results.wpm > existing.wpm) {

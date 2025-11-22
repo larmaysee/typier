@@ -14,6 +14,8 @@ export const COLLECTIONS = {
 export interface AppwriteUserDocument {
   $id: string;
   username: string;
+  name?: string; // Display name from Appwrite Auth
+  displayName?: string; // Custom display name
   email: string;
   total_tests: number;
   best_wpm: number;
