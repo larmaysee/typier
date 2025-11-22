@@ -38,6 +38,7 @@ export default function TypingDisplay({
   const { config } = useSiteConfig();
   const { setActiveChar } = usePracticeMode();
   const textContainerRef = useRef<HTMLDivElement>(null);
+  const cursorRef = useRef<HTMLDivElement>(null);
 
   // Memoize grapheme splitting for performance
   const textClusters = useMemo(() => {
@@ -184,6 +185,69 @@ export default function TypingDisplay({
       }
     }
   }, [session.typedText, session.cursorPosition.wordIndex, config.textType, typedClusters.length]);
+
+  // Update cursor position based on current character/word
+  useEffect(() => {
+    if (!cursorRef.current || testCompleted) return;
+
+    const databox = document.querySelector(".databox") as HTMLElement;
+    if (!databox) return;
+
+    if (config.textType === TextType.CHARS) {
+      // Character mode cursor positioning
+      const charBoxes = Array.from(databox.querySelectorAll(".char-box")) as HTMLElement[];
+      const cursorIndex = typedClusters.length;
+      const targetChar = charBoxes[cursorIndex];
+
+      if (targetChar) {
+        const databoxRect = databox.getBoundingClientRect();
+        const charRect = targetChar.getBoundingClientRect();
+
+        cursorRef.current.style.left = `${charRect.left - databoxRect.left}px`;
+        cursorRef.current.style.top = `${charRect.top - databoxRect.top}px`;
+        cursorRef.current.style.height = `${charRect.height}px`;
+        cursorRef.current.style.opacity = isFocused ? "1" : "0.3";
+      }
+    } else {
+      // Word mode cursor positioning
+      const words = Array.from(databox.querySelectorAll(".word")) as HTMLElement[];
+      const currentWord = words[session.cursorPosition.wordIndex];
+
+      if (currentWord) {
+        const letters = Array.from(currentWord.querySelectorAll(".letter")) as HTMLElement[];
+        const databoxRect = databox.getBoundingClientRect();
+
+        if (session.cursorPosition.isSpacePosition) {
+          // Position cursor after the last letter (space position)
+          const lastLetter = letters[letters.length - 1];
+          if (lastLetter) {
+            const letterRect = lastLetter.getBoundingClientRect();
+            cursorRef.current.style.left = `${letterRect.right - databoxRect.left + 2}px`;
+            cursorRef.current.style.top = `${letterRect.top - databoxRect.top}px`;
+            cursorRef.current.style.height = `${letterRect.height}px`;
+          }
+        } else {
+          // Position cursor at the current character
+          const targetLetter = letters[session.cursorPosition.charIndex];
+          if (targetLetter) {
+            const letterRect = targetLetter.getBoundingClientRect();
+            cursorRef.current.style.left = `${letterRect.left - databoxRect.left}px`;
+            cursorRef.current.style.top = `${letterRect.top - databoxRect.top}px`;
+            cursorRef.current.style.height = `${letterRect.height}px`;
+          } else if (session.cursorPosition.charIndex >= letters.length && letters.length > 0) {
+            // Overflow case - position after last letter
+            const lastLetter = letters[letters.length - 1];
+            const letterRect = lastLetter.getBoundingClientRect();
+            cursorRef.current.style.left = `${letterRect.right - databoxRect.left}px`;
+            cursorRef.current.style.top = `${letterRect.top - databoxRect.top}px`;
+            cursorRef.current.style.height = `${letterRect.height}px`;
+          }
+        }
+        cursorRef.current.style.opacity = isFocused ? "1" : "0.3";
+      }
+    }
+  }, [session.typedText, session.cursorPosition, config.textType, typedClusters.length, isFocused, testCompleted]);
+
   const getActiveWordIndex = () => {
     // Use cursor position instead of splitting typed text
     return session.cursorPosition.wordIndex;
@@ -260,12 +324,22 @@ export default function TypingDisplay({
         )}
 
         <div className={cn("databox relative focus-visible:border-primary overflow-hidden h-[150px]")}>
+          {/* Separate cursor element - MonkeyType style */}
+          <div
+            ref={cursorRef}
+            className={cn(
+              "absolute w-0.5 bg-primary pointer-events-none z-10 animate-cursor transition-all duration-100",
+              !isFocused && "opacity-30",
+              testCompleted && "hidden"
+            )}
+            style={{ left: 0, top: 0, height: "2rem" }}
+          />
+
           {config.textType === TextType.CHARS ? (
             // Character mode with special styling using grapheme clusters
             <div className="flex flex-wrap gap-2 p-2">
               {textClusters.map((char, charIndex) => {
                 const typedChar = typedClusters[charIndex] || "";
-                const isCursorPosition = charIndex === typedClusters.length;
 
                 let bgColor = "bg-muted/30";
                 let textColor = "text-muted-foreground";
@@ -291,9 +365,6 @@ export default function TypingDisplay({
                     )}
                   >
                     {char === " " ? "⎵" : char}
-                    {isCursorPosition && isFocused && !testCompleted && (
-                      <span className="absolute left-0 top-0 w-0.5 h-full bg-primary animate-pulse" />
-                    )}
                   </div>
                 );
               })}
@@ -301,8 +372,6 @@ export default function TypingDisplay({
           ) : (
             <div className="words flex flex-wrap relative leading-relaxed">
               {textWords.map((wordClusters, wordIndex) => {
-                const isCurrentWord = session.cursorPosition.wordIndex === wordIndex;
-                const shouldShowSpaceCursor = isCurrentWord && session.cursorPosition.isSpacePosition;
                 return (
                   <div
                     key={wordIndex}
@@ -311,11 +380,6 @@ export default function TypingDisplay({
                     }`}
                   >
                     {wordClusters.map((char, charIndex) => {
-                      const isCursorPosition =
-                        isCurrentWord &&
-                        session.cursorPosition.charIndex === charIndex &&
-                        !session.cursorPosition.isSpacePosition;
-
                       return (
                         <span
                           key={charIndex}
@@ -325,13 +389,6 @@ export default function TypingDisplay({
                           )}`}
                         >
                           {char}
-                          {isCursorPosition && !testCompleted && (
-                            <span className="absolute left-0 top-0 w-0.5 h-full bg-primary animate-pulse" />
-                          )}
-
-                          {shouldShowSpaceCursor && charIndex === wordClusters.length - 1 && !testCompleted && (
-                            <span className="absolute right-0 top-0 w-0.5 h-full bg-primary animate-pulse" />
-                          )}
                         </span>
                       );
                     })}

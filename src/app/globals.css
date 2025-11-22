@@ -72,4 +72,18 @@ body {
   }
 }
 
+/* Smooth cursor animation */
+@keyframes cursor-blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.animate-cursor {
+  animation: cursor-blink 1s ease-in-out infinite;
+}
+
 /* Cursor styles removed - now using JavaScript-based cursor */
