@@ -22,7 +22,7 @@ export default function KeyButton({ label, value, className, shiftKey, pressedKe
       variant={"secondary"}
       disabled={isEmpty}
       className={cn(
-        "key-button relative p-2 border",
+        "key-button relative p-2 border border-border",
         `key-${keyname(value).toLowerCase()}`,
         isPressed ? "bg-primary text-primary-foreground" : "bg-muted/50",
         isEmpty && "opacity-30 cursor-not-allowed",

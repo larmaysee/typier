@@ -243,7 +243,7 @@ export default function TypingDisplay({
       {/* Text display area */}
       <div
         className={cn(
-          "databox-wrapper bg-card rounded-lg border border-dashed w-full cursor-text transition-all duration-200 px-6 py-10 relative",
+          "databox-wrapper bg-muted/50 rounded-lg border border-dashed w-full cursor-text transition-all duration-200 px-6 py-10 relative",
           isFocused ? "border-primary/20 focus" : "",
           testCompleted && "opacity-50 pointer-events-none"
         )}
