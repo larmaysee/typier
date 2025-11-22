@@ -33,6 +33,8 @@ export interface UserDocument {
   total_tests: number;
   best_wpm: number;
   average_accuracy: number;
+  avatar_url?: string;
+  last_login?: string;
   $createdAt: string;
   $updatedAt: string;
 }
@@ -121,20 +123,76 @@ export const normalizeDurationCategory = (duration: number): 15 | 30 | 60 | 120 
   else return 120;
 };
 
+// Helper function to generate unique username
+const generateUniqueUsername = async (baseUsername: string): Promise<string> => {
+  let username = baseUsername;
+  let attempts = 0;
+  const maxAttempts = 10;
+
+  while (attempts < maxAttempts) {
+    try {
+      // Check if username exists
+      const existingUsers = await databases.listDocuments(DATABASE_ID, COLLECTIONS.USERS, [
+        Query.equal("username", username),
+      ]);
+
+      if (existingUsers.total === 0) {
+        return username;
+      }
+
+      // Username exists, append random suffix
+      const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+      username = `${baseUsername}${randomSuffix}`;
+      attempts++;
+    } catch (error) {
+      console.error("Error checking username:", error);
+      // Fallback to random suffix
+      const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+      return `${baseUsername}${randomSuffix}`;
+    }
+  }
+
+  // If all attempts fail, use timestamp
+  return `${baseUsername}_${Date.now()}`;
+};
+
 // Database service functions
 export class TypingDatabaseService {
   // User management
-  static async createUser(userData: { username: string; email: string; userId: string }): Promise<UserDocument> {
+  static async createUser(userData: {
+    username: string;
+    email: string;
+    userId: string;
+    avatarUrl?: string;
+  }): Promise<UserDocument> {
     try {
+      const now = new Date().toISOString();
+      // Generate unique username
+      const uniqueUsername = await generateUniqueUsername(userData.username);
+
       return (await databases.createDocument(DATABASE_ID, COLLECTIONS.USERS, userData.userId, {
-        username: userData.username,
+        username: uniqueUsername,
         email: userData.email,
         total_tests: 0,
         best_wpm: 0,
         average_accuracy: 0,
+        avatar_url: userData.avatarUrl || null,
+        last_login: now,
       })) as unknown as UserDocument;
     } catch (error) {
       console.error("Error creating user:", error);
+      throw error;
+    }
+  }
+
+  static async updateLastLogin(userId: string): Promise<UserDocument> {
+    try {
+      const now = new Date().toISOString();
+      return (await databases.updateDocument(DATABASE_ID, COLLECTIONS.USERS, userId, {
+        last_login: now,
+      })) as unknown as UserDocument;
+    } catch (error) {
+      console.error("Error updating last login:", error);
       throw error;
     }
   }

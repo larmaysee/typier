@@ -41,51 +41,69 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const checkAuthStatus = async () => {
     try {
       setLoading(true);
+      console.log("[AuthProvider] Checking auth status...");
 
       // Check if Appwrite is configured
-      if (!process.env.APPWRITE_ENDPOINT || !process.env.APPWRITE_PROJECT_ID) {
+      if (!process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT || !process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID) {
+        console.log("[AuthProvider] Appwrite not configured, checking for guest user");
         // No Appwrite config, check for guest user
         const guestUser = localStorage.getItem(GUEST_USER_KEY);
         if (guestUser) {
           const userData = JSON.parse(guestUser);
+          console.log("[AuthProvider] Found guest user:", userData.name);
           setUser(userData);
         }
         setLoading(false);
         return;
       }
 
+      console.log("[AuthProvider] Appwrite configured, checking session...");
       // Try to get current session
       const session = await account.getSession("current");
 
       if (session) {
+        console.log("[AuthProvider] Session found:", session.$id);
         const accountData = await account.get();
+        console.log("[AuthProvider] Account data:", accountData.email);
         await loadUserProfile(accountData);
       }
-    } catch {
-      console.log("No active session found");
+    } catch (error) {
+      console.log("[AuthProvider] No active session found:", error);
       // Check for guest user
       const guestUser = localStorage.getItem(GUEST_USER_KEY);
       if (guestUser) {
         const userData = JSON.parse(guestUser);
+        console.log("[AuthProvider] Using guest user:", userData.name);
         setUser(userData);
       }
     } finally {
       setLoading(false);
+      console.log("[AuthProvider] Auth check complete");
     }
   };
 
   const loadUserProfile = async (accountData: Models.User<Models.Preferences>) => {
     try {
+      console.log("[AuthProvider] Loading user profile for:", accountData.email);
       // Get or create user profile in database
       let userProfile = await TypingDatabaseService.getUser(accountData.$id);
 
+      console.log("[AuthProvider] User profile result:", userProfile);
+
       if (!userProfile) {
-        // Create new user profile
+        console.log("[AuthProvider] User profile not found, creating new user...");
+        // Create new user profile (OAuth login)
         userProfile = await TypingDatabaseService.createUser({
           userId: accountData.$id,
           username: accountData.name,
           email: accountData.email,
+          avatarUrl: undefined,
         });
+        console.log("[AuthProvider] New user created:", userProfile.username);
+      } else {
+        console.log("[AuthProvider] User profile found, updating last login...");
+        // Update last login for existing user
+        userProfile = await TypingDatabaseService.updateLastLogin(accountData.$id);
       }
 
       setUser({
@@ -94,8 +112,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         email: accountData.email,
         profile: userProfile,
       });
+      console.log("[AuthProvider] User profile loaded successfully");
     } catch (error) {
-      console.error("Error loading user profile:", error);
+      console.error("[AuthProvider] Error loading user profile:", error);
       // Set user without profile
       setUser({
         id: accountData.$id,

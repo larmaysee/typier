@@ -21,16 +21,14 @@ export function LoginDialog() {
   const { logout } = useAuth();
 
   const loginWithGoogle = async () => {
-    setLoading(true);
-    account.createOAuth2Session(OAuthProvider.Google, `${location.origin}`, `${location.origin}`);
-
-    const user = await account.get();
-
-    if (user) {
-      // User is already authenticated, just close the loading state
-      setLoading(false);
-      // The auth provider will handle setting the user via checkAuthStatus
-    } else {
+    try {
+      console.log("[LoginDialog] Starting Google OAuth...");
+      setLoading(true);
+      // Redirect to Google OAuth (will return to origin after success)
+      await account.createOAuth2Session(OAuthProvider.Google, `${location.origin}`, `${location.origin}`);
+      console.log("[LoginDialog] OAuth redirect initiated");
+    } catch (error) {
+      console.error("[LoginDialog] OAuth error:", error);
       setLoading(false);
       logout();
     }
