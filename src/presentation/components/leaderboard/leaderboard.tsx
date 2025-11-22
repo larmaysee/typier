@@ -3,25 +3,13 @@
 import { useAuth } from "@/components/auth-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ButtonGroup } from "@/components/ui/button-group";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { LanguageCode } from "@/domain/enums/languages";
 import { useLeaderboard } from "@/presentation/hooks/leaderboard/use-leaderboard";
-import {
-  Award,
-  Calendar,
-  Clock,
-  Crown,
-  Globe,
-  Medal,
-  RefreshCw,
-  Target,
-  TrendingUp,
-  Trophy,
-  User,
-  Zap,
-} from "lucide-react";
+import { Award, Calendar, Crown, Globe, Medal, RefreshCw, Target, TrendingUp, Trophy, User, Zap } from "lucide-react";
 
 const TIME_OPTIONS = [
   { value: 15, label: "15s" },
@@ -31,14 +19,14 @@ const TIME_OPTIONS = [
 ];
 
 const TIME_FRAME_OPTIONS = [
+  { value: "all", label: "All Time", icon: Globe },
   { value: "day", label: "Daily", icon: Calendar },
   { value: "week", label: "Weekly", icon: TrendingUp },
-  { value: "all", label: "All Time", icon: Globe },
 ];
 
 const LANGUAGE_OPTIONS = [
-  { value: LanguageCode.EN, label: "English", flag: "🇬🇧" },
   { value: LanguageCode.LI, label: "Lisu", flag: "🗻" },
+  { value: LanguageCode.EN, label: "English", flag: "🇬🇧" },
   { value: LanguageCode.MY, label: "Myanmar", flag: "🇲🇲" },
 ];
 
@@ -99,96 +87,82 @@ export function Leaderboard() {
   const currentUserRank = leaderboard.findIndex((entry) => entry.userId === user?.id) + 1;
 
   return (
-    <div className="container mx-auto p-4 space-y-6">
+    <div className="container mx-auto space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="flex justify-between items-center gap-4">
         <div className="flex items-center gap-3">
           <div className="p-3 rounded-xl bg-gradient-to-br from-yellow-500/20 to-orange-500/20">
             <Trophy className="h-8 w-8 text-yellow-600 dark:text-yellow-400" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold">Global Leaderboard</h1>
+            <h1 className="text-xl font-bold">Global Leaderboard</h1>
             <p className="text-sm text-muted-foreground">Compete with typists worldwide</p>
           </div>
         </div>
 
-        <Button variant="outline" size="sm" onClick={refresh} disabled={isLoading} className="w-fit">
-          <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          {/* Language Selector */}
+          <Select value={filters.language} onValueChange={handleLanguageChange}>
+            <SelectTrigger className="w-auto h-8">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {LANGUAGE_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  <span className="flex items-center gap-2">
+                    <span>{option.flag}</span>
+                    <span>{option.label}</span>
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={refresh}
+            disabled={isLoading}
+            className="w-8 h-8 p-0 rounded-sm"
+          >
+            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+          </Button>
+        </div>
       </div>
 
-      {/* Filters */}
-      <Card className="border-dashed">
-        <CardContent className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Time Frame Filter */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                Time Period
-              </label>
-              <div className="flex gap-2">
-                {TIME_FRAME_OPTIONS.map((option) => (
-                  <Button
-                    key={option.value}
-                    variant={filters.timeFrame === option.value ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => handleTimeFrameChange(option.value)}
-                    className="flex-1"
-                  >
-                    <option.icon className="h-3 w-3 mr-1" />
-                    {option.label}
-                  </Button>
-                ))}
-              </div>
-            </div>
+      {/* Filters - Button Group Design */}
+      <div className="flex flex-wrap items-center gap-3">
+        {/* Time Frame Button Group */}
+        <ButtonGroup>
+          {TIME_FRAME_OPTIONS.map((option) => (
+            <Button
+              key={option.value}
+              variant={filters.timeFrame === option.value ? "default" : "outline"}
+              size="sm"
+              onClick={() => handleTimeFrameChange(option.value)}
+            >
+              <option.icon className="h-3 w-3" />
+              {option.label}
+            </Button>
+          ))}
+        </ButtonGroup>
 
-            {/* Language Filter */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium flex items-center gap-2">
-                <Globe className="h-4 w-4" />
-                Language
-              </label>
-              <Select value={filters.language} onValueChange={handleLanguageChange}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {LANGUAGE_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      <span className="flex items-center gap-2">
-                        <span>{option.flag}</span>
-                        <span>{option.label}</span>
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+        <Separator orientation="vertical" className="h-8" />
 
-            {/* Duration Filter */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium flex items-center gap-2">
-                <Clock className="h-4 w-4" />
-                Test Duration
-              </label>
-              <Select value={filters.duration?.toString()} onValueChange={handleDurationChange}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {TIME_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value.toString()}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        {/* Duration Button Group */}
+        <ButtonGroup>
+          {TIME_OPTIONS.map((option) => (
+            <Button
+              key={option.value}
+              variant={filters.duration === option.value ? "default" : "outline"}
+              size="sm"
+              onClick={() => handleDurationChange(option.value.toString())}
+            >
+              {option.label}
+            </Button>
+          ))}
+        </ButtonGroup>
+      </div>
 
       {/* Current User Rank (if logged in and ranked) */}
       {user && currentUserRank > 0 && (

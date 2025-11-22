@@ -18,7 +18,7 @@ export function useLeaderboard() {
 
   const [filters, setFilters] = useState<LeaderboardHookFilters>({
     timeFrame: "all",
-    language: LanguageCode.EN,
+    language: LanguageCode.LI, // Default to Lisu
     duration: 30,
     limit: 50,
   });
@@ -28,6 +28,7 @@ export function useLeaderboard() {
     setError(null);
 
     try {
+      // Resolve repository inside the function to avoid dependency issues
       const repository = resolve<ITypingRepository>(serviceTokens.TYPING_REPOSITORY);
 
       // Build filters without duration (repository doesn't support it yet)
@@ -52,7 +53,8 @@ export function useLeaderboard() {
     } finally {
       setIsLoading(false);
     }
-  }, [filters, resolve, serviceTokens]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters]);
 
   useEffect(() => {
     fetchLeaderboard();
