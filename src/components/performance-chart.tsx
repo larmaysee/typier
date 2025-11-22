@@ -43,38 +43,38 @@ export function PerformanceChart({ wpm, accuracy, correctWords, incorrectWords, 
   }, [wpm, accuracy, testDuration]);
 
   return (
-    <div className="bg-gradient-to-br from-muted/50 to-muted/30 rounded-xl p-6 border border-border">
+    <div className="bg-gradient-to-br from-muted/50 to-muted/30 rounded-xl p-6 border border-dashed bg-muted/50">
       {/* Header Stats */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-4 gap-4 mb-4">
         <div className="text-center">
-          <div className="">{wpm}</div>
-          <div className="text-xs text-muted-foreground font-medium">WPM</div>
+          <div className="font-bold">{wpm}</div>
+          <div className="text-xs text-muted-foreground font-medium uppercase">WPM</div>
+        </div>
+        <div className="text-center border-x border-dashed">
+          <div className="font-bold">{accuracy.toFixed(1)}%</div>
+          <div className="text-xs text-muted-foreground font-medium uppercase">Accuracy</div>
+        </div>
+        <div className="text-center border-r border-dashed">
+          <div className="font-bold">{correctWords}</div>
+          <div className="text-xs text-muted-foreground font-medium uppercase">Correct</div>
         </div>
         <div className="text-center">
-          <div className="">{accuracy.toFixed(1)}%</div>
-          <div className="text-xs text-muted-foreground font-medium">Accuracy</div>
-        </div>
-        <div className="text-center">
-          <div className="">{correctWords}</div>
-          <div className="text-xs text-muted-foreground font-medium">Correct</div>
-        </div>
-        <div className="text-center">
-          <div className=" text-red-600 dark:text-red-400">{incorrectWords}</div>
-          <div className="text-xs text-muted-foreground font-medium">Errors</div>
+          <div className="font-bold">{incorrectWords}</div>
+          <div className="text-xs text-muted-foreground font-medium uppercase">Errors</div>
         </div>
       </div>
 
       {/* Chart */}
       <div className="h-48">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={dataPoints} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+          <AreaChart data={dataPoints} margin={{ top: 5, right: 5, left: -20, bottom: 20 }}>
             <defs>
               <linearGradient id="wpmGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
               </linearGradient>
               <linearGradient id="accuracyGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                <stop offset="5%" stopColor="#10b981" stopOpacity={0.2} />
                 <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
               </linearGradient>
             </defs>
@@ -84,7 +84,7 @@ export function PerformanceChart({ wpm, accuracy, correctWords, incorrectWords, 
               stroke="currentColor"
               opacity={0.5}
               tick={{ fontSize: 12 }}
-              label={{ value: "Time (s)", position: "insideBottom", offset: -5, fontSize: 11, opacity: 0.6 }}
+              label={{ value: "Time (s)", position: "insideBottom", offset: -10, fontSize: 11, opacity: 0.6 }}
             />
             <YAxis stroke="currentColor" opacity={0.5} tick={{ fontSize: 12 }} />
             <Tooltip
@@ -96,15 +96,15 @@ export function PerformanceChart({ wpm, accuracy, correctWords, incorrectWords, 
               }}
               formatter={(value: number) => [value.toFixed(1), ""]}
             />
-            <Legend wrapperStyle={{ fontSize: "12px" }} iconType="line" />
+            <Legend wrapperStyle={{ fontSize: "12px", paddingTop: "10px" }} iconType="line" />
             <Area
               type="monotone"
               dataKey="wpm"
-              stroke="#3b82f6"
+              stroke="hsl(var(--primary))"
               strokeWidth={2}
               fill="url(#wpmGradient)"
               name="WPM"
-              dot={{ fill: "#3b82f6", r: 3 }}
+              dot={{ fill: "hsl(var(--primary))", r: 3 }}
               activeDot={{ r: 5 }}
             />
             <Area

@@ -65,7 +65,7 @@ export const TypingControlPanel = memo(function TypingControlPanel({
             <>
               <Separator orientation="vertical" className="h-6 hidden sm:block" />
               <div className="flex items-center gap-2 text-sm">
-                <Button variant="secondary" size="sm" disabled className="border border-dashed bg-muted/50">
+                <Button variant="outline" size="sm" disabled className="border border-dashed">
                   {typedWords} / {totalWords}
                 </Button>
               </div>
