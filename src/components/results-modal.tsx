@@ -55,7 +55,7 @@ export function ResultsModal({ isOpen, onClose, result, onStartNewTest }: Result
   return (
     <Dialog open={isOpen} onOpenChange={onClose} modal>
       <DialogContent
-        className="max-w-3xl rounded-3xl max-h-[90vh] overflow-y-auto [&>button]:hidden"
+        className="max-w-3xl rounded-3xl max-h-[90vh] overflow-y-auto [&>button]:hidden outline-none"
         onInteractOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >

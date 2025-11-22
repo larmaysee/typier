@@ -75,6 +75,45 @@ export default function TypingDisplay({
     }
   }, [config.practiceMode, textContent, typedClusters.length, testCompleted, setActiveChar, textClusters]);
 
+  // Update active char immediately on input for instant keyboard feedback
+  useEffect(() => {
+    if (!config.practiceMode || !textContent || testCompleted || !isFocused) {
+      return;
+    }
+
+    const handleBeforeInput = (e: Event) => {
+      const inputEvent = e as InputEvent;
+      if (inputEvent.data) {
+        // Calculate what the next character will be after this input
+        const currentTypedLength = splitter.splitGraphemes(session.typedText).length;
+        const nextIndex = currentTypedLength + 1; // After current character is typed
+
+        if (nextIndex < textClusters.length) {
+          const nextChar = textClusters[nextIndex];
+          // Pre-emptively update to next character for instant feedback
+          requestAnimationFrame(() => {
+            setActiveChar(nextChar === " " ? "spacebar" : nextChar);
+          });
+        }
+      }
+    };
+
+    const input = inputRef.current;
+    if (input) {
+      input.addEventListener("beforeinput", handleBeforeInput);
+      return () => input.removeEventListener("beforeinput", handleBeforeInput);
+    }
+  }, [
+    config.practiceMode,
+    textContent,
+    testCompleted,
+    isFocused,
+    session.typedText,
+    textClusters,
+    setActiveChar,
+    inputRef,
+  ]);
+
   // Global keyboard event listener to focus input when not focused
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {

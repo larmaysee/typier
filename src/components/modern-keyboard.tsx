@@ -309,7 +309,7 @@ export default function ModernKeyboard() {
     }
 
     // Auto-release key highlight after short delay
-    setTimeout(() => setPressedKey(null), 200);
+    setTimeout(() => setPressedKey(null), 100);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
