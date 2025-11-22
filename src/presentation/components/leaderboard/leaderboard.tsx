@@ -1,18 +1,12 @@
 "use client";
 
+import { useAuth } from "@/components/auth-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { LanguageCode } from "@/domain/enums/languages";
-import { useAuth } from "@/components/auth-provider";
 import { useLeaderboard } from "@/presentation/hooks/leaderboard/use-leaderboard";
 import {
   Award,
@@ -23,8 +17,8 @@ import {
   Medal,
   RefreshCw,
   Target,
-  Trophy,
   TrendingUp,
+  Trophy,
   User,
   Zap,
 } from "lucide-react";
@@ -210,9 +204,7 @@ export function Leaderboard() {
               </div>
               <div className="text-right">
                 <p className="text-sm text-muted-foreground">Best WPM</p>
-                <p className="text-xl font-semibold">
-                  {formatWPM(leaderboard[currentUserRank - 1]?.bestWPM || 0)}
-                </p>
+                <p className="text-xl font-semibold">{formatWPM(leaderboard[currentUserRank - 1]?.bestWPM || 0)}</p>
               </div>
             </div>
           </CardContent>
@@ -247,9 +239,7 @@ export function Leaderboard() {
           <CardContent className="p-12 text-center">
             <Trophy className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
             <h3 className="text-xl font-semibold mb-2">No Rankings Yet</h3>
-            <p className="text-muted-foreground">
-              Be the first to complete a test and claim the top spot!
-            </p>
+            <p className="text-muted-foreground">Be the first to complete a test and claim the top spot!</p>
           </CardContent>
         </Card>
       )}
@@ -297,9 +287,7 @@ export function Leaderboard() {
                           <span className={`text-xs font-medium ${performanceLevel.color}`}>
                             {performanceLevel.label}
                           </span>
-                          <span className="text-xs text-muted-foreground">
-                            • {entry.totalTests} tests
-                          </span>
+                          <span className="text-xs text-muted-foreground">• {entry.totalTests} tests</span>
                         </div>
                       </div>
                     </div>
